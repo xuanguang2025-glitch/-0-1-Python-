@@ -1,0 +1,56 @@
+<svg width="1200" height="300" viewBox="0 0 1200 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="PYTHON LAB">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1220"/>
+      <stop offset="0.55" stop-color="#0e1c33"/>
+      <stop offset="1" stop-color="#123255"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#3776AB"/>
+      <stop offset="1" stop-color="#FFD43B"/>
+    </linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0H0V40" fill="none" stroke="#1d3355" stroke-width="1" opacity="0.35"/>
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="300" fill="url(#bg)"/>
+  <rect width="1200" height="300" fill="url(#grid)"/>
+  <circle cx="1050" cy="60" r="150" fill="#3776AB" opacity="0.08"/>
+  <circle cx="140" cy="260" r="120" fill="#FFD43B" opacity="0.06"/>
+
+  <!-- 代码窗装饰 -->
+  <g transform="translate(72,58)" opacity="0.9">
+    <rect width="300" height="184" rx="12" fill="#0a1526" stroke="#24405f"/>
+    <rect width="300" height="34" rx="12" fill="#132440"/>
+    <circle cx="20" cy="17" r="6" fill="#ff5f57"/>
+    <circle cx="40" cy="17" r="6" fill="#febc2e"/>
+    <circle cx="60" cy="17" r="6" fill="#28c840"/>
+    <text x="18" y="72" font-family="Consolas, Menlo, monospace" font-size="17" fill="#8ab4e8">&gt;&gt;&gt; learner.learn(</text>
+    <text x="18" y="100" font-family="Consolas, Menlo, monospace" font-size="17" fill="#8ab4e8">    "python", level=</text>
+    <text x="262" y="100" font-family="Consolas, Menlo, monospace" font-size="17" fill="#FFD43B">0</text>
+    <text x="282" y="100" font-family="Consolas, Menlo, monospace" font-size="17" fill="#8ab4e8">)</text>
+    <text x="18" y="134" font-family="Consolas, Menlo, monospace" font-size="17" fill="#7ee787">Out[1]: 'Python Master'</text>
+    <text x="18" y="162" font-family="Consolas, Menlo, monospace" font-size="15" fill="#5a7ba6"># 从 0 到 1，一路有 AI 导师陪跑</text>
+  </g>
+
+  <!-- 主标题 -->
+  <text x="420" y="132" font-family="Segoe UI, PingFang SC, Microsoft YaHei, sans-serif" font-size="76" font-weight="800" fill="#ffffff" letter-spacing="2">PYTHON <tspan fill="#FFD43B">LAB</tspan></text>
+  <rect x="424" y="152" width="560" height="6" rx="3" fill="url(#accent)"/>
+  <text x="424" y="196" font-family="Segoe UI, PingFang SC, Microsoft YaHei, sans-serif" font-size="26" fill="#c9d8ec">从零开始，系统掌握 Python</text>
+  <text x="424" y="232" font-family="Segoe UI, PingFang SC, Microsoft YaHei, sans-serif" font-size="19" fill="#7f95b3">18 阶段课程 · 浏览器在线编程 · 自动判题 · AI 导师 · 实战项目</text>
+
+  <!-- 底部徽标条 -->
+  <g font-family="Segoe UI, PingFang SC, sans-serif" font-size="15" fill="#9fb4d0">
+    <rect x="424" y="252" width="96" height="28" rx="14" fill="#152a47" stroke="#2b4a70"/>
+    <text x="446" y="271">FastAPI</text>
+    <rect x="530" y="252" width="104" height="28" rx="14" fill="#152a47" stroke="#2b4a70"/>
+    <text x="548" y="271">Next.js 15</text>
+    <rect x="644" y="252" width="82" height="28" rx="14" fill="#152a47" stroke="#2b4a70"/>
+    <text x="664" y="271">Monaco</text>
+    <rect x="736" y="252" width="132" height="28" rx="14" fill="#152a47" stroke="#2b4a70"/>
+    <text x="754" y="271">沙箱执行 · 判题</text>
+    <rect x="878" y="252" width="132" height="28" rx="14" fill="#152a47" stroke="#2b4a70"/>
+    <text x="896" y="271">AI Tutor（可插拔）</text>
+  </g>
+</svg>
