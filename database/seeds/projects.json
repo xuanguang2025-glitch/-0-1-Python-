@@ -1,0 +1,146 @@
+[
+  {
+    "slug": "project-calculator",
+    "title": "命令行计算器",
+    "summary": "用函数封装四则运算，实现一个可循环交互的命令行计算器。",
+    "description_md": "# 命令行计算器\n\n## 目标\n实现一个命令行计算器，支持 `+ - * /` 四则运算与退出命令。\n\n## 要求\n1. 用函数封装每种运算。\n2. 处理除零与非法输入。\n3. 循环读取输入直到用户输入 `q`。\n\n## 交付\n- 可运行的 `main.py`\n- 至少 3 个自定义函数",
+    "level": 1,
+    "difficulty": "easy",
+    "category": "basics",
+    "estimated_hours": 2,
+    "xp_reward": 100,
+    "steps": [
+      {"title": "定义运算函数", "detail": "实现 add/sub/mul/div 四个函数"},
+      {"title": "解析输入", "detail": "读取 `数字 运算符 数字` 形式并用 try/except 处理非法输入"},
+      {"title": "循环与退出", "detail": "用 while 循环，输入 q 时退出"}
+    ],
+    "rubric": {"correctness": 40, "error_handling": 30, "code_style": 30},
+    "files": [
+      {"path": "main.py", "language": "python", "is_entry": true, "description": "程序入口",
+       "content": "\"\"\"命令行计算器。\"\"\"\n\ndef add(a: float, b: float) -> float:\n    \"\"\"加法。\"\"\"\n    return a + b\n\ndef div(a: float, b: float) -> float:\n    \"\"\"除法，b 为 0 抛 ValueError。\"\"\"\n    if b == 0:\n        raise ValueError(\"除数不能为零\")\n    return a / b\n\ndef main() -> None:\n    \"\"\"主循环。\"\"\"\n    while True:\n        raw = input(\"请输入算式(如 1 + 2)，q 退出: \").strip()\n        if raw == \"q\":\n            break\n        # TODO: 解析 raw 并计算\n        print(\"TODO\")\n\nif __name__ == \"__main__\":\n    main()\n", "order_index": 0},
+      {"path": "README.md", "language": "markdown", "is_readonly": true, "description": "项目说明",
+       "content": "# 命令行计算器\n\n运行：`python main.py`\n\n支持四则运算，输入 `q` 退出。\n", "order_index": 1}
+    ],
+    "order_index": 0
+  },
+  {
+    "slug": "project-todo-cli",
+    "title": "待办清单 CLI",
+    "summary": "用 Python 实现一个把任务持久化到 JSON 文件的命令行待办工具。",
+    "description_md": "# 待办清单 CLI\n\n## 目标\n实现 `add` / `list` / `done` / `remove` 子命令，任务存到本地 JSON 文件。\n\n## 要求\n1. 用 `argparse` 解析子命令。\n2. 数据持久化到 `todos.json`。\n3. 每个任务有 id、内容、完成状态。",
+    "level": 2,
+    "difficulty": "medium",
+    "category": "files",
+    "estimated_hours": 4,
+    "xp_reward": 200,
+    "steps": [
+      {"title": "定义数据模型", "detail": "用字典表示任务，列表存储"},
+      {"title": "实现存储层", "detail": "读写 JSON 文件"},
+      {"title": "实现 CLI", "detail": "用 argparse 提供子命令"},
+      {"title": "完善体验", "detail": "格式化输出与错误提示"}
+    ],
+    "rubric": {"functionality": 40, "persistence": 20, "ux": 20, "code_style": 20},
+    "files": [
+      {"path": "todo.py", "language": "python", "is_entry": true, "description": "CLI 入口",
+       "content": "\"\"\"待办清单 CLI。\"\"\"\nimport argparse\nimport json\nfrom pathlib import Path\n\nDATA_FILE = Path(\"todos.json\")\n\ndef load_todos() -> list[dict]:\n    \"\"\"读取任务列表。\"\"\"\n    if DATA_FILE.exists():\n        return json.loads(DATA_FILE.read_text(encoding=\"utf-8\"))\n    return []\n\ndef save_todos(todos: list[dict]) -> None:\n    \"\"\"保存任务列表。\"\"\"\n    DATA_FILE.write_text(json.dumps(todos, ensure_ascii=False, indent=2), encoding=\"utf-8\")\n\ndef main() -> None:\n    \"\"\"解析命令行并分发。\"\"\"\n    parser = argparse.ArgumentParser(prog=\"todo\")\n    sub = parser.add_subparsers(dest=\"cmd\", required=True)\n    add = sub.add_parser(\"add\"); add.add_argument(\"text\")\n    sub.add_parser(\"list\")\n    # TODO: 实现 add/list/done/remove\n    args = parser.parse_args()\n    print(args)\n\nif __name__ == \"__main__\":\n    main()\n", "order_index": 0}
+    ],
+    "order_index": 1
+  },
+  {
+    "slug": "project-log-analyzer",
+    "title": "日志分析器",
+    "summary": "解析服务器日志，统计各等级数量并生成 Markdown 报表。",
+    "description_md": "# 日志分析器\n\n## 目标\n读取日志文件，解析出时间、等级、消息，统计后生成报表。\n\n## 要求\n1. 用正则解析日志行。\n2. 统计各等级数量与错误 Top 列表。\n3. 输出 Markdown 报表文件。",
+    "level": 2,
+    "difficulty": "medium",
+    "category": "regex",
+    "estimated_hours": 5,
+    "xp_reward": 250,
+    "steps": [
+      {"title": "设计解析规则", "detail": "用正则匹配日志格式"},
+      {"title": "统计聚合", "detail": "用 Counter 统计等级与错误"},
+      {"title": "生成报表", "detail": "渲染 Markdown 并写文件"}
+    ],
+    "rubric": {"parsing": 30, "aggregation": 30, "report": 20, "robustness": 20},
+    "files": [
+      {"path": "analyzer.py", "language": "python", "is_entry": true, "description": "分析入口",
+       "content": "\"\"\"日志分析器。\"\"\"\nimport re\nfrom collections import Counter\nfrom pathlib import Path\n\nLINE_RE = re.compile(r\"^(?P<ts>\\S+ \\S+) \\[(?P<level>\\w+)\\] (?P<msg>.*)$\")\n\ndef parse_file(path: str) -> list[dict]:\n    \"\"\"解析日志文件为结构化记录。\"\"\"\n    records = []\n    for line in Path(path).read_text(encoding=\"utf-8\").splitlines():\n        m = LINE_RE.match(line)\n        if m:\n            records.append(m.groupdict())\n    return records\n\ndef summarize(records: list[dict]) -> dict:\n    \"\"\"统计各等级数量。\"\"\"\n    return dict(Counter(r[\"level\"] for r in records))\n\ndef main() -> None:\n    \"\"\"入口：读取 sample.log 并打印统计。\"\"\"\n    records = parse_file(\"sample.log\")\n    print(summarize(records))\n\nif __name__ == \"__main__\":\n    main()\n", "order_index": 0},
+      {"path": "sample.log", "language": "text", "is_readonly": true, "description": "示例日志",
+       "content": "2026-01-01 08:00:01 [INFO] 服务启动\n2026-01-01 08:00:02 [ERROR] 数据库连接超时\n2026-01-01 08:00:03 [WARN] 重试中\n2026-01-01 08:00:04 [ERROR] 重试失败\n", "order_index": 1}
+    ],
+    "order_index": 2
+  },
+  {
+    "slug": "project-web-api",
+    "title": "待办事项 Web API",
+    "summary": "用 FastAPI 实现一个带 CRUD 与统一响应的待办 API 服务。",
+    "description_md": "# 待办事项 Web API\n\n## 目标\n实现 RESTful 待办 API：创建、列表、更新、删除，统一响应结构。\n\n## 要求\n1. 用 Pydantic 定义请求/响应模型。\n2. 统一响应 `{success, data, message}`。\n3. 提供 `/api/todos` 全套接口与错误处理。",
+    "level": 3,
+    "difficulty": "hard",
+    "category": "oop",
+    "estimated_hours": 8,
+    "xp_reward": 400,
+    "steps": [
+      {"title": "搭建 FastAPI 应用", "detail": "创建 app 与路由"},
+      {"title": "定义模型", "detail": "Pydantic 请求/响应模型"},
+      {"title": "实现 CRUD", "detail": "内存或 SQLite 存储"},
+      {"title": "统一响应与错误", "detail": "封装响应工具与异常处理"}
+    ],
+    "rubric": {"api_design": 30, "validation": 25, "error_handling": 25, "code_style": 20},
+    "files": [
+      {"path": "app.py", "language": "python", "is_entry": true, "description": "FastAPI 应用",
+       "content": "\"\"\"待办事项 Web API。\"\"\"\nfrom fastapi import FastAPI, HTTPException\nfrom pydantic import BaseModel, Field\n\napp = FastAPI(title=\"Todo API\", version=\"1.0.0\")\n_db: dict[int, dict] = {}\n_next_id = 0\n\nclass TodoIn(BaseModel):\n    \"\"\"创建/更新请求体。\"\"\"\n    title: str = Field(min_length=1, max_length=100)\n    done: bool = False\n\n@app.post(\"/api/todos\", status_code=201)\nasync def create(todo: TodoIn) -> dict:\n    \"\"\"创建待办。\"\"\"\n    global _next_id\n    _next_id += 1\n    _db[_next_id] = {\"id\": _next_id, **todo.model_dump()}\n    return {\"success\": True, \"data\": _db[_next_id], \"message\": \"创建成功\"}\n\n@app.get(\"/api/todos\")\nasync def listing() -> dict:\n    \"\"\"列出全部待办。\"\"\"\n    return {\"success\": True, \"data\": list(_db.values())}\n\n@app.delete(\"/api/todos/{todo_id}\")\nasync def remove(todo_id: int) -> dict:\n    \"\"\"删除待办。\"\"\"\n    if todo_id not in _db:\n        raise HTTPException(status_code=404, detail=\"未找到该待办\")\n    _db.pop(todo_id)\n    return {\"success\": True, \"data\": {\"id\": todo_id}, \"message\": \"已删除\"}\n", "order_index": 0},
+      {"path": "requirements.txt", "language": "text", "is_readonly": true, "description": "依赖",
+       "content": "fastapi>=0.115\nuvicorn[standard]>=0.30\npydantic>=2.7\n", "order_index": 1}
+    ],
+    "order_index": 3
+  },
+  {
+    "slug": "project-data-report",
+    "title": "销售数据报表",
+    "summary": "用 pandas 清洗销售数据、聚合分析并导出报表与图表。",
+    "description_md": "# 销售数据报表\n\n## 目标\n读取销售 CSV，清洗数据，按地区与月份聚合，导出报表与柱状图。\n\n## 要求\n1. 处理缺失值与类型转换。\n2. 按地区/月份分组聚合。\n3. 导出 CSV 报表与 PNG 图表。",
+    "level": 3,
+    "difficulty": "medium",
+    "category": "stdlib",
+    "estimated_hours": 6,
+    "xp_reward": 350,
+    "steps": [
+      {"title": "读取与清洗", "detail": "读 CSV，处理缺失与类型"},
+      {"title": "分组聚合", "detail": "按地区/月份统计"},
+      {"title": "可视化", "detail": "生成柱状图"},
+      {"title": "导出报表", "detail": "写 CSV 与图片"}
+    ],
+    "rubric": {"cleaning": 30, "analysis": 30, "visualization": 20, "report": 20},
+    "files": [
+      {"path": "report.py", "language": "python", "is_entry": true, "description": "报表生成",
+       "content": "\"\"\"销售数据报表生成。\"\"\"\nfrom pathlib import Path\nimport pandas as pd\n\ndef analyze(csv_path: str, out_dir: str = \"reports\") -> dict:\n    \"\"\"读取销售数据并生成报表。\"\"\"\n    df = pd.read_csv(csv_path, encoding=\"utf-8\")\n    df = df.dropna(subset=[\"region\"])\n    df[\"amount\"] = pd.to_numeric(df[\"amount\"], errors=\"coerce\").fillna(0)\n    by_region = df.groupby(\"region\")[\"amount\"].sum().sort_values(ascending=False)\n    Path(out_dir).mkdir(exist_ok=True)\n    by_region.to_csv(Path(out_dir) / \"by_region.csv\", encoding=\"utf-8\")\n    return {\"total\": float(df[\"amount\"].sum()), \"regions\": len(by_region)}\n\ndef main() -> None:\n    \"\"\"入口。\"\"\"\n    print(analyze(\"sales.csv\"))\n\nif __name__ == \"__main__\":\n    main()\n", "order_index": 0},
+      {"path": "sales.csv", "language": "text", "is_readonly": true, "description": "示例数据",
+       "content": "region,month,amount\n华东,1,12000\n华北,1,8000\n华东,2,15000\n华南,2,9000\n华北,3,11000\n", "order_index": 1}
+    ],
+    "order_index": 4
+  },
+  {
+    "slug": "project-ai-assistant",
+    "title": "AI 学习助手",
+    "summary": "封装一个大模型 API 客户端，为代码提供解释与改进建议。",
+    "description_md": "# AI 学习助手\n\n## 目标\n封装 LLM 客户端，输入一段 Python 代码，返回代码解释与改进建议。\n\n## 要求\n1. 密钥从环境变量读取。\n2. 构造清晰的提示（角色 + 任务 + 输出格式）。\n3. 处理超时与 API 异常，失败有兜底。",
+    "level": 3,
+    "difficulty": "hard",
+    "category": "concurrency",
+    "estimated_hours": 6,
+    "xp_reward": 400,
+    "steps": [
+      {"title": "封装客户端", "detail": "读取环境变量，构造请求"},
+      {"title": "设计提示", "detail": "系统提示 + 用户代码"},
+      {"title": "错误处理", "detail": "超时/异常兜底"},
+      {"title": "组装流程", "detail": "串联成完整调用"}
+    ],
+    "rubric": {"security": 30, "prompt_quality": 30, "robustness": 20, "code_style": 20},
+    "files": [
+      {"path": "assistant.py", "language": "python", "is_entry": true, "description": "AI 助手入口",
+       "content": "\"\"\"AI 学习助手：为代码提供解释与建议。\"\"\"\nimport os\nimport httpx\n\nSYSTEM = \"你是一名严谨的 Python 助教，解释代码并给出改进建议，代码用 markdown 代码块。\"\n\ndef review_code(code: str, model: str = \"gpt-4o-mini\") -> str:\n    \"\"\"调用大模型评审代码。\"\"\"\n    api_key = os.environ.get(\"OPENAI_API_KEY\")\n    if not api_key:\n        return \"未配置 OPENAI_API_KEY，使用本地规则提示\"\n    base = os.environ.get(\"OPENAI_BASE_URL\", \"https://api.openai.com/v1\")\n    messages = [\n        {\"role\": \"system\", \"content\": SYSTEM},\n        {\"role\": \"user\", \"content\": f\"请评审以下代码：\\n```python\\n{code}\\n```\"},\n    ]\n    try:\n        resp = httpx.post(\n            f\"{base}/chat/completions\",\n            headers={\"Authorization\": f\"Bearer {api_key}\"},\n            json={\"model\": model, \"messages\": messages, \"temperature\": 0.2},\n            timeout=30,\n        )\n        resp.raise_for_status()\n        return resp.json()[\"choices\"][0][\"message\"][\"content\"]\n    except (httpx.HTTPError, KeyError) as exc:\n        return f\"AI 服务暂不可用：{exc}\"\n\ndef main() -> None:\n    \"\"\"入口。\"\"\"\n    sample = \"def f(l):\\n    return [i for i in l if i % 2 == 0]\\n\"\n    print(review_code(sample))\n\nif __name__ == \"__main__\":\n    main()\n", "order_index": 0}
+    ],
+    "order_index": 5
+  }
+]

@@ -1,0 +1,758 @@
+[
+  {
+    "slug": "stage-01-python-basics",
+    "stage_no": 1,
+    "title": "阶段 1 · Python 入门",
+    "subtitle": "装好环境，写出第一行能跑的代码",
+    "level": "beginner",
+    "icon": "Rocket",
+    "estimated_hours": 6,
+    "description_md": "从零认识 Python：环境安装、第一个程序、变量与数据类型、输入输出与代码规范。学完你能独立完成简单的交互式小程序。",
+    "chapters": [
+      {
+        "slug": "ch-01",
+        "title": "环境与第一个程序",
+        "summary_md": "安装 Python 与编辑器，理解解释器如何执行代码，写出 Hello World 并用变量保存数据。",
+        "lessons": [
+          { "slug": "install-python", "title": "安装 Python 与开发环境", "summary": "下载安装、验证版本、配置 VS Code", "lesson_type": "concept", "difficulty": "easy", "estimated_minutes": 20, "topics": ["install-python", "python-intro"], "primary_topic": "install-python" },
+          { "slug": "first-program", "title": "第一个程序 Hello World", "summary": "print 函数、脚本执行与交互式解释器", "lesson_type": "practice", "difficulty": "easy", "estimated_minutes": 15, "topics": ["first-program"], "primary_topic": "first-program" },
+          { "slug": "variables-basics", "title": "变量与赋值", "summary": "命名规则、动态类型、内存模型直觉", "lesson_type": "concept", "difficulty": "easy", "estimated_minutes": 20, "topics": ["variables"], "primary_topic": "variables" }
+        ]
+      },
+      {
+        "slug": "ch-02",
+        "title": "数据类型与运算",
+        "summary_md": "掌握 int/float/str/bool 四种基本类型与类型转换、运算符优先级。",
+        "lessons": [
+          { "slug": "data-types-intro", "title": "基本数据类型", "summary": "整数、浮点、字符串、布尔值", "lesson_type": "concept", "difficulty": "easy", "estimated_minutes": 20, "topics": ["data-types"], "primary_topic": "data-types" },
+          { "slug": "type-conversion", "title": "类型转换", "summary": "int()/float()/str()/bool() 与隐式转换陷阱", "lesson_type": "practice", "difficulty": "easy", "estimated_minutes": 18, "topics": ["type-conversion"], "primary_topic": "type-conversion" },
+          { "slug": "operators-intro", "title": "运算符与表达式", "summary": "算术、比较、赋值运算符与优先级", "lesson_type": "practice", "difficulty": "easy", "estimated_minutes": 20, "topics": ["data-types", "python-basics"], "primary_topic": "data-types" }
+        ]
+      },
+      {
+        "slug": "ch-03",
+        "title": "输入输出与代码规范",
+        "summary_md": "用 input 读入数据、用格式化输出结果，并从一开始就写出符合 PEP 8 的代码。",
+        "lessons": [
+          { "slug": "input-output", "title": "输入 input 与输出 print", "summary": "读取一行输入、格式化输出多值", "lesson_type": "practice", "difficulty": "easy", "estimated_minutes": 18, "topics": ["input-output"], "primary_topic": "input-output" },
+          { "slug": "comments-docstring", "title": "注释与文档字符串", "summary": "# 注释、三引号文档串与可读性", "lesson_type": "concept", "difficulty": "easy", "estimated_minutes": 12, "topics": ["comments-docstring"], "primary_topic": "comments-docstring" },
+          { "slug": "pep8-style", "title": "PEP 8 代码规范", "summary": "缩进、命名、行长与格式化工具", "lesson_type": "concept", "difficulty": "easy", "estimated_minutes": 15, "topics": ["pep8-style"], "primary_topic": "pep8-style" }
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "stage-02-control-flow",
+    "stage_no": 2,
+    "title": "阶段 2 · 流程控制",
+    "subtitle": "让程序学会判断与重复",
+    "level": "beginner",
+    "icon": "GitBranch",
+    "estimated_hours": 7,
+    "description_md": "条件分支与循环是程序的骨架。本阶段覆盖 if/else、while、for、break/continue 与嵌套循环。",
+    "chapters": [
+      {
+        "slug": "ch-01",
+        "title": "条件判断",
+        "summary_md": "布尔值、比较运算、if/elif/else 与其缩进规则。",
+        "lessons": [
+          { "slug": "boolean-logic", "title": "布尔值与逻辑运算", "summary": "and/or/not 与短路求值", "lesson_type": "concept", "difficulty": "easy", "estimated_minutes": 18, "topics": ["boolean-logic"], "primary_topic": "boolean-logic" },
+          { "slug": "if-else", "title": "if / elif / else", "summary": "多分支条件与缩进块", "lesson_type": "practice", "difficulty": "easy", "estimated_minutes": 20, "topics": ["if-else"], "primary_topic": "if-else" },
+          { "slug": "nested-if", "title": "嵌套条件与三元表达式", "summary": "层级判断与一行条件表达式", "lesson_type": "practice", "difficulty": "easy", "estimated_minutes": 18, "topics": ["if-else"], "primary_topic": "if-else" }
+        ]
+      },
+      {
+        "slug": "ch-02",
+        "title": "循环基础",
+        "summary_md": "while 与 for 的适用场景、range 序列生成与 enumerate 索引遍历。",
+        "lessons": [
+          { "slug": "while-loop", "title": "while 循环", "summary": "条件循环、累加器与死循环防范", "lesson_type": "practice", "difficulty": "easy", "estimated_minutes": 20, "topics": ["while-loop"], "primary_topic": "while-loop" },
+          { "slug": "for-loop", "title": "for 循环", "summary": "遍历可迭代对象", "lesson_type": "practice", "difficulty": "easy", "estimated_minutes": 20, "topics": ["for-loop"], "primary_topic": "for-loop" },
+          { "slug": "range-enumerate", "title": "range 与 enumerate", "summary": "生成序列、拿到下标", "lesson_type": "practice", "difficulty": "easy", "estimated_minutes": 18, "topics": ["range-enumerate"], "primary_topic": "range-enumerate" }
+        ]
+      },
+      {
+        "slug": "ch-03",
+        "title": "循环进阶",
+        "summary_md": "提前退出、跳过、嵌套与 for/else 语义。",
+        "lessons": [
+          { "slug": "break-continue", "title": "break 与 continue", "summary": "跳出与跳过", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 18, "topics": ["break-continue"], "primary_topic": "break-continue" },
+          { "slug": "nested-loops", "title": "嵌套循环", "summary": "打印图形、二维遍历与复杂度直觉", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 22, "topics": ["nested-loops"], "primary_topic": "nested-loops" },
+          { "slug": "loop-else", "title": "循环 else 子句", "summary": "else 在未被 break 时执行", "lesson_type": "concept", "difficulty": "medium", "estimated_minutes": 15, "topics": ["loop-else"], "primary_topic": "loop-else" }
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "stage-03-data-structures",
+    "stage_no": 3,
+    "title": "阶段 3 · 数据结构",
+    "subtitle": "字符串、列表、元组、字典、集合",
+    "level": "beginner",
+    "icon": "Boxes",
+    "estimated_hours": 9,
+    "description_md": "五大数据结构是 Python 日常使用的核心。掌握它们的方法与适用场景，代码量能直接减半。",
+    "chapters": [
+      {
+        "slug": "ch-01",
+        "title": "字符串",
+        "summary_md": "创建、索引、切片与常用方法，以及 f-string 格式化。",
+        "lessons": [
+          { "slug": "string-basics", "title": "字符串基础与切片", "summary": "索引、切片、不可变性", "lesson_type": "concept", "difficulty": "easy", "estimated_minutes": 20, "topics": ["string-basics"], "primary_topic": "string-basics" },
+          { "slug": "string-methods", "title": "字符串常用方法", "summary": "split/join/strip/replace/find", "lesson_type": "practice", "difficulty": "easy", "estimated_minutes": 22, "topics": ["string-methods"], "primary_topic": "string-methods" },
+          { "slug": "f-string", "title": "f-string 格式化", "summary": "插值、对齐、精度与调试写法", "lesson_type": "practice", "difficulty": "easy", "estimated_minutes": 18, "topics": ["f-string"], "primary_topic": "f-string" }
+        ]
+      },
+      {
+        "slug": "ch-02",
+        "title": "列表与元组",
+        "summary_md": "可变序列与不可变序列的差异、增删改查与常用内置函数。",
+        "lessons": [
+          { "slug": "list-basics", "title": "列表基础", "summary": "创建、索引、切片、遍历", "lesson_type": "concept", "difficulty": "easy", "estimated_minutes": 20, "topics": ["list-basics"], "primary_topic": "list-basics" },
+          { "slug": "list-methods", "title": "列表常用操作", "summary": "append/extend/insert/remove/pop/sort", "lesson_type": "practice", "difficulty": "easy", "estimated_minutes": 22, "topics": ["list-methods"], "primary_topic": "list-methods" },
+          { "slug": "tuple", "title": "元组与解包", "summary": "不可变优势、多变量赋值、函数返回", "lesson_type": "concept", "difficulty": "easy", "estimated_minutes": 18, "topics": ["tuple"], "primary_topic": "tuple" }
+        ]
+      },
+      {
+        "slug": "ch-03",
+        "title": "字典与集合",
+        "summary_md": "键值映射与去重集合，理解哈希与平均 O(1) 查找。",
+        "lessons": [
+          { "slug": "dict-basics", "title": "字典基础", "summary": "键值对、get、in 与遍历", "lesson_type": "concept", "difficulty": "easy", "estimated_minutes": 20, "topics": ["dict-basics"], "primary_topic": "dict-basics" },
+          { "slug": "dict-methods", "title": "字典常用操作", "summary": "items/keys/values/update/setdefault", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 22, "topics": ["dict-methods"], "primary_topic": "dict-methods" },
+          { "slug": "set-basics", "title": "集合与去重", "summary": "set 创建、去重、in 判断", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 18, "topics": ["set-basics"], "primary_topic": "set-basics" }
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "stage-04-functions",
+    "stage_no": 4,
+    "title": "阶段 4 · 函数",
+    "subtitle": "把代码拆成可复用的积木",
+    "level": "beginner",
+    "icon": "Braces",
+    "estimated_hours": 8,
+    "description_md": "函数是组织代码的第一工具。本阶段从定义调用讲到参数、返回值、作用域、lambda 与递归。",
+    "chapters": [
+      {
+        "slug": "ch-01",
+        "title": "函数基础",
+        "summary_md": "def 语法、参数传递、返回值与 docstring。",
+        "lessons": [
+          { "slug": "function-basics", "title": "函数定义与调用", "summary": "def、参数、返回值、文档字符串", "lesson_type": "concept", "difficulty": "easy", "estimated_minutes": 22, "topics": ["function-basics"], "primary_topic": "function-basics" },
+          { "slug": "parameters-defaults", "title": "参数与默认值", "summary": "位置参数、默认参数陷阱", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 20, "topics": ["parameters-defaults"], "primary_topic": "parameters-defaults" },
+          { "slug": "return-value", "title": "返回值与多重返回", "summary": "None、元组解包返回", "lesson_type": "practice", "difficulty": "easy", "estimated_minutes": 18, "topics": ["return-value"], "primary_topic": "return-value" }
+        ]
+      },
+      {
+        "slug": "ch-02",
+        "title": "参数进阶与作用域",
+        "summary_md": "*args/**kwargs、关键字参数与 LEGB 作用域规则。",
+        "lessons": [
+          { "slug": "keyword-arguments", "title": "关键字参数与仅关键字参数", "summary": "* 分隔符、命名清晰化", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 20, "topics": ["keyword-arguments"], "primary_topic": "keyword-arguments" },
+          { "slug": "args-kwargs", "title": "*args 与 **kwargs", "summary": "可变参数打包与解包", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 22, "topics": ["args-kwargs"], "primary_topic": "args-kwargs" },
+          { "slug": "scope-legb", "title": "作用域 LEGB", "summary": "局部/嵌套/全局/内置，global 与 nonlocal", "lesson_type": "concept", "difficulty": "medium", "estimated_minutes": 20, "topics": ["scope-legb"], "primary_topic": "scope-legb" }
+        ]
+      },
+      {
+        "slug": "ch-03",
+        "title": "函数式入门",
+        "summary_md": "lambda、推导式与递归——用更少的代码表达更多逻辑。",
+        "lessons": [
+          { "slug": "lambda", "title": "lambda 表达式", "summary": "匿名函数与排序 key", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 18, "topics": ["lambda"], "primary_topic": "lambda" },
+          { "slug": "list-comprehension", "title": "列表推导式", "summary": "一行生成列表、条件过滤", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 22, "topics": ["list-comprehension"], "primary_topic": "list-comprehension" },
+          { "slug": "recursion", "title": "递归", "summary": "基线条件与递归条件、阶乘与斐波那契", "lesson_type": "practice", "difficulty": "hard", "estimated_minutes": 25, "topics": ["recursion"], "primary_topic": "recursion" }
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "stage-05-modules-packages",
+    "stage_no": 5,
+    "title": "阶段 5 · 模块与包",
+    "subtitle": "拆分文件、管理依赖、组织工程",
+    "level": "beginner",
+    "icon": "Package",
+    "estimated_hours": 6,
+    "description_md": "单文件写不下时就要拆模块。本阶段讲 import 机制、包结构、venv 与 pip 依赖管理。",
+    "chapters": [
+      {
+        "slug": "ch-01",
+        "title": "模块基础",
+        "summary_md": "import 的三种写法、__name__ 语义与模块搜索路径。",
+        "lessons": [
+          { "slug": "import-mechanism", "title": "import 机制", "summary": "import / from-import / as 与 sys.path", "lesson_type": "concept", "difficulty": "medium", "estimated_minutes": 22, "topics": ["import-mechanism"], "primary_topic": "import-mechanism" },
+          { "slug": "module-package", "title": "模块与包", "summary": "__init__.py、包层级与命名空间", "lesson_type": "concept", "difficulty": "medium", "estimated_minutes": 20, "topics": ["module-package"], "primary_topic": "module-package" },
+          { "slug": "name-main", "title": "__name__ == '__main__'", "summary": "脚本与模块双模式", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 15, "topics": ["name-main"], "primary_topic": "name-main" }
+        ]
+      },
+      {
+        "slug": "ch-02",
+        "title": "环境与依赖",
+        "summary_md": "venv 隔离环境、pip 安装依赖、requirements.txt 锁定版本。",
+        "lessons": [
+          { "slug": "pip-venv", "title": "pip 与虚拟环境", "summary": "venv 创建、激活、pip 常用命令", "lesson_type": "practice", "difficulty": "easy", "estimated_minutes": 20, "topics": ["pip-venv"], "primary_topic": "pip-venv" },
+          { "slug": "standard-library", "title": "标准库速览", "summary": "os/sys/json/datetime/collections", "lesson_type": "concept", "difficulty": "medium", "estimated_minutes": 22, "topics": ["standard-library"], "primary_topic": "standard-library" },
+          { "slug": "project-layout", "title": "工程目录结构", "summary": "src 布局、tests、README 与 .gitignore", "lesson_type": "concept", "difficulty": "medium", "estimated_minutes": 18, "topics": ["project-layout"], "primary_topic": "project-layout" }
+        ]
+      },
+      {
+        "slug": "ch-03",
+        "title": "模块化实践",
+        "summary_md": "写自己的模块与包，处理相对导入与循环导入。",
+        "lessons": [
+          { "slug": "create-module", "title": "编写自己的模块", "summary": "拆分工具函数、__all__ 控制导出", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 20, "topics": ["module-package"], "primary_topic": "module-package" },
+          { "slug": "package-init", "title": "包的 __init__.py 设计", "summary": "聚合导出、延迟导入", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 18, "topics": ["module-package", "import-mechanism"], "primary_topic": "module-package" },
+          { "slug": "relative-import", "title": "相对导入与循环导入", "summary": "from .x import y、循环依赖的破解", "lesson_type": "concept", "difficulty": "hard", "estimated_minutes": 22, "topics": ["import-mechanism"], "primary_topic": "import-mechanism" }
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "stage-06-exceptions",
+    "stage_no": 6,
+    "title": "阶段 6 · 异常处理",
+    "subtitle": "让程序在出错时依然优雅",
+    "level": "intermediate",
+    "icon": "ShieldAlert",
+    "estimated_hours": 6,
+    "description_md": "异常不是 bug，是控制流的一部分。本阶段讲 try/except/finally、自定义异常、断言与错误恢复策略。",
+    "chapters": [
+      {
+        "slug": "ch-01",
+        "title": "异常基础",
+        "summary_md": "异常对象、traceback 阅读与 try 语句全貌。",
+        "lessons": [
+          { "slug": "exception-basics", "title": "异常是什么", "summary": "异常传播、traceback 从下往上读", "lesson_type": "concept", "difficulty": "easy", "estimated_minutes": 18, "topics": ["exception-basics"], "primary_topic": "exception-basics" },
+          { "slug": "try-except", "title": "try / except", "summary": "捕获指定异常、避免裸 except", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 20, "topics": ["try-except"], "primary_topic": "try-except" },
+          { "slug": "finally-else", "title": "finally 与 else", "summary": "资源释放与成功分支", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 18, "topics": ["finally-else"], "primary_topic": "finally-else" }
+        ]
+      },
+      {
+        "slug": "ch-02",
+        "title": "异常进阶",
+        "summary_md": "自定义异常类、异常层次设计与断言使用边界。",
+        "lessons": [
+          { "slug": "raise-custom", "title": "抛出与自定义异常", "summary": "raise、继承 Exception、携带上下文", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 22, "topics": ["raise-custom"], "primary_topic": "raise-custom" },
+          { "slug": "exception-hierarchy", "title": "异常类层次与捕获顺序", "summary": "从具体到宽泛、Exception 结构", "lesson_type": "concept", "difficulty": "medium", "estimated_minutes": 20, "topics": ["exception-hierarchy"], "primary_topic": "exception-hierarchy" },
+          { "slug": "assertions", "title": "断言与调试期检查", "summary": "assert 的使用与禁用场景", "lesson_type": "concept", "difficulty": "easy", "estimated_minutes": 15, "topics": ["assertions"], "primary_topic": "assertions" }
+        ]
+      },
+      {
+        "slug": "ch-03",
+        "title": "健壮性实践",
+        "summary_md": "防御式编程、日志替代 print、可恢复的降级策略。",
+        "lessons": [
+          { "slug": "defensive-programming", "title": "防御式编程", "summary": "入参校验、早返回、失败快速暴露", "lesson_type": "concept", "difficulty": "medium", "estimated_minutes": 20, "topics": ["exception-basics", "try-except"], "primary_topic": "exception-basics" },
+          { "slug": "logging-basics", "title": "用 logging 代替 print", "summary": "日志级别、格式与输出目标", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 20, "topics": ["standard-library"], "primary_topic": "standard-library" },
+          { "slug": "error-recovery", "title": "错误恢复与降级", "summary": "重试、回退与不可恢复错误的区分", "lesson_type": "concept", "difficulty": "hard", "estimated_minutes": 22, "topics": ["try-except"], "primary_topic": "try-except" }
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "stage-07-files",
+    "stage_no": 7,
+    "title": "阶段 7 · 文件操作",
+    "subtitle": "读写磁盘上的真实数据",
+    "level": "intermediate",
+    "icon": "FileText",
+    "estimated_hours": 6,
+    "description_md": "程序的价值在于处理真实数据。本阶段讲文本/二进制文件、with 语句、pathlib 路径、CSV/JSON 与编码问题。",
+    "chapters": [
+      {
+        "slug": "ch-01",
+        "title": "文件读写",
+        "summary_md": "open 模式、读写方法、with 自动关闭与编码声明。",
+        "lessons": [
+          { "slug": "file-read-write", "title": "文件读写基础", "summary": "open/read/write/close、模式字符", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 22, "topics": ["file-read-write"], "primary_topic": "file-read-write" },
+          { "slug": "with-statement", "title": "with 语句与资源管理", "summary": "上下文管理器、异常下也能关闭", "lesson_type": "concept", "difficulty": "medium", "estimated_minutes": 18, "topics": ["with-statement"], "primary_topic": "with-statement" },
+          { "slug": "encoding-issues", "title": "编码与中文乱码", "summary": "UTF-8、GBK、errors 参数", "lesson_type": "concept", "difficulty": "medium", "estimated_minutes": 20, "topics": ["encoding-issues"], "primary_topic": "encoding-issues" }
+        ]
+      },
+      {
+        "slug": "ch-02",
+        "title": "路径与数据格式",
+        "summary_md": "pathlib 现代路径操作、CSV 表格与 JSON 结构化数据的读写。",
+        "lessons": [
+          { "slug": "pathlib", "title": "pathlib 路径操作", "summary": "Path、拼接、遍历、创建删除", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 22, "topics": ["pathlib"], "primary_topic": "pathlib" },
+          { "slug": "csv-json", "title": "CSV 与 JSON", "summary": "csv 模块读写、json 序列化反序列化", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 24, "topics": ["csv-json"], "primary_topic": "csv-json" },
+          { "slug": "os-path", "title": "os 与目录遍历", "summary": "os.walk、环境变量、进程信息", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 18, "topics": ["os-path"], "primary_topic": "os-path" }
+        ]
+      },
+      {
+        "slug": "ch-03",
+        "title": "文件实战",
+        "summary_md": "批量重命名、日志解析与配置文件读写三个真实小任务。",
+        "lessons": [
+          { "slug": "file-batch-rename", "title": "批量重命名文件", "summary": "遍历目录 + 规则化改名", "lesson_type": "project", "difficulty": "medium", "estimated_minutes": 24, "topics": ["file-batch"], "primary_topic": "file-batch" },
+          { "slug": "log-parsing-basics", "title": "解析日志文件", "summary": "按行匹配、统计频次、输出报表", "lesson_type": "project", "difficulty": "medium", "estimated_minutes": 24, "topics": ["log-parsing"], "primary_topic": "log-parsing" },
+          { "slug": "config-file", "title": "读写配置文件", "summary": "JSON/INI 配置加载与默认值合并", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 20, "topics": ["csv-json", "file-read-write"], "primary_topic": "csv-json" }
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "stage-08-oop",
+    "stage_no": 8,
+    "title": "阶段 8 · 面向对象",
+    "subtitle": "用类组织复杂业务",
+    "level": "intermediate",
+    "icon": "Shapes",
+    "estimated_hours": 9,
+    "description_md": "面向对象是构建中大型程序的基础。覆盖类与实例、继承与多态、魔术方法、property 与 dataclass。",
+    "chapters": [
+      {
+        "slug": "ch-01",
+        "title": "类与对象",
+        "summary_md": "class 定义、__init__、实例属性与类属性的区别。",
+        "lessons": [
+          { "slug": "class-basics", "title": "类与对象", "summary": "class、self、实例化与属性访问", "lesson_type": "concept", "difficulty": "medium", "estimated_minutes": 22, "topics": ["class-basics"], "primary_topic": "class-basics" },
+          { "slug": "init-method", "title": "构造方法 __init__", "summary": "初始化参数、校验与默认值", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 20, "topics": ["init-method"], "primary_topic": "init-method" },
+          { "slug": "instance-class-attr", "title": "实例属性与类属性", "summary": "共享状态陷阱、可变类属性", "lesson_type": "concept", "difficulty": "medium", "estimated_minutes": 20, "topics": ["instance-class-attr"], "primary_topic": "instance-class-attr" }
+        ]
+      },
+      {
+        "slug": "ch-02",
+        "title": "继承与多态",
+        "summary_md": "继承复用、方法重写、super() 与 MRO 解析顺序。",
+        "lessons": [
+          { "slug": "inheritance", "title": "继承与方法重写", "summary": "單继承、super()、is-a 关系", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 24, "topics": ["inheritance"], "primary_topic": "inheritance" },
+          { "slug": "polymorphism", "title": "多态与鸭子类型", "summary": "统一接口、运行时绑定", "lesson_type": "concept", "difficulty": "hard", "estimated_minutes": 20, "topics": ["polymorphism"], "primary_topic": "polymorphism" },
+          { "slug": "mro", "title": "MRO 与方法解析顺序", "summary": "多继承、C3 线性化与 super 链", "lesson_type": "concept", "difficulty": "hard", "estimated_minutes": 22, "topics": ["mro"], "primary_topic": "mro" }
+        ]
+      },
+      {
+        "slug": "ch-03",
+        "title": "高级特性",
+        "summary_md": "魔术方法、property 封装与 dataclass 数据类。",
+        "lessons": [
+          { "slug": "magic-methods", "title": "魔术方法", "summary": "__str__/__repr__/__eq__/__len__", "lesson_type": "practice", "difficulty": "hard", "estimated_minutes": 24, "topics": ["magic-methods"], "primary_topic": "magic-methods" },
+          { "slug": "property", "title": "property 与封装", "summary": "只读属性、setter 校验", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 20, "topics": ["property"], "primary_topic": "property" },
+          { "slug": "dataclass", "title": "dataclass", "summary": "自动生成 __init__/__repr__/__eq__", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 22, "topics": ["dataclass"], "primary_topic": "dataclass" }
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "stage-09-advanced-python",
+    "stage_no": 9,
+    "title": "阶段 9 · 高级 Python",
+    "subtitle": "迭代器、生成器、装饰器与类型系统",
+    "level": "advanced",
+    "icon": "Sparkles",
+    "estimated_hours": 10,
+    "description_md": "进阶特性是写出高表达力 Python 的关键：惰性求值、函数装饰、上下文管理与类型注解。",
+    "chapters": [
+      {
+        "slug": "ch-01",
+        "title": "迭代器与生成器",
+        "summary_md": "可迭代协议、yield 惰性求值与内存优化。",
+        "lessons": [
+          { "slug": "iterator", "title": "迭代器协议", "summary": "__iter__/__next__、StopIteration", "lesson_type": "concept", "difficulty": "hard", "estimated_minutes": 22, "topics": ["iterator"], "primary_topic": "iterator" },
+          { "slug": "generator", "title": "生成器函数", "summary": "yield、惰性、大文件流式处理", "lesson_type": "practice", "difficulty": "hard", "estimated_minutes": 24, "topics": ["generator"], "primary_topic": "generator" },
+          { "slug": "generator-expression", "title": "生成器表达式", "summary": "圆括号推导式与内存对比", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 18, "topics": ["generator-expression"], "primary_topic": "generator-expression" }
+        ]
+      },
+      {
+        "slug": "ch-02",
+        "title": "函数式进阶",
+        "summary_md": "map/filter/reduce、带参装饰器与闭包状态。",
+        "lessons": [
+          { "slug": "map-filter-reduce", "title": "map / filter / reduce", "summary": "函数式三件套与推导式取舍", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 22, "topics": ["map-filter-reduce"], "primary_topic": "map-filter-reduce" },
+          { "slug": "decorator-advanced", "title": "带参数装饰器", "summary": "三层嵌套、functools.wraps", "lesson_type": "practice", "difficulty": "hard", "estimated_minutes": 26, "topics": ["decorator-advanced"], "primary_topic": "decorator-advanced" },
+          { "slug": "closures", "title": "闭包与状态保持", "summary": "函数工厂、nonlocal 计数器", "lesson_type": "concept", "difficulty": "hard", "estimated_minutes": 22, "topics": ["closures"], "primary_topic": "closures" }
+        ]
+      },
+      {
+        "slug": "ch-03",
+        "title": "工程技巧",
+        "summary_md": "contextlib、functools 缓存与 typing 泛型。",
+        "lessons": [
+          { "slug": "contextmanager", "title": "contextlib 上下文管理器", "summary": "with 自定义、@contextmanager", "lesson_type": "practice", "difficulty": "hard", "estimated_minutes": 22, "topics": ["contextmanager"], "primary_topic": "contextmanager" },
+          { "slug": "functools-tools", "title": "functools 工具箱", "summary": "lru_cache、partial、reduce", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 20, "topics": ["functools-tools"], "primary_topic": "functools-tools" },
+          { "slug": "typing-generics", "title": "typing 与泛型", "summary": "TypeVar、Generic、Optional/Union", "lesson_type": "concept", "difficulty": "hard", "estimated_minutes": 24, "topics": ["typing-generics"], "primary_topic": "typing-generics" }
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "stage-10-algorithms",
+    "stage_no": 10,
+    "title": "阶段 10 · 数据结构与算法",
+    "subtitle": "把代码写得又快又对",
+    "level": "advanced",
+    "icon": "Network",
+    "estimated_hours": 12,
+    "description_md": "复杂度分析、查找与排序、栈队列链表与动态规划，为面试与实际性能优化打底。",
+    "chapters": [
+      {
+        "slug": "ch-01",
+        "title": "复杂度与查找",
+        "summary_md": "大 O 表示法、线性查找与二分查找。",
+        "lessons": [
+          { "slug": "complexity-analysis", "title": "时间复杂度与空间复杂度", "summary": "大 O、常见增长量级、循环计数", "lesson_type": "concept", "difficulty": "medium", "estimated_minutes": 24, "topics": ["complexity-analysis"], "primary_topic": "complexity-analysis" },
+          { "slug": "linear-search", "title": "线性查找", "summary": "遍历查找、最好/最坏情况", "lesson_type": "practice", "difficulty": "easy", "estimated_minutes": 18, "topics": ["linear-search"], "primary_topic": "linear-search" },
+          { "slug": "binary-search", "title": "二分查找", "summary": "有序区间折半、边界处理", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 24, "topics": ["binary-search"], "primary_topic": "binary-search" }
+        ]
+      },
+      {
+        "slug": "ch-02",
+        "title": "排序算法",
+        "summary_md": "三种经典排序的实现、复杂度与稳定性对比。",
+        "lessons": [
+          { "slug": "bubble-sort", "title": "冒泡排序", "summary": "相邻交换、提前退出优化", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 22, "topics": ["bubble-sort"], "primary_topic": "bubble-sort" },
+          { "slug": "quick-sort", "title": "快速排序", "summary": "分区、递归、平均 O(n log n)", "lesson_type": "practice", "difficulty": "hard", "estimated_minutes": 26, "topics": ["quick-sort"], "primary_topic": "quick-sort" },
+          { "slug": "merge-sort", "title": "归并排序", "summary": "分治合并、稳定排序", "lesson_type": "practice", "difficulty": "hard", "estimated_minutes": 24, "topics": ["merge-sort"], "primary_topic": "merge-sort" }
+        ]
+      },
+      {
+        "slug": "ch-03",
+        "title": "结构与策略",
+        "summary_md": "栈与队列、链表实现与递归/动态规划入门。",
+        "lessons": [
+          { "slug": "stack-queue", "title": "栈与队列", "summary": "LIFO/FIFO、括号匹配与 BFS", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 24, "topics": ["stack-queue"], "primary_topic": "stack-queue" },
+          { "slug": "linked-list", "title": "链表的实现", "summary": "节点与指针、插入删除", "lesson_type": "practice", "difficulty": "hard", "estimated_minutes": 24, "topics": ["linked-list"], "primary_topic": "linked-list" },
+          { "slug": "recursion-dp", "title": "递归与动态规划入门", "summary": "记忆化搜索、爬楼梯与背包", "lesson_type": "practice", "difficulty": "hard", "estimated_minutes": 28, "topics": ["recursion-dp"], "primary_topic": "recursion-dp" }
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "stage-11-database",
+    "stage_no": 11,
+    "title": "阶段 11 · 数据库",
+    "subtitle": "让数据持久化并可查询",
+    "level": "intermediate",
+    "icon": "Database",
+    "estimated_hours": 9,
+    "description_md": "SQL 基础、sqlite3 模块、事务、索引优化与 SQLAlchemy ORM 建模。",
+    "chapters": [
+      {
+        "slug": "ch-01",
+        "title": "SQL 基础",
+        "summary_md": "建表、增删改查与多表关联查询。",
+        "lessons": [
+          { "slug": "sql-basics", "title": "SQL 与建表", "summary": "CREATE TABLE、主键、约束", "lesson_type": "concept", "difficulty": "medium", "estimated_minutes": 22, "topics": ["sql-basics"], "primary_topic": "sql-basics" },
+          { "slug": "crud-sql", "title": "增删改查", "summary": "INSERT/SELECT/UPDATE/DELETE", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 24, "topics": ["crud-sql"], "primary_topic": "crud-sql" },
+          { "slug": "join-query", "title": "多表关联查询", "summary": "INNER/LEFT JOIN 与聚合分组", "lesson_type": "practice", "difficulty": "hard", "estimated_minutes": 26, "topics": ["join-query"], "primary_topic": "join-query" }
+        ]
+      },
+      {
+        "slug": "ch-02",
+        "title": "Python 操作数据库",
+        "summary_md": "sqlite3 模块、参数化查询、事务与索引。",
+        "lessons": [
+          { "slug": "sqlite-python", "title": "sqlite3 模块", "summary": "连接、游标、参数化查询防注入", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 24, "topics": ["sqlite-python"], "primary_topic": "sqlite-python" },
+          { "slug": "transaction", "title": "事务与并发", "summary": "commit/rollback、隔离与锁", "lesson_type": "concept", "difficulty": "hard", "estimated_minutes": 22, "topics": ["transaction"], "primary_topic": "transaction" },
+          { "slug": "index-basics", "title": "索引与查询优化", "summary": "B-Tree 索引、EXPLAIN 与慢查询", "lesson_type": "concept", "difficulty": "hard", "estimated_minutes": 22, "topics": ["index-basics"], "primary_topic": "index-basics" }
+        ]
+      },
+      {
+        "slug": "ch-03",
+        "title": "ORM 与表设计",
+        "summary_md": "SQLAlchemy 模型定义、会话与查询，以及表结构设计原则。",
+        "lessons": [
+          { "slug": "sqlalchemy-orm", "title": "SQLAlchemy ORM 入门", "summary": "Declarative、Session、CRUD", "lesson_type": "practice", "difficulty": "hard", "estimated_minutes": 28, "topics": ["sqlalchemy-orm"], "primary_topic": "sqlalchemy-orm" },
+          { "slug": "db-design", "title": "表结构设计", "summary": "范式、外键与级联、命名约定", "lesson_type": "concept", "difficulty": "hard", "estimated_minutes": 22, "topics": ["db-design"], "primary_topic": "db-design" },
+          { "slug": "orm-query", "title": "ORM 查询进阶", "summary": "条件查询、分页、聚合与 join", "lesson_type": "practice", "difficulty": "hard", "estimated_minutes": 26, "topics": ["sqlalchemy-orm", "crud-sql"], "primary_topic": "sqlalchemy-orm" }
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "stage-12-networking",
+    "stage_no": 12,
+    "title": "阶段 12 · 网络编程",
+    "subtitle": "与外部世界交换数据",
+    "level": "intermediate",
+    "icon": "Globe",
+    "estimated_hours": 9,
+    "description_md": "HTTP 协议、requests 调用、JSON API 交互，以及 socket/TCP 的底层视角。",
+    "chapters": [
+      {
+        "slug": "ch-01",
+        "title": "HTTP 与请求库",
+        "summary_md": "请求方法、状态码、requests 常用用法与 JSON 解析。",
+        "lessons": [
+          { "slug": "http-basics", "title": "HTTP 协议基础", "summary": "方法、状态码、Header 与 HTTPS", "lesson_type": "concept", "difficulty": "medium", "estimated_minutes": 22, "topics": ["http-basics"], "primary_topic": "http-basics" },
+          { "slug": "requests-library", "title": "requests 库实战", "summary": "GET/POST、参数、headers、超时", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 24, "topics": ["requests-library"], "primary_topic": "requests-library" },
+          { "slug": "json-api", "title": "JSON API 交互", "summary": "解析响应、处理嵌套结构与异常", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 22, "topics": ["json-api"], "primary_topic": "json-api" }
+        ]
+      },
+      {
+        "slug": "ch-02",
+        "title": "底层网络",
+        "summary_md": "socket 编程、TCP/UDP 差异与 urllib 标准库。",
+        "lessons": [
+          { "slug": "socket-basics", "title": "socket 编程", "summary": "TCP 客户端/服务端最小实现", "lesson_type": "practice", "difficulty": "hard", "estimated_minutes": 26, "topics": ["socket-basics"], "primary_topic": "socket-basics" },
+          { "slug": "tcp-udp", "title": "TCP 与 UDP", "summary": "连接可靠性、三次握手直觉", "lesson_type": "concept", "difficulty": "hard", "estimated_minutes": 20, "topics": ["tcp-udp"], "primary_topic": "tcp-udp" },
+          { "slug": "urllib-basics", "title": "urllib 标准库", "summary": "无第三方依赖的请求方式", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 20, "topics": ["urllib-basics"], "primary_topic": "urllib-basics" }
+        ]
+      },
+      {
+        "slug": "ch-03",
+        "title": "网络实战",
+        "summary_md": "封装 API 客户端、超时重试与限流退避。",
+        "lessons": [
+          { "slug": "api-client", "title": "封装 API 客户端", "summary": "统一 base_url、鉴权与错误处理", "lesson_type": "project", "difficulty": "hard", "estimated_minutes": 26, "topics": ["requests-library", "json-api"], "primary_topic": "requests-library" },
+          { "slug": "retry-timeout", "title": "超时与重试", "summary": "指数退避、幂等性与失败兜底", "lesson_type": "practice", "difficulty": "hard", "estimated_minutes": 22, "topics": ["http-basics", "exception-basics"], "primary_topic": "http-basics" },
+          { "slug": "rate-limit", "title": "限流与友好爬取", "summary": "请求间隔、User-Agent 与 robots", "lesson_type": "concept", "difficulty": "medium", "estimated_minutes": 20, "topics": ["http-basics"], "primary_topic": "http-basics" }
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "stage-13-web",
+    "stage_no": 13,
+    "title": "阶段 13 · Web 开发",
+    "subtitle": "从脚本到服务",
+    "level": "advanced",
+    "icon": "Server",
+    "estimated_hours": 10,
+    "description_md": "Flask 与 FastAPI 双框架入门、RESTful 路由设计、数据校验、Token 鉴权与部署基础。",
+    "chapters": [
+      {
+        "slug": "ch-01",
+        "title": "框架入门",
+        "summary_md": "最小可运行服务、路由与方法映射。",
+        "lessons": [
+          { "slug": "flask-basics", "title": "Flask 入门", "summary": "路由、视图函数、调试模式", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 24, "topics": ["flask-basics"], "primary_topic": "flask-basics" },
+          { "slug": "fastapi-basics", "title": "FastAPI 入门", "summary": "类型注解驱动、自动文档", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 24, "topics": ["fastapi-basics"], "primary_topic": "fastapi-basics" },
+          { "slug": "routing-rest", "title": "RESTful 路由设计", "summary": "资源命名、HTTP 方法与状态码", "lesson_type": "concept", "difficulty": "medium", "estimated_minutes": 22, "topics": ["routing-rest"], "primary_topic": "routing-rest" }
+        ]
+      },
+      {
+        "slug": "ch-02",
+        "title": "请求与响应",
+        "summary_md": "请求体解析、响应模型、模板渲染与 Pydantic 校验。",
+        "lessons": [
+          { "slug": "request-response", "title": "请求与响应模型", "summary": "path/query/body、统一响应结构", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 24, "topics": ["request-response"], "primary_topic": "request-response" },
+          { "slug": "template-render", "title": "模板渲染", "summary": "Jinja2 变量、循环与继承", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 22, "topics": ["template-render"], "primary_topic": "template-render" },
+          { "slug": "validation-pydantic", "title": "Pydantic 数据校验", "summary": "模型校验、错误信息与配置", "lesson_type": "practice", "difficulty": "hard", "estimated_minutes": 24, "topics": ["request-response", "typing-generics"], "primary_topic": "request-response" }
+        ]
+      },
+      {
+        "slug": "ch-03",
+        "title": "认证与上线",
+        "summary_md": "JWT 鉴权、接口设计规范与服务部署基础。",
+        "lessons": [
+          { "slug": "auth-token", "title": "认证与 Token", "summary": "JWT 结构、签发校验与刷新", "lesson_type": "practice", "difficulty": "hard", "estimated_minutes": 26, "topics": ["auth-token"], "primary_topic": "auth-token" },
+          { "slug": "api-design", "title": "接口设计与文档", "summary": "分页、错误码与 OpenAPI 文档", "lesson_type": "concept", "difficulty": "hard", "estimated_minutes": 22, "topics": ["api-design"], "primary_topic": "api-design" },
+          { "slug": "deploy-basics", "title": "部署基础", "summary": "uvicorn/gunicorn、环境变量与反向代理", "lesson_type": "concept", "difficulty": "hard", "estimated_minutes": 22, "topics": ["packaging-deploy"], "primary_topic": "packaging-deploy" }
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "stage-14-automation",
+    "stage_no": 14,
+    "title": "阶段 14 · 自动化",
+    "subtitle": "把重复劳动交给代码",
+    "level": "intermediate",
+    "icon": "Workflow",
+    "estimated_hours": 8,
+    "description_md": "系统操作、批量文件、Excel/邮件自动化、定时任务与日志解析，让日常重复工作一键完成。",
+    "chapters": [
+      {
+        "slug": "ch-01",
+        "title": "系统自动化",
+        "summary_md": "调用系统命令、批量处理文件与定时调度。",
+        "lessons": [
+          { "slug": "os-automation", "title": "系统操作自动化", "summary": "subprocess、环境变量与跨平台差异", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 24, "topics": ["os-automation"], "primary_topic": "os-automation" },
+          { "slug": "file-batch", "title": "批量文件处理", "summary": "遍历、筛选、重命名与归档", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 24, "topics": ["file-batch"], "primary_topic": "file-batch" },
+          { "slug": "scheduling-task", "title": "定时任务", "summary": "schedule 库与系统计划任务", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 20, "topics": ["scheduling-task"], "primary_topic": "scheduling-task" }
+        ]
+      },
+      {
+        "slug": "ch-02",
+        "title": "办公自动化",
+        "summary_md": "Excel 读写、邮件发送与日志报表生成。",
+        "lessons": [
+          { "slug": "excel-automation", "title": "Excel 自动化", "summary": "openpyxl 读写、公式与样式", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 26, "topics": ["excel-automation"], "primary_topic": "excel-automation" },
+          { "slug": "email-automation", "title": "邮件自动化", "summary": "smtplib 发送、附件与模板", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 22, "topics": ["email-automation"], "primary_topic": "email-automation" },
+          { "slug": "log-parsing", "title": "日志解析与报表", "summary": "正则提取、统计与导出 CSV", "lesson_type": "project", "difficulty": "medium", "estimated_minutes": 24, "topics": ["log-parsing"], "primary_topic": "log-parsing" }
+        ]
+      },
+      {
+        "slug": "ch-03",
+        "title": "自动化实战",
+        "summary_md": "网页抓取、报表生成与流程编排三个综合任务。",
+        "lessons": [
+          { "slug": "web-scraping", "title": "网页数据抓取", "summary": "requests + 正则/HTML 解析", "lesson_type": "project", "difficulty": "hard", "estimated_minutes": 28, "topics": ["requests-library", "http-basics"], "primary_topic": "requests-library" },
+          { "slug": "report-generation", "title": "自动生成报表", "summary": "数据聚合 + Excel 输出", "lesson_type": "project", "difficulty": "hard", "estimated_minutes": 26, "topics": ["excel-automation", "file-read-write"], "primary_topic": "excel-automation" },
+          { "slug": "workflow-orchestration", "title": "自动化流程编排", "summary": "任务串联、失败重试与日志", "lesson_type": "project", "difficulty": "hard", "estimated_minutes": 26, "topics": ["os-automation", "scheduling-task"], "primary_topic": "os-automation" }
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "stage-15-data-analysis",
+    "stage_no": 15,
+    "title": "阶段 15 · 数据分析",
+    "subtitle": "NumPy / pandas / 可视化",
+    "level": "advanced",
+    "icon": "BarChart3",
+    "estimated_hours": 11,
+    "description_md": "用 NumPy 做向量化计算、用 pandas 清洗与分析表格数据、用 Matplotlib 讲清数据故事。",
+    "chapters": [
+      {
+        "slug": "ch-01",
+        "title": "NumPy 基础",
+        "summary_md": "ndarray、向量化运算与广播机制。",
+        "lessons": [
+          { "slug": "numpy-basics", "title": "NumPy 与 ndarray", "summary": "数组创建、形状与 dtype", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 24, "topics": ["numpy-basics"], "primary_topic": "numpy-basics" },
+          { "slug": "numpy-array-ops", "title": "数组运算与切片", "summary": "布尔索引、聚合函数、轴的概念", "lesson_type": "practice", "difficulty": "hard", "estimated_minutes": 24, "topics": ["numpy-basics"], "primary_topic": "numpy-basics" },
+          { "slug": "numpy-broadcast", "title": "广播机制", "summary": "形状兼容规则与内存视图", "lesson_type": "concept", "difficulty": "hard", "estimated_minutes": 22, "topics": ["numpy-basics"], "primary_topic": "numpy-basics" }
+        ]
+      },
+      {
+        "slug": "ch-02",
+        "title": "pandas 数据处理",
+        "summary_md": "Series/DataFrame、缺失值处理与分组聚合。",
+        "lessons": [
+          { "slug": "pandas-series", "title": "pandas Series", "summary": "索引、对齐与向量化操作", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 22, "topics": ["pandas-series"], "primary_topic": "pandas-series" },
+          { "slug": "pandas-dataframe", "title": "pandas DataFrame", "summary": "筛选、排序、新增列与读写 CSV", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 26, "topics": ["pandas-dataframe"], "primary_topic": "pandas-dataframe" },
+          { "slug": "data-cleaning", "title": "数据清洗", "summary": "缺失值、重复值、类型转换", "lesson_type": "practice", "difficulty": "hard", "estimated_minutes": 26, "topics": ["data-cleaning"], "primary_topic": "data-cleaning" }
+        ]
+      },
+      {
+        "slug": "ch-03",
+        "title": "分析与可视化",
+        "summary_md": "分组聚合、绘图与可视化最佳实践。",
+        "lessons": [
+          { "slug": "groupby-aggregate", "title": "分组聚合", "summary": "groupby、agg、透视表", "lesson_type": "practice", "difficulty": "hard", "estimated_minutes": 26, "topics": ["groupby-aggregate"], "primary_topic": "groupby-aggregate" },
+          { "slug": "matplotlib-basics", "title": "Matplotlib 绘图", "summary": "折线/柱状/散点图与中文显示", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 26, "topics": ["matplotlib-basics"], "primary_topic": "matplotlib-basics" },
+          { "slug": "data-visualization", "title": "可视化最佳实践", "summary": "选图原则、配色与误导性图表", "lesson_type": "concept", "difficulty": "medium", "estimated_minutes": 22, "topics": ["data-visualization"], "primary_topic": "data-visualization" }
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "stage-16-machine-learning",
+    "stage_no": 16,
+    "title": "阶段 16 · 机器学习基础",
+    "subtitle": "从数据到模型的基本功",
+    "level": "advanced",
+    "icon": "BrainCircuit",
+    "estimated_hours": 12,
+    "description_md": "机器学习概念、训练/评估流程、线性回归与分类、评估指标、过拟合与特征工程。",
+    "chapters": [
+      {
+        "slug": "ch-01",
+        "title": "概念与流程",
+        "summary_md": "监督/无监督、数据划分与 sklearn 基本用法。",
+        "lessons": [
+          { "slug": "ml-intro", "title": "机器学习概览", "summary": "任务类型、特征与标签、典型流程", "lesson_type": "concept", "difficulty": "medium", "estimated_minutes": 24, "topics": ["ml-intro"], "primary_topic": "ml-intro" },
+          { "slug": "train-test-split", "title": "训练集与测试集", "summary": "划分策略、交叉验证与数据泄漏", "lesson_type": "practice", "difficulty": "hard", "estimated_minutes": 24, "topics": ["train-test-split"], "primary_topic": "train-test-split" },
+          { "slug": "sklearn-basics", "title": "scikit-learn 入门", "summary": "fit/predict/score 统一接口", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 24, "topics": ["sklearn-basics"], "primary_topic": "sklearn-basics" }
+        ]
+      },
+      {
+        "slug": "ch-02",
+        "title": "监督学习",
+        "summary_md": "线性回归、分类模型与评估指标。",
+        "lessons": [
+          { "slug": "linear-regression", "title": "线性回归", "summary": "最小二乘、系数解释与残差", "lesson_type": "practice", "difficulty": "hard", "estimated_minutes": 26, "topics": ["linear-regression"], "primary_topic": "linear-regression" },
+          { "slug": "classification", "title": "分类任务", "summary": "逻辑回归、决策树与预测概率", "lesson_type": "practice", "difficulty": "hard", "estimated_minutes": 26, "topics": ["classification"], "primary_topic": "classification" },
+          { "slug": "model-evaluation", "title": "模型评估指标", "summary": "准确率、精确率、召回率与混淆矩阵", "lesson_type": "concept", "difficulty": "hard", "estimated_minutes": 24, "topics": ["model-evaluation"], "primary_topic": "model-evaluation" }
+        ]
+      },
+      {
+        "slug": "ch-03",
+        "title": "进阶与调优",
+        "summary_md": "过拟合识别、特征工程与无监督聚类。",
+        "lessons": [
+          { "slug": "overfitting", "title": "过拟合与正则化", "summary": "偏差方差、L1/L2 与早停", "lesson_type": "concept", "difficulty": "hard", "estimated_minutes": 24, "topics": ["overfitting"], "primary_topic": "overfitting" },
+          { "slug": "feature-engineering", "title": "特征工程", "summary": "编码、归一化与特征构造", "lesson_type": "practice", "difficulty": "hard", "estimated_minutes": 26, "topics": ["overfitting", "data-cleaning"], "primary_topic": "overfitting" },
+          { "slug": "clustering", "title": "聚类入门", "summary": "KMeans、肘部法与业务解释", "lesson_type": "practice", "difficulty": "hard", "estimated_minutes": 24, "topics": ["clustering"], "primary_topic": "clustering" }
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "stage-17-ai-python",
+    "stage_no": 17,
+    "title": "阶段 17 · AI + Python",
+    "subtitle": "把大模型接进你的程序",
+    "level": "advanced",
+    "icon": "Bot",
+    "estimated_hours": 10,
+    "description_md": "大模型基本原理、提示词工程、API 调用、向量检索与 RAG，以及 Agent 工具调用与安全边界。",
+    "chapters": [
+      {
+        "slug": "ch-01",
+        "title": "大模型基础",
+        "summary_md": "Token、上下文窗口、提示词设计与 API 调用。",
+        "lessons": [
+          { "slug": "llm-intro", "title": "大语言模型基础", "summary": "Token、温度、上下文与能力边界", "lesson_type": "concept", "difficulty": "medium", "estimated_minutes": 24, "topics": ["llm-intro"], "primary_topic": "llm-intro" },
+          { "slug": "prompt-engineering", "title": "提示词工程", "summary": "角色、约束、少样本与结构化输出", "lesson_type": "practice", "difficulty": "hard", "estimated_minutes": 26, "topics": ["prompt-engineering"], "primary_topic": "prompt-engineering" },
+          { "slug": "openai-api", "title": "调用大模型 API", "summary": "OpenAI 兼容协议、流式与异常处理", "lesson_type": "practice", "difficulty": "hard", "estimated_minutes": 28, "topics": ["openai-api"], "primary_topic": "openai-api" }
+        ]
+      },
+      {
+        "slug": "ch-02",
+        "title": "向量与检索",
+        "summary_md": "文本嵌入、相似度计算与 RAG 基本链路。",
+        "lessons": [
+          { "slug": "embedding-vector", "title": "嵌入与向量相似度", "summary": "embedding、余弦相似度与检索", "lesson_type": "practice", "difficulty": "hard", "estimated_minutes": 26, "topics": ["embedding-vector"], "primary_topic": "embedding-vector" },
+          { "slug": "rag-basics", "title": "检索增强生成", "summary": "切分、召回、拼接与引用", "lesson_type": "practice", "difficulty": "hard", "estimated_minutes": 28, "topics": ["rag-basics"], "primary_topic": "rag-basics" },
+          { "slug": "vector-db", "title": "向量库与索引", "summary": "向量存储选型与近似最近邻", "lesson_type": "concept", "difficulty": "hard", "estimated_minutes": 22, "topics": ["embedding-vector", "rag-basics"], "primary_topic": "embedding-vector" }
+        ]
+      },
+      {
+        "slug": "ch-03",
+        "title": "智能体与安全",
+        "summary_md": "工具调用、Agent 循环与安全使用边界。",
+        "lessons": [
+          { "slug": "ai-agent", "title": "AI Agent 与工具调用", "summary": "ReAct 思路、函数调用与循环控制", "lesson_type": "practice", "difficulty": "hard", "estimated_minutes": 28, "topics": ["ai-agent"], "primary_topic": "ai-agent" },
+          { "slug": "tool-calling", "title": "Function Calling 实战", "summary": "定义工具、解析参数与执行回填", "lesson_type": "practice", "difficulty": "hard", "estimated_minutes": 26, "topics": ["ai-agent", "openai-api"], "primary_topic": "ai-agent" },
+          { "slug": "ai-safety", "title": "AI 使用与安全", "summary": "密钥管理、提示注入与幻觉校验", "lesson_type": "concept", "difficulty": "medium", "estimated_minutes": 22, "topics": ["ai-safety"], "primary_topic": "ai-safety" }
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "stage-18-real-projects",
+    "stage_no": 18,
+    "title": "阶段 18 · 真实项目开发",
+    "subtitle": "把前面所学组装成产品",
+    "level": "advanced",
+    "icon": "Trophy",
+    "estimated_hours": 14,
+    "description_md": "工程规范、测试与 CI，最后完成 CLI 工具、Web API 与数据分析应用三个综合项目。",
+    "chapters": [
+      {
+        "slug": "ch-01",
+        "title": "工程规范",
+        "summary_md": "Git 协作、工程目录与代码评审习惯。",
+        "lessons": [
+          { "slug": "git-basics", "title": "Git 版本控制", "summary": "提交、分支、合并与冲突解决", "lesson_type": "practice", "difficulty": "medium", "estimated_minutes": 26, "topics": ["git-basics"], "primary_topic": "git-basics" },
+          { "slug": "project-layout-pro", "title": "工程化目录与配置", "summary": "src 布局、配置分层与环境变量", "lesson_type": "concept", "difficulty": "hard", "estimated_minutes": 24, "topics": ["project-layout"], "primary_topic": "project-layout" },
+          { "slug": "code-review", "title": "代码评审与重构", "summary": "可读性、命名与重构手法", "lesson_type": "concept", "difficulty": "hard", "estimated_minutes": 24, "topics": ["refactoring"], "primary_topic": "refactoring" }
+        ]
+      },
+      {
+        "slug": "ch-02",
+        "title": "质量保障",
+        "summary_md": "单元测试、pytest 实战与持续集成。",
+        "lessons": [
+          { "slug": "unit-testing", "title": "单元测试", "summary": "断言、边界与测试组织", "lesson_type": "practice", "difficulty": "hard", "estimated_minutes": 26, "topics": ["unit-testing"], "primary_topic": "unit-testing" },
+          { "slug": "pytest-basics", "title": "pytest 实战", "summary": "fixture、参数化与覆盖率", "lesson_type": "practice", "difficulty": "hard", "estimated_minutes": 26, "topics": ["pytest-basics"], "primary_topic": "pytest-basics" },
+          { "slug": "ci-cd", "title": "CI/CD 基础", "summary": "自动化检查、构建与发布流程", "lesson_type": "concept", "difficulty": "hard", "estimated_minutes": 24, "topics": ["ci-cd"], "primary_topic": "ci-cd" }
+        ]
+      },
+      {
+        "slug": "ch-03",
+        "title": "综合实战",
+        "summary_md": "三个端到端项目：CLI 工具、Web API、数据分析应用。",
+        "lessons": [
+          { "slug": "capstone-cli-tool", "title": "综合项目：命令行工具", "summary": "参数解析、文件处理与打包发布", "lesson_type": "project", "difficulty": "hard", "estimated_minutes": 40, "topics": ["packaging-deploy", "debugging-skills"], "primary_topic": "packaging-deploy" },
+          { "slug": "capstone-web-api", "title": "综合项目：Web API 服务", "summary": "FastAPI + SQLite + 鉴权 + 文档", "lesson_type": "project", "difficulty": "hard", "estimated_minutes": 50, "topics": ["fastapi-basics", "api-design"], "primary_topic": "fastapi-basics" },
+          { "slug": "capstone-data-app", "title": "综合项目：数据分析应用", "summary": "数据清洗 + 分析 + 可视化输出", "lesson_type": "project", "difficulty": "hard", "estimated_minutes": 45, "topics": ["pandas-dataframe", "data-visualization"], "primary_topic": "pandas-dataframe" }
+        ]
+      }
+    ]
+  }
+]

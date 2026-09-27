@@ -1,0 +1,58 @@
+# 仅起 Postgres + Redis（有 Docker 的开发者本地用，业务进程跑在宿主机）
+#
+# 用法：docker compose -f docker/docker-compose.dev.yml up -d
+# 然后把 .env 指向宿主机端口：
+#   DATABASE_URL=postgresql+psycopg://pythonlab:pythonlab_pass@localhost:5432/pythonlab
+#   REDIS_URL=redis://localhost:6379/0
+#   CACHE_BACKEND=auto
+#   QUEUE_BACKEND=auto
+
+name: pythonlab-dev
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: pythonlab-dev-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: pythonlab
+      POSTGRES_PASSWORD: pythonlab_pass
+      POSTGRES_DB: pythonlab
+    volumes:
+      - dev_pgdata:/var/lib/postgresql/data
+      - ../docker/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pythonlab -d pythonlab"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [pythonlab-dev]
+
+  redis:
+    image: redis:7-alpine
+    container_name: pythonlab-dev-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - dev_redisdata:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks: [pythonlab-dev]
+
+networks:
+  pythonlab-dev:
+    driver: bridge
+    name: pythonlab-dev
+
+volumes:
+  dev_pgdata:
+    name: pythonlab-dev-pgdata
+  dev_redisdata:
+    name: pythonlab-dev-redisdata

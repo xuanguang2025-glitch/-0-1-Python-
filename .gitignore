@@ -1,0 +1,67 @@
+# ---- 环境与密钥 ----
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+docker/certs/
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+build/
+dist/
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+alembic/versions/__pycache__/
+
+# ---- 数据库与运行时数据 ----
+*.db
+*.sqlite
+*.sqlite3
+data/
+uploads/
+logs/
+*.log
+pythonlab-sandbox/
+
+# ---- Node / Next.js ----
+node_modules/
+.next/
+.next-*/
+out/
+.turbo/
+.vercel/
+*.tsbuildinfo
+next-env.d.ts
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---- 编辑器与系统 ----
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+
+# ---- 测试与覆盖率 ----
+tests/e2e/test-results/
+playwright-report/
+blob-report/

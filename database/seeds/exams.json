@@ -1,0 +1,88 @@
+[
+  {
+    "code": "exam-basic-01",
+    "title": "Python 入门测评（基础）",
+    "level": "basic",
+    "duration_minutes": 45,
+    "total_score": 100,
+    "pass_score": 60,
+    "shuffle": true,
+    "questions": [
+      {"slug": "hello-world", "score": 15, "order": 0},
+      {"slug": "list-sum", "score": 15, "order": 1},
+      {"slug": "type-conversion-choice", "score": 10, "order": 2},
+      {"slug": "operator-precedence-judge", "score": 10, "order": 3},
+      {"slug": "fstring-format", "score": 15, "order": 4},
+      {"slug": "string-reverse", "score": 15, "order": 5},
+      {"slug": "bubble-sort-impl", "score": 20, "order": 6}
+    ]
+  },
+  {
+    "code": "exam-basic-02",
+    "title": "数据结构测评（基础）",
+    "level": "basic",
+    "duration_minutes": 60,
+    "total_score": 100,
+    "pass_score": 60,
+    "shuffle": true,
+    "questions": [
+      {"slug": "list-dedup-order", "score": 20, "order": 0},
+      {"slug": "dict-word-count", "score": 20, "order": 1},
+      {"slug": "set-intersection", "score": 15, "order": 2},
+      {"slug": "tuple-unpack-blank", "score": 10, "order": 3},
+      {"slug": "dict-merge-choice", "score": 10, "order": 4},
+      {"slug": "comprehension-even-fill", "score": 25, "order": 5}
+    ]
+  },
+  {
+    "code": "exam-intermediate-01",
+    "title": "函数与面向对象测评",
+    "level": "intermediate",
+    "duration_minutes": 75,
+    "total_score": 100,
+    "pass_score": 60,
+    "shuffle": true,
+    "questions": [
+      {"slug": "lambda-sort-key", "score": 15, "order": 0},
+      {"slug": "default-arg-mutable-bug", "score": 15, "order": 1},
+      {"slug": "closure-counter", "score": 20, "order": 2},
+      {"slug": "class-bank-account", "score": 20, "order": 3},
+      {"slug": "inheritance-shape-area", "score": 15, "order": 4},
+      {"slug": "dataclass-point-completion", "score": 15, "order": 5}
+    ]
+  },
+  {
+    "code": "exam-intermediate-02",
+    "title": "文件、异常与正则测评",
+    "level": "intermediate",
+    "duration_minutes": 75,
+    "total_score": 100,
+    "pass_score": 60,
+    "shuffle": true,
+    "questions": [
+      {"slug": "file-read-lines", "score": 15, "order": 0},
+      {"slug": "csv-sum-column", "score": 20, "order": 1},
+      {"slug": "json-config-merge", "score": 20, "order": 2},
+      {"slug": "exception-safe-divide", "score": 15, "order": 3},
+      {"slug": "custom-exception", "score": 15, "order": 4},
+      {"slug": "regex-extract-email", "score": 15, "order": 5}
+    ]
+  },
+  {
+    "code": "exam-advanced-01",
+    "title": "算法进阶测评",
+    "level": "advanced",
+    "duration_minutes": 120,
+    "total_score": 100,
+    "pass_score": 60,
+    "shuffle": true,
+    "questions": [
+      {"slug": "binary-search-impl", "score": 15, "order": 0},
+      {"slug": "merge-sort-impl", "score": 15, "order": 1},
+      {"slug": "fibonacci-dp", "score": 15, "order": 2},
+      {"slug": "two-sum", "score": 15, "order": 3},
+      {"slug": "stack-balanced-brackets", "score": 20, "order": 4},
+      {"slug": "edit-distance", "score": 20, "order": 5}
+    ]
+  }
+]

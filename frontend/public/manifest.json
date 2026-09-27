@@ -1,0 +1,12 @@
+{
+  "name": "PYTHON LAB",
+  "short_name": "PYTHON LAB",
+  "description": "从零开始，系统掌握 Python —— 学习语法，编写代码，解决问题，完成真实项目。",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0B1220",
+  "theme_color": "#3776AB",
+  "icons": [
+    { "src": "/logo.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

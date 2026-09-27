@@ -1,0 +1,274 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============ 设计令牌（浅色） ============ */
+:root {
+  --background: 210 20% 99%;
+  --foreground: 222 30% 12%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 222 30% 12%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 30% 12%;
+
+  --primary: 207 51% 44%; /* Python 蓝 #3776AB */
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 210 16% 94%;
+  --secondary-foreground: 222 30% 18%;
+
+  --muted: 210 16% 95%;
+  --muted-foreground: 215 16% 45%;
+
+  --accent: 47 100% 62%; /* Python 黄 #FFD43B */
+  --accent-foreground: 222 40% 14%;
+
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+
+  --success: 152 60% 38%;
+  --success-foreground: 0 0% 100%;
+
+  --warning: 32 92% 48%;
+  --warning-foreground: 0 0% 100%;
+
+  --border: 214 18% 88%;
+  --input: 214 18% 88%;
+  --ring: 207 51% 44%;
+
+  --radius: 0.65rem;
+
+  --font-inter: 'Inter', 'Inter var', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Cascadia Code', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+}
+
+/* ============ 设计令牌（深色，默认） ============ */
+.dark {
+  --background: 220 27% 7%;
+  --foreground: 210 20% 96%;
+
+  --card: 220 24% 10%;
+  --card-foreground: 210 20% 96%;
+
+  --popover: 220 24% 10%;
+  --popover-foreground: 210 20% 96%;
+
+  --primary: 207 55% 52%;
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 220 18% 16%;
+  --secondary-foreground: 210 20% 92%;
+
+  --muted: 220 16% 15%;
+  --muted-foreground: 215 16% 66%;
+
+  --accent: 47 100% 62%;
+  --accent-foreground: 222 47% 11%;
+
+  --destructive: 0 68% 55%;
+  --destructive-foreground: 0 0% 100%;
+
+  --success: 152 55% 45%;
+  --success-foreground: 150 40% 8%;
+
+  --warning: 32 92% 55%;
+  --warning-foreground: 30 60% 10%;
+
+  --border: 220 16% 20%;
+  --input: 220 16% 20%;
+  --ring: 207 55% 52%;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: var(--font-inter);
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background-color: hsl(var(--primary) / 0.28);
+}
+
+/* ============ 滚动条 ============ */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--muted-foreground) / 0.28);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--muted-foreground) / 0.45);
+}
+
+/* ============ 通用工具类 ============ */
+@layer components {
+  .surface {
+    @apply rounded-lg border border-border bg-card text-card-foreground;
+  }
+
+  .focus-ring {
+    @apply outline-none ring-offset-2 ring-offset-background focus-visible:ring-2 focus-visible:ring-ring;
+  }
+
+  .scroll-area {
+    @apply overflow-y-auto overscroll-contain;
+  }
+
+  .code-surface {
+    @apply rounded-lg border border-border bg-[hsl(var(--muted))] font-mono text-[13px] leading-relaxed;
+  }
+}
+
+/* ============ Markdown 正文排版 ============ */
+.prose-lab {
+  color: hsl(var(--foreground));
+  line-height: 1.85;
+  font-size: 0.95rem;
+  word-break: break-word;
+}
+.prose-lab > * + * {
+  margin-top: 0.9em;
+}
+.prose-lab h1,
+.prose-lab h2,
+.prose-lab h3,
+.prose-lab h4 {
+  font-weight: 650;
+  line-height: 1.35;
+  margin-top: 1.6em;
+  color: hsl(var(--foreground));
+}
+.prose-lab h1 {
+  font-size: 1.6rem;
+}
+.prose-lab h2 {
+  font-size: 1.3rem;
+  padding-bottom: 0.35em;
+  border-bottom: 1px solid hsl(var(--border));
+}
+.prose-lab h3 {
+  font-size: 1.1rem;
+}
+.prose-lab ul,
+.prose-lab ol {
+  padding-left: 1.4em;
+}
+.prose-lab ul {
+  list-style: disc;
+}
+.prose-lab ol {
+  list-style: decimal;
+}
+.prose-lab li + li {
+  margin-top: 0.3em;
+}
+.prose-lab a {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.prose-lab strong {
+  font-weight: 650;
+}
+.prose-lab blockquote {
+  border-left: 3px solid hsl(var(--primary) / 0.5);
+  padding: 0.2em 1em;
+  color: hsl(var(--muted-foreground));
+  background: hsl(var(--muted) / 0.6);
+  border-radius: 0 6px 6px 0;
+}
+.prose-lab :not(pre) > code {
+  background: hsl(var(--muted));
+  border: 1px solid hsl(var(--border));
+  border-radius: 5px;
+  padding: 0.1em 0.35em;
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+}
+.prose-lab pre {
+  margin: 0;
+}
+.prose-lab table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+.prose-lab th,
+.prose-lab td {
+  border: 1px solid hsl(var(--border));
+  padding: 0.5em 0.7em;
+  text-align: left;
+}
+.prose-lab th {
+  background: hsl(var(--muted));
+  font-weight: 600;
+}
+.prose-lab hr {
+  border-color: hsl(var(--border));
+}
+
+/* 代码语法高亮（轻量 token 着色，深浅色各一套） */
+.tok-keyword {
+  color: #c678dd;
+}
+.tok-builtin {
+  color: #e5c07b;
+}
+.tok-string {
+  color: #98c379;
+}
+.tok-number {
+  color: #d19a66;
+}
+.tok-comment {
+  color: #7f8c98;
+  font-style: italic;
+}
+.tok-func {
+  color: #61afef;
+}
+.tok-op {
+  color: #56b6c2;
+}
+html:not(.dark) .tok-keyword {
+  color: #a626a4;
+}
+html:not(.dark) .tok-builtin {
+  color: #986801;
+}
+html:not(.dark) .tok-string {
+  color: #50a14f;
+}
+html:not(.dark) .tok-number {
+  color: #b76b01;
+}
+html:not(.dark) .tok-comment {
+  color: #8a9199;
+}
+html:not(.dark) .tok-func {
+  color: #4078f2;
+}
+html:not(.dark) .tok-op {
+  color: #0184bc;
+}

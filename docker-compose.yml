@@ -1,0 +1,207 @@
+# PYTHON LAB —— 生产/一键部署编排（规范文件）
+#
+# 说明：docs/ARCHITECTURE.md 里的 docker/docker-compose.yml 已上移到仓库根目录，
+# 便于 `docker compose up -d` 默认识别。仅需本地 postgres+redis 时用
+# `docker/docker-compose.dev.yml`。
+#
+# 用法：
+#   cp .env.example .env  # 填好密钥
+#   docker compose up -d --build
+#
+# 三个可选降级开关（详见 docs/DEPLOYMENT.md）：
+#   - 不想用容器跑用户代码：SANDBOX_MODE=local 并注释掉 sandbox 服务
+#   - 不想用 redis：CACHE_BACKEND=memory QUEUE_BACKEND=inline
+#   - 不想用 postgres：DATABASE_URL=sqlite:///./data/pythonlab.db（需去掉 backend 对 db 的依赖）
+
+name: pythonlab
+
+services:
+  # ---------------------------------------------------------------- PostgreSQL
+  postgres:
+    image: postgres:16-alpine
+    container_name: pythonlab-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-pythonlab}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pythonlab_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-pythonlab}
+      TZ: ${TZ:-Asia/Shanghai}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pythonlab} -d ${POSTGRES_DB:-pythonlab}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    networks: [pythonlab]
+
+  # --------------------------------------------------------------------- Redis
+  redis:
+    image: redis:7-alpine
+    container_name: pythonlab-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    volumes:
+      - redisdata:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    networks: [pythonlab]
+
+  # ------------------------------------------------------------------- Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ${BACKEND_DOCKERFILE:-Dockerfile}
+    image: pythonlab/backend:${APP_VERSION:-1.0.0}
+    container_name: pythonlab-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      APP_ENV: ${APP_ENV:-production}
+      BACKEND_HOST: 0.0.0.0
+      BACKEND_PORT: 8000
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-pythonlab}:${POSTGRES_PASSWORD:-pythonlab_pass}@postgres:5432/${POSTGRES_DB:-pythonlab}
+      REDIS_URL: redis://redis:6379/0
+      CACHE_BACKEND: ${CACHE_BACKEND:-redis}
+      QUEUE_BACKEND: ${QUEUE_BACKEND:-rq}
+      SANDBOX_URL: http://sandbox:8081
+      SANDBOX_MODE: ${SANDBOX_MODE:-remote}
+      UPLOAD_DIR: /srv/app/data/uploads
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+    volumes:
+      - uploads:/srv/app/data/uploads
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          python -c "import urllib.request,sys;
+          sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3).status==200 else 1)"
+      interval: 20s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks: [pythonlab]
+
+  # ------------------------------------------------------------------ Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ${FRONTEND_DOCKERFILE:-Dockerfile}
+    image: pythonlab/frontend:${APP_VERSION:-1.0.0}
+    container_name: pythonlab-frontend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-/api}
+      NEXT_PUBLIC_SITE_NAME: ${NEXT_PUBLIC_SITE_NAME:-PYTHON LAB}
+      BACKEND_URL: http://backend:8000
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000 >/dev/null 2>&1 || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks: [pythonlab]
+
+  # ------------------------------------------------------------------- Sandbox
+  sandbox:
+    build:
+      context: ./sandbox
+      dockerfile: Dockerfile
+    image: pythonlab/sandbox:${APP_VERSION:-1.0.0}
+    container_name: pythonlab-sandbox
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      SANDBOX_HOST: 0.0.0.0
+      SANDBOX_PORT: 8081
+      SANDBOX_WORKDIR_ROOT: /tmp/pythonlab-sandbox
+      SANDBOX_TIMEOUT_MS: ${SANDBOX_TIMEOUT_MS:-5000}
+      SANDBOX_MEMORY_MB: ${SANDBOX_MEMORY_MB:-256}
+      SANDBOX_MAX_OUTPUT_BYTES: ${SANDBOX_MAX_OUTPUT_BYTES:-65536}
+      SANDBOX_ALLOW_NETWORK: "false"
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    # 沙箱加固：只读根 + 可写 /tmp + 资源上限 + 无额外能力
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=256m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 256
+    mem_limit: 640m
+    cpus: "1.0"
+    ports:
+      - "${SANDBOX_PORT:-8081}:8081"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          python -c "import urllib.request,sys;
+          sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8081/health', timeout=3).status==200 else 1)"
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks: [pythonlab]
+
+  # --------------------------------------------------------- Nginx（可选反代）
+  # 启用：docker compose --profile proxy up -d   （入口 http://localhost:${NGINX_PORT:-8080}）
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: pythonlab-nginx
+    restart: unless-stopped
+    profiles: ["proxy"]
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./docker/proxy_params.inc:/etc/nginx/conf.d/proxy_params.inc:ro
+      - ./docker/certs:/etc/nginx/certs:ro
+    ports:
+      - "${NGINX_PORT:-8080}:80"
+      - "${NGINX_TLS_PORT:-8443}:443"
+    depends_on:
+      frontend:
+        condition: service_started
+      backend:
+        condition: service_started
+    networks: [pythonlab]
+
+networks:
+  pythonlab:
+    driver: bridge
+    name: pythonlab
+
+volumes:
+  pgdata:
+    name: pythonlab-pgdata
+  redisdata:
+    name: pythonlab-redisdata
+  uploads:
+    name: pythonlab-uploads

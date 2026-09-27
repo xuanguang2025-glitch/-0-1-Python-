@@ -1,0 +1,13 @@
+graph TD
+    T1[T1 契约与基座] --> T2[T2 数据层与种子]
+    T1 --> T4[T4 Sandbox/Docker/文档]
+    T1 --> T5[T5 前端核心体验]
+    T2 --> T3[T3 后端核心服务与API]
+    T3 --> T6[T6 前端进阶/Admin/联调]
+    T5 --> T6
+    T4 -.独立并行.-> T6
+
+    subgraph 并行组
+      B1[B-a 身份] ; B2[B-b 内容] ; B3[B-c 判题] ; B4[B-d 编辑器] ; B5[B-e 游戏化] ; B6[B-f AI]
+      F1[F-b 首页] ; F2[F-c 课程] ; F3[F-d 编辑器题库] ; F4[F-e AI] ; F5[F-f 项目挑战]
+    end

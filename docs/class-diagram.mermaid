@@ -1,0 +1,129 @@
+classDiagram
+    class User {
+        +str id
+        +str email
+        +str username
+        +str hashed_password
+        +str role
+        +int xp
+        +int level
+        +int streak_days
+        +datetime created_at
+    }
+    class Profile {
+        +str user_id
+        +str display_name
+        +str avatar_url
+        +str ai_mode
+        +str theme_preference
+    }
+    class Course {
+        +str id
+        +int stage_no
+        +str slug
+        +str title
+    }
+    class Chapter { +str course_id +int order_index }
+    class Lesson { +str chapter_id +str content_md +int xp_reward }
+    class Topic { +str slug +str name +str parent_id }
+    class Problem {
+        +str id
+        +str problem_type
+        +str difficulty
+        +str category
+        +int time_limit_ms
+        +int memory_limit_mb
+        +float acceptance_rate
+    }
+    class TestCase { +str problem_id +str input +str expected_output +str comparison }
+    class Submission {
+        +str id +str user_id +str problem_id
+        +str status +int score +int time_ms +int memory_kb +str runner
+    }
+    class SubmissionResult { +str submission_id +str test_case_id +bool passed +str actual_output }
+    class Project { +str id +int level +str slug }
+    class ProjectFile { +str project_id +str path +str content }
+    class LearningProgress { +str user_id +str lesson_id +str status +int progress_percent }
+    class KnowledgeMastery { +str user_id +str topic_id +float mastery_score }
+    class Mistake { +str user_id +str problem_id +str error_type +bool resolved }
+    class Bookmark { +str user_id +str kind +str ref_id +str code_snippet }
+    class CodeHistory { +str user_id +str context_type +str code +int version_no }
+    class Achievement { +str code +str condition_json +int xp_reward }
+    class UserAchievement { +str user_id +str achievement_id +datetime unlocked_at }
+    class Challenge { +str slug +str challenge_type +datetime start_at +datetime end_at }
+    class UserChallenge { +str user_id +str challenge_id +int score +int rank }
+    class AiConversation { +str user_id +str mode +str scene +str model }
+    class AiMessage { +str conversation_id +str role +str kind +str content_md }
+    class Notification { +str user_id +str type +bool is_read }
+
+    class SandboxService {
+        +Runner runner
+        +build_runner() Runner
+        +run(RunRequest) RunResponse
+        +judge(Problem, code, cases) JudgeResult
+    }
+    class Runner {
+        <<interface>>
+        +execute(RunRequest) RunResponse
+        +health() bool
+    }
+    class RemoteRunner { +str base_url }
+    class LocalRunner { +execute(RunRequest) RunResponse }
+    class JudgeService {
+        +judge_submission(Submission) JudgeResult
+        +compare(actual, expected, mode) bool
+    }
+    class AIProvider {
+        <<interface>>
+        +chat(messages) ChatResult
+        +stream(messages)
+    }
+    class OpenAICompatibleProvider { +ProviderConfig cfg }
+    class RuleBasedProvider { +chat(messages) ChatResult }
+    class AIService {
+        +chat(user, ChatIn) ChatOut
+        +review(user, ReviewIn) ReviewOut
+        +build_messages(ctx) list
+    }
+    class GamificationService {
+        +add_xp(user, amount, reason)
+        +check_achievements(user)
+        +update_streak(user)
+    }
+    class ProgressService {
+        +complete_lesson(user, lesson_id)
+        +update_mastery(user, topic_id, correct)
+    }
+    class StatisticsService { +overview(user) +trend(user, days) +report(user) }
+
+    User "1" --> "1" Profile
+    User "1" --> "*" Submission
+    User "1" --> "*" LearningProgress
+    User "1" --> "*" KnowledgeMastery
+    User "1" --> "*" Mistake
+    User "1" --> "*" Bookmark
+    User "1" --> "*" CodeHistory
+    User "1" --> "*" UserAchievement
+    User "1" --> "*" UserChallenge
+    User "1" --> "*" AiConversation
+    User "1" --> "*" Notification
+    Course "1" --> "*" Chapter
+    Chapter "1" --> "*" Lesson
+    Lesson "*" --> "*" Topic
+    Problem "1" --> "*" TestCase
+    Problem "1" --> "*" Submission
+    Submission "1" --> "*" SubmissionResult
+    Project "1" --> "*" ProjectFile
+    Achievement "1" --> "*" UserAchievement
+    Challenge "1" --> "*" UserChallenge
+    AiConversation "1" --> "*" AiMessage
+    SandboxService --> Runner
+    Runner <|.. RemoteRunner
+    Runner <|.. LocalRunner
+    JudgeService --> SandboxService
+    AIService --> AIProvider
+    AIProvider <|.. OpenAICompatibleProvider
+    AIProvider <|.. RuleBasedProvider
+    GamificationService --> User
+    ProgressService --> LearningProgress
+    ProgressService --> GamificationService

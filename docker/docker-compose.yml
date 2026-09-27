@@ -1,0 +1,10 @@
+# docs/ARCHITECTURE.md 约定的路径入口。
+#
+# 规范编排文件已放在仓库根目录 `docker-compose.yml`（便于 `docker compose up -d`
+# 默认识别）。本文件通过 Compose 的 `include` 复用根编排，保持架构文档路径可用。
+#
+# 用法：docker compose -f docker/docker-compose.yml up -d --build
+# 要求：Docker Compose v2.20+（支持 include）。低版本请直接用根目录文件。
+
+include:
+  - ../docker-compose.yml

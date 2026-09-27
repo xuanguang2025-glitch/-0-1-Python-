@@ -1,0 +1,9 @@
+# PYTHON LAB —— 后端开发期依赖（测试 / 静态检查 / 格式化）
+-r requirements.txt
+
+pytest>=8.3.0
+pytest-cov>=6.0.0
+httpx>=0.28.0
+ruff>=0.8.0
+black>=24.10.0
+mypy>=1.13.0

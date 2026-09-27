@@ -1,0 +1,30 @@
+# PYTHON LAB —— 后端运行时依赖（锁定下界，Python 3.13）
+# 安装：pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+# Web 框架与 ASGI 服务器
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+python-multipart>=0.0.20
+
+# 数据校验 / 配置
+pydantic>=2.10.0
+pydantic-settings>=2.6.0
+email-validator>=2.2.0
+python-dotenv>=1.0.1
+
+# ORM 与迁移
+SQLAlchemy>=2.0.36
+alembic>=1.14.0
+
+# 认证
+passlib[bcrypt]>=1.7.4
+# 注意：passlib 1.7.4（最后版本）与 bcrypt>=4.1 不兼容（后端自检会因 >72 字节密码抛错），
+# 故锁定 bcrypt==4.0.1；若使用其他 bcrypt 版本，app/core/security.py 会自动回退到 bcrypt 原生 API。
+bcrypt==4.0.1
+python-jose>=3.3.0
+
+# 外部依赖（均可降级：无 Redis / 无沙箱 / 无 AI Key 时自动降级）
+redis>=5.2.0
+rq>=2.1.0
+httpx>=0.28.0
+psutil>=6.1.0

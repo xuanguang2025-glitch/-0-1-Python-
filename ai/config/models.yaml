@@ -1,0 +1,118 @@
+# PYTHON LAB —— 模型清单（声明式目录）
+#
+# 说明：本文件描述可用模型与服务商的**元信息**（不含任何密钥）。
+# 运行期实际选型由环境变量 AI_PROVIDER / AI_MODEL / AI_BASE_URL / AI_API_KEY 决定；
+# 本文件供 Admin 模型管理页参考与文档展示。
+
+version: 1
+
+providers:
+  deepseek:
+    display_name: DeepSeek
+    protocol: openai_compatible          # 走 /chat/completions
+    base_url: https://api.deepseek.com/v1
+    api_key_env: DEEPSEEK_API_KEY
+    models:
+      - name: deepseek-chat
+        note: 通用对话，性价比高（默认）
+        context_tokens: 65536
+        supports_streaming: true
+        supports_json_mode: true
+      - name: deepseek-reasoner
+        note: 推理增强，更慢更贵
+        context_tokens: 65536
+        supports_streaming: true
+        supports_json_mode: false
+
+  openai:
+    display_name: OpenAI
+    protocol: openai_compatible
+    base_url: https://api.openai.com/v1
+    api_key_env: OPENAI_API_KEY
+    models:
+      - name: gpt-4o-mini
+        note: 轻量通用
+        supports_streaming: true
+        supports_json_mode: true
+      - name: gpt-4o
+        note: 强通用
+        supports_streaming: true
+        supports_json_mode: true
+
+  qwen:
+    display_name: 通义千问（DashScope 兼容模式）
+    protocol: openai_compatible
+    base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+    api_key_env: QWEN_API_KEY
+    models:
+      - name: qwen-turbo
+        note: 快速
+        supports_streaming: true
+        supports_json_mode: true
+      - name: qwen-plus
+        note: 均衡（推荐）
+        supports_streaming: true
+        supports_json_mode: true
+      - name: qwen-max
+        note: 最强
+        supports_streaming: true
+        supports_json_mode: true
+
+  zhipu:
+    display_name: 智谱 GLM
+    protocol: openai_compatible
+    base_url: https://open.bigmodel.cn/api/paas/v4
+    api_key_env: ZHIPU_API_KEY
+    models:
+      - name: glm-4-flash
+        note: 快速
+        supports_streaming: true
+        supports_json_mode: true
+      - name: glm-4-plus
+        note: 强通用
+        supports_streaming: true
+        supports_json_mode: true
+
+  anthropic:
+    display_name: Anthropic Claude（原生协议）
+    protocol: anthropic_messages          # 走 /messages
+    base_url: https://api.anthropic.com/v1
+    api_key_env: ANTHROPIC_API_KEY
+    models:
+      - name: claude-3-5-sonnet-latest
+        supports_streaming: false
+        supports_json_mode: true
+
+  gemini:
+    display_name: Google Gemini（原生协议）
+    protocol: gemini_generate_content      # 走 /models/{model}:generateContent
+    base_url: https://generativelanguage.googleapis.com/v1beta
+    api_key_env: GEMINI_API_KEY
+    models:
+      - name: gemini-1.5-flash
+        supports_streaming: false
+        supports_json_mode: true
+      - name: gemini-1.5-pro
+        supports_streaming: false
+        supports_json_mode: true
+
+  custom:
+    display_name: 自建 / 中转（one-api、LiteLLM 等）
+    protocol: openai_compatible
+    base_url: https://gateway.example.com/v1
+    api_key_env: AI_API_KEY
+    models:
+      - name: <任意网关内模型名>
+        supports_streaming: true
+        supports_json_mode: true
+
+offline:
+  provider: rule_based
+  model: rule-based
+  capabilities:
+    - error_analysis          # 异常识别 + traceback 定位 + 知识点
+    - code_review             # 九维度静态检查
+    - practice_generation     # 练习题生成
+    - study_plan              # 学习计划
+    - test_generation         # 单元测试模板
+    - code_explain            # 代码解释

@@ -1,0 +1,57 @@
+sequenceDiagram
+    autonumber
+    participant U as 用户(浏览器)
+    participant N as Next.js(3000)
+    participant B as FastAPI(8000)
+    participant DB as SQLite/PG
+    participant R as Runner(Remote/Local)
+    participant AI as AIProvider
+
+    U->>N: 打开 /register
+    N->>B: POST /api/auth/register
+    B->>DB: bcrypt 哈希后插入 users+profiles
+    B-->>N: {success:true,data:{access_token,refresh_token,user}}
+    N-->>U: 写入内存 + localStorage，跳首页
+
+    U->>N: 打开 /courses/stage-01-python-basics/lesson-xxx
+    N->>B: GET /api/courses/{slug}
+    B->>DB: 查询课程/章节/进度
+    B-->>N: CourseDetail(含 progress_percent)
+    N->>B: GET /api/lessons/{id}
+    B->>DB: 查询课时正文 + starter_code
+    B-->>N: LessonDetail
+
+    U->>N: 在 Monaco 中点击「运行」
+    N->>B: POST /api/python/run {files,stdin,timeout_ms}
+    B->>R: execute(RunRequest)
+    alt SANDBOX 可用
+        R-->>B: RunResponse(runner=sandbox)
+    else 降级
+        R->>R: 临时目录 + preload 守卫 + 子进程 + 超时/截断
+        R-->>B: RunResponse(runner=local, degraded=true)
+    end
+    B-->>N: {stdout,stderr,time_ms,memory_kb}
+    N-->>U: OutputPanel 展示
+
+    U->>N: 点击「提交」
+    N->>B: POST /api/submissions {problem_id, code}
+    B->>DB: 插入 submissions(status=pending)
+    B->>R: judge(test_cases)
+    R-->>B: results[]
+    B->>DB: 写 submission_results + 更新 verdict/score
+    B->>DB: 更新 knowledge_mastery / mistakes / xp_transactions
+    B-->>N: SubmissionOut(status=accepted, passed=8/8)
+    N-->>U: VerdictBadge + 结果面板 + XP 动画
+
+    U->>N: 点击「问 AI」→ 选「思路提示」
+    N->>B: POST /api/ai/chat {scene:hint, level:approach, context}
+    alt 有 API Key
+        B->>AI: chat(messages)
+        AI-->>B: ChatResult
+    else 无 Key / 失败
+        B->>AI: RuleBasedProvider.chat(messages)
+        AI-->>B: ChatResult(degraded=true)
+    end
+    B->>DB: 写 ai_messages + ai_usage_logs
+    B-->>N: {content, degraded}
+    N-->>U: 渲染提示卡片（degraded 时标注「离线助手」）

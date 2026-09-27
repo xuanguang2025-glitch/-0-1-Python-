@@ -1,0 +1,80 @@
+[
+  {
+    "slug": "daily-warmup-01",
+    "title": "每日热身：基础语法",
+    "description_md": "用几道基础题唤醒你的 Python 手感，覆盖输入输出、列表与字符串。",
+    "challenge_type": "daily",
+    "difficulty": "easy",
+    "problem_slugs": ["hello-world", "list-sum", "string-reverse", "fstring-format"],
+    "rules_md": "- 限时 60 分钟内完成\n- 全部通过即可获得奖励\n- 允许查看提示",
+    "duration_minutes": 60,
+    "start_offset_minutes": -10,
+    "end_offset_minutes": 1440,
+    "xp_reward": 50
+  },
+  {
+    "slug": "daily-warmup-02",
+    "title": "每日热身：数据结构",
+    "description_md": "字典、集合与列表推导式的综合练习。",
+    "challenge_type": "daily",
+    "difficulty": "medium",
+    "problem_slugs": ["dict-word-count", "set-intersection", "list-dedup-order", "lambda-sort-key"],
+    "rules_md": "- 限时 90 分钟\n- 建议先独立思考再看提示",
+    "duration_minutes": 90,
+    "start_offset_minutes": -10,
+    "end_offset_minutes": 1440,
+    "xp_reward": 60
+  },
+  {
+    "slug": "weekly-algorithm-01",
+    "title": "每周算法挑战：查找与排序",
+    "description_md": "本周聚焦经典查找与排序算法的实现与理解。",
+    "challenge_type": "weekly",
+    "difficulty": "medium",
+    "problem_slugs": ["binary-search-impl", "bubble-sort-impl", "merge-sort-impl", "complexity-choice"],
+    "rules_md": "- 本周内任意时间完成\n- 全部通过获得额外 XP\n- 排行榜按完成时间排序",
+    "duration_minutes": 10080,
+    "start_offset_minutes": -1440,
+    "end_offset_minutes": 10080,
+    "xp_reward": 150
+  },
+  {
+    "slug": "weekly-oop-01",
+    "title": "每周挑战：面向对象",
+    "description_md": "类、继承、多态与 dataclass 的实战。",
+    "challenge_type": "weekly",
+    "difficulty": "medium",
+    "problem_slugs": ["class-bank-account", "inheritance-shape-area", "dataclass-point-completion"],
+    "rules_md": "- 本周内完成\n- 代码风格也会被评审",
+    "duration_minutes": 10080,
+    "start_offset_minutes": -1440,
+    "end_offset_minutes": 10080,
+    "xp_reward": 120
+  },
+  {
+    "slug": "monthly-expert-01",
+    "title": "月度专家挑战",
+    "description_md": "面向进阶者的高难度题目，考验算法与工程能力。",
+    "challenge_type": "monthly",
+    "difficulty": "expert",
+    "problem_slugs": ["lru-cache-impl", "edit-distance", "slugify-text", "closure-counter"],
+    "rules_md": "- 本月内完成\n- 建议在无提示条件下作答\n- 通过全部题目解锁专家徽章",
+    "duration_minutes": 43200,
+    "start_offset_minutes": -2880,
+    "end_offset_minutes": 43200,
+    "xp_reward": 500
+  },
+  {
+    "slug": "special-debug-day",
+    "title": "限时捉虫日",
+    "description_md": "专门考验调试能力：找出并修复隐藏的 Bug。",
+    "challenge_type": "special",
+    "difficulty": "hard",
+    "problem_slugs": ["default-arg-mutable-bug", "exception-safe-divide"],
+    "rules_md": "- 活动期间限时完成\n- 每题只有 3 次提交机会",
+    "duration_minutes": 120,
+    "start_offset_minutes": -30,
+    "end_offset_minutes": 4320,
+    "xp_reward": 200
+  }
+]

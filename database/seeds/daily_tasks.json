@@ -1,0 +1,11 @@
+[
+  {"code": "daily_login", "title": "每日签到", "description": "登录平台并签到", "metric": "login", "target_count": 1, "xp_reward": 5, "order_index": 0},
+  {"code": "daily_lesson", "title": "完成 1 个课时", "description": "今天完成至少 1 个课时", "metric": "lessons", "target_count": 1, "xp_reward": 10, "order_index": 1},
+  {"code": "daily_submit", "title": "提交 1 次代码", "description": "今天提交至少 1 次代码", "metric": "submissions", "target_count": 1, "xp_reward": 10, "order_index": 2},
+  {"code": "daily_ac", "title": "通过 1 道题", "description": "今天通过至少 1 道编程题", "metric": "accepted", "target_count": 1, "xp_reward": 15, "order_index": 3},
+  {"code": "daily_three_ac", "title": "通过 3 道题", "description": "今天通过至少 3 道编程题", "metric": "accepted", "target_count": 3, "xp_reward": 30, "order_index": 4},
+  {"code": "daily_study_time", "title": "学习 20 分钟", "description": "今天累计学习满 20 分钟", "metric": "study_minutes", "target_count": 20, "xp_reward": 15, "order_index": 5},
+  {"code": "daily_ai_ask", "title": "向 AI 提问", "description": "今天就学习内容向 AI 提问至少 1 次", "metric": "ai_messages", "target_count": 1, "xp_reward": 5, "order_index": 6},
+  {"code": "daily_mistake_review", "title": "复习错题", "description": "今天复习至少 1 道错题", "metric": "mistake_reviews", "target_count": 1, "xp_reward": 10, "order_index": 7},
+  {"code": "daily_no_hint", "title": "独立思考", "description": "在未看提示的情况下通过 1 道题", "metric": "accepted_no_hint", "target_count": 1, "xp_reward": 20, "order_index": 8}
+]
