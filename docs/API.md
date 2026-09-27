@@ -80,14 +80,16 @@ HTTP 状态码：业务失败统一用 **400/401/403/404/409/422/429** 对应语
 | DELETE | `/users/me` | 本人 | `{password}` | `null`（软删除） |
 | GET | `/users/{id}/public` | 公开 | — | `{id, display_name, avatar_url, level, xp}`（**仅昵称与等级**） |
 
-### 2.3 `/api/courses`（7）
+### 2.3 `/api/courses`（9）
 
 | Method | Path | 权限 | 说明 / 参数 | 响应 data |
 |---|---|---|---|---|
 | GET | `/courses` | 公开 | `?level=&stage_no=&page=&page_size=` | `Page[CourseBrief]`（含 `progress_percent` 当已登录） |
+| GET | `/courses/mine` | 登录 | `?page=` | `Page[CourseBrief]`（我报名的课程） |
 | GET | `/courses/stages` | 公开 | 18 阶段概览 | `StageOut[18]` |
 | GET | `/courses/{slug}` | 公开 | — | `CourseDetail{course, chapters[], progress}` |
 | POST | `/courses/{id}/enroll` | 登录 | — | `CourseEnrollmentOut` |
+| DELETE | `/courses/{id}/enroll` | 登录 | — | `MessageOut`（退课） |
 | GET | `/courses/{slug}/chapters` | 公开 | — | `ChapterOut[]`（含课时列表） |
 | GET | `/courses/{slug}/lessons` | 公开 | — | `LessonBrief[]` |
 | GET | `/courses/{slug}/lessons/{lessonId}` | 公开 | — | `LessonDetail{lesson, prev, next, progress, topics}` |
@@ -155,13 +157,14 @@ HTTP 状态码：业务失败统一用 **400/401/403/404/409/422/429** 对应语
 | POST | `/editor/compare` | 本人 | `{left_id, right_id}` | `{diff_text, hunks[]}` |
 | DELETE | `/editor/history/{id}` | 本人 | — | `null` |
 
-### 2.10 `/api/ai`（9）
+### 2.10 `/api/ai`（10）
 
 | Method | Path | 权限 | 请求体 | 响应 data |
 |---|---|---|---|---|
 | POST | `/ai/chat` | 登录 | `{conversation_id?, message, mode?, scene?, level?(hint/approach/partial/full/explain), context{type,id,code?,error?}, stream?}` | `ChatOut{message_id, content_md, kind, degraded, tokens, suggestions[]}` |
 | POST | `/ai/review` | 登录 | `{code, language?, context_type?, context_id?, focus?}` | `ReviewOut{score, summary, issues[{severity,line,title,suggestion}], improved_code, degraded}` |
 | POST | `/ai/analyze-error` | 登录 | `{code, error_message, traceback?, problem_id?}` | `ErrorAnalysisOut{error_type, cause, location, fix_steps[], minimal_example, related_topics[]}` |
+| POST | `/ai/chat/stream` | 登录 | 同 `/ai/chat` | SSE 流式（`text/event-stream`），前端逐 token 渲染 |
 | GET | `/ai/conversations` | 登录 | `?scene=&page=` | `Page[AiConversationBrief]` |
 | POST | `/ai/conversations` | 登录 | `{title?, mode?, scene?, context_type?, context_id?}` | `AiConversationOut` |
 | GET | `/ai/conversations/{id}` | 本人 | — | `AiConversationDetail{conversation, messages[]}` |
@@ -169,16 +172,21 @@ HTTP 状态码：业务失败统一用 **400/401/403/404/409/422/429** 对应语
 | POST | `/ai/conversations/{id}/archive` | 本人 | `{is_archived}` | `AiConversationOut` |
 | GET | `/ai/status` | 登录 | — | `{provider, model, degraded, remaining_quota, modes[]}` |
 
-### 2.11 `/api/progress`（6）
+### 2.11 `/api/progress`（11）
 
 | Method | Path | 权限 | 请求体 | 响应 data |
 |---|---|---|---|---|
 | GET | `/progress` | 登录 | — | `{courses[], completed_lessons, total_lessons, overall_percent, current_stage}` |
 | GET | `/progress/courses/{id}` | 登录 | — | `{course_id, percent, completed_lessons[], last_lesson_id}` |
 | GET | `/progress/mastery` | 登录 | `?parent_topic_id=` | `{topics[{topic_id,name,score,level,practiced_count}], weak_topics[]}` |
+| GET | `/progress/mastery/{topic_id}` | 登录 | — | `KnowledgeMasteryOut`（单知识点掌握度） |
 | POST | `/progress/mastery/{topic_id}` | 登录 | `{correct: bool}` | `KnowledgeMasteryOut` |
+| GET | `/progress/dashboard` | 登录 | — | `LearningDashboardOut`（学习看板聚合：今日时长/连续天数/待办任务） |
 | GET | `/progress/heatmap` | 登录 | `?days=180` | `{points[{date, count, minutes}]}` |
 | PUT | `/progress/mode` | 登录 | `{learning_mode}` | `{learning_mode}` |
+| POST | `/progress/sessions` | 登录 | `{session_type?, learning_mode?, ref_id?}` | `LearningSessionOut`（开始学习会话） |
+| POST | `/progress/sessions/{id}/end` | 登录 | — | `LearningSessionOut`（结束会话，结算时长） |
+| POST | `/progress/sessions/{id}/heartbeat` | 登录 | — | `LearningSessionOut`（心跳续时，防误关页计时） |
 
 ### 2.12 `/api/statistics`（7）
 
@@ -192,18 +200,28 @@ HTTP 状态码：业务失败统一用 **400/401/403/404/409/422/429** 对应语
 | GET | `/statistics/export` | 登录 | `?type=report|submissions|code&format=md|csv|json` | 文件流（`Content-Disposition`） |
 | GET | `/statistics/ranking` | 登录 | — | `{my_rank, total_users, percentile}`（仅名次，不暴露他人信息） |
 
-### 2.13 `/api/achievements`（6）
+### 2.13 `/api/recommendations`（4）
+
+| Method | Path | 权限 | 参数 | 响应 data |
+|---|---|---|---|---|
+| GET | `/recommendations/advice` | 登录 | — | `RecommendationItem[]`（今日学习建议，`{type, id, title, reason}`） |
+| GET | `/recommendations/next-lesson` | 登录 | — | `LessonBrief \| null`（推荐继续的下一课时） |
+| GET | `/recommendations/problems` | 登录 | `?limit=10` | `ProblemBrief[]`（基于知识点掌握度的推题） |
+| GET | `/recommendations/review` | 登录 | `?limit=10` | `RecommendationItem[]`（基于错题/遗忘曲线的复习推荐） |
+
+### 2.14 `/api/achievements`（7）
 
 | Method | Path | 权限 | 请求体 | 响应 data |
 |---|---|---|---|---|
 | GET | `/achievements` | 公开 | `?category=` | `AchievementOut[]`（含 `unlocked` 标记） |
+| GET | `/achievements/badge-wall` | 登录 | — | `BadgeWallOut{total, unlocked, categories[], achievements[]}`（徽章墙） |
 | GET | `/achievements/mine` | 登录 | `?page=` | `Page[UserAchievementOut]` |
 | POST | `/achievements/{id}/seen` | 登录 | — | `null` |
 | GET | `/achievements/daily-tasks` | 登录 | `?date=` | `UserDailyTaskOut[]` |
 | POST | `/achievements/daily-tasks/{id}/check` | 登录 | — | `{progress, target, completed, xp_earned}` |
 | GET | `/achievements/xp` | 登录 | `?page=` | `Page[XPTransactionOut]` |
 
-### 2.14 `/api/challenges`（7）
+### 2.15 `/api/challenges`（7）
 
 | Method | Path | 权限 | 请求体 | 响应 data |
 |---|---|---|---|---|
@@ -215,7 +233,7 @@ HTTP 状态码：业务失败统一用 **400/401/403/404/409/422/429** 对应语
 | GET | `/challenges/{id}/leaderboard` | 公开 | `?limit=100` | `{entries[{rank, display_name, score, total_time_ms}]}`（**仅昵称与成绩**） |
 | GET | `/challenges/my` | 登录 | `?page=` | `Page[UserChallengeOut]` |
 
-### 2.15 `/api/notifications`（6）
+### 2.16 `/api/notifications`（7）
 
 | Method | Path | 权限 | 请求体 | 响应 data |
 |---|---|---|---|---|
@@ -225,15 +243,16 @@ HTTP 状态码：业务失败统一用 **400/401/403/404/409/422/429** 对应语
 | POST | `/notifications/read-all` | 登录 | `{type?}` | `{updated}` |
 | DELETE | `/notifications/{id}` | 本人 | — | `null` |
 | GET | `/notifications/announcements` | 公开 | `?limit=5` | `AnnouncementOut[]` |
+| GET | `/notifications/announcements/{id}` | 公开 | — | `AnnouncementOut`（公告详情） |
 
-### 2.16 `/api/search`（2）
+### 2.17 `/api/search`（2）
 
 | Method | Path | 权限 | 参数 | 响应 data |
 |---|---|---|---|---|
 | GET | `/search` | 公开 | `?q=&types=course,lesson,problem,project,snippet&limit=5` | `{groups[{type, items[{id,title,subtitle,url,highlight}]}], total}` |
 | GET | `/search/suggest` | 公开 | `?q=` | `{suggestions[{text, type, url}]}` |
 
-### 2.17 `/api/bookmarks`（5）
+### 2.18 `/api/bookmarks`（5）
 
 | Method | Path | 权限 | 请求体 | 响应 data |
 |---|---|---|---|---|
@@ -243,19 +262,20 @@ HTTP 状态码：业务失败统一用 **400/401/403/404/409/422/429** 对应语
 | DELETE | `/bookmarks/{id}` | 本人 | — | `null` |
 | GET | `/bookmarks/collections` | 登录 | — | `{collections[{name, count}]}` |
 
-### 2.18 `/api/mistakes`（7）
+### 2.19 `/api/mistakes`（8）
 
 | Method | Path | 权限 | 请求体 | 响应 data |
 |---|---|---|---|---|
 | GET | `/mistakes` | 登录 | `?error_type=&topic_id=&resolved=&page=` | `Page[MistakeOut]` |
 | POST | `/mistakes` | 登录 | `{problem_id?, submission_id?, title, user_answer?, note_md?, error_type?}` | `MistakeOut` |
 | GET | `/mistakes/review-queue` | 登录 | `?limit=10` | `MistakeOut[]`（按 `next_review_at` 排序） |
+| GET | `/mistakes/topics` | 登录 | — | `[{topic, count, ...}]`（高频错误知识点统计） |
 | GET | `/mistakes/{id}` | 本人 | — | `MistakeOut` |
 | PATCH | `/mistakes/{id}` | 本人 | `{note_md?, topic_id?}` | `MistakeOut` |
 | POST | `/mistakes/{id}/resolve` | 本人 | `{resolved}` | `MistakeOut` |
 | DELETE | `/mistakes/{id}` | 本人 | — | `null` |
 
-### 2.19 `/api/code-history`（3）
+### 2.20 `/api/code-history`（3）
 
 | Method | Path | 权限 | 说明 |
 |---|---|---|---|
@@ -265,7 +285,7 @@ HTTP 状态码：业务失败统一用 **400/401/403/404/409/422/429** 对应语
 
 > 保存/恢复/比较走 `/api/editor/*`（同一服务，避免重复实现）。
 
-### 2.20 `/api/exams`（6）
+### 2.21 `/api/exams`（7）
 
 | Method | Path | 权限 | 请求体 | 响应 data |
 |---|---|---|---|---|
@@ -273,71 +293,108 @@ HTTP 状态码：业务失败统一用 **400/401/403/404/409/422/429** 对应语
 | GET | `/exams/{id}` | 登录 | — | `ExamDetail{exam, questions[]不含答案}` |
 | POST | `/exams/{id}/start` | 登录 | — | `ExamAttemptOut{attempt_id, deadline_at, questions[]}` |
 | POST | `/exams/{id}/submit` | 登录 | `{attempt_id, answers: {problem_id: value}}` | `ExamReportOut{score, passed, per_question[], weak_topics[]}` |
+| PUT | `/exams/attempts/{attempt_id}/answers` | 本人 | 同 `ExamSubmitRequest` | `ExamSaveOut{attempt_id, saved, remaining_seconds, status}`（考试中自动暂存，防中断丢失） |
 | GET | `/exams/attempts` | 登录 | `?page=` | `Page[ExamAttemptBrief]` |
 | GET | `/exams/attempts/{attempt_id}` | 本人 | — | `ExamReportOut` |
 
-### 2.21 `/api/admin`（22，全部管理员）
+### 2.22 `/api/admin`（53，全部管理员）
+
+> 集合级（列表/新建）与 item 级（更新/删除）分离书写；每行一个 method×path，与实挂一一对应。
 
 | Method | Path | 说明 |
 |---|---|---|
 | GET | `/admin/dashboard` | `{users_total, active_today, submissions_today, acceptance_rate, ai_calls_today, error_rate, runner, db_flavor, cache_backend}` |
-| GET/POST | `/admin/users` | 列表（搜索/筛选/分页） / 新建 |
-| PATCH/DELETE | `/admin/users/{id}` | 改角色/状态/资料 / 软删除 |
+| GET | `/admin/users` | 用户列表（搜索/筛选/分页） |
+| POST | `/admin/users` | 新建用户 |
+| PATCH | `/admin/users/{id}` | 改角色/状态/资料 |
+| DELETE | `/admin/users/{id}` | 软删除 |
 | POST | `/admin/users/{id}/reset-password` | 重置密码 |
-| GET/POST | `/admin/courses` | 课程 CRUD（列表 + 新建） |
-| PATCH/DELETE | `/admin/courses/{id}` | 更新 / 删除 |
-| POST/PATCH/DELETE | `/admin/chapters`、`/admin/chapters/{id}` | 章节 CRUD |
-| POST/PATCH/DELETE | `/admin/lessons`、`/admin/lessons/{id}` | 课时 CRUD（含 `content_md`） |
-| GET/POST | `/admin/problems` | 题目列表 / 新建 |
-| PATCH/DELETE | `/admin/problems/{id}` | 更新 / 删除 |
+| GET | `/admin/courses` | 课程列表 |
+| POST | `/admin/courses` | 新建课程 |
+| PATCH | `/admin/courses/{id}` | 更新课程 |
+| DELETE | `/admin/courses/{id}` | 删除课程 |
+| POST | `/admin/chapters` | 新建章节 |
+| PATCH | `/admin/chapters/{id}` | 更新章节 |
+| DELETE | `/admin/chapters/{id}` | 删除章节 |
+| POST | `/admin/lessons` | 新建课时（含 `content_md`） |
+| PATCH | `/admin/lessons/{id}` | 更新课时 |
+| DELETE | `/admin/lessons/{id}` | 删除课时 |
+| GET | `/admin/problems` | 题目列表 |
+| POST | `/admin/problems` | 新建题目 |
+| PATCH | `/admin/problems/{id}` | 更新题目 |
+| DELETE | `/admin/problems/{id}` | 删除题目 |
 | POST | `/admin/problems/import` | 批量导入（`multipart` JSON 文件，返回 `{created, updated, failed[]}`） |
-| POST/PATCH/DELETE | `/admin/test-cases`、`/admin/test-cases/{id}` | 测试用例 CRUD |
-| GET/POST/PATCH/DELETE | `/admin/projects`、`/admin/projects/{id}` | 项目 CRUD |
-| POST/PATCH/DELETE | `/admin/project-files`、`/admin/project-files/{id}` | 项目文件 CRUD |
-| GET/POST/PATCH/DELETE | `/admin/tags`、`/admin/tags/{id}` | 标签 CRUD |
-| GET/POST/PATCH/DELETE | `/admin/announcements`、`/admin/announcements/{id}` | 公告 CRUD |
-| GET/PUT | `/admin/ai-config` | 全局 AI 配置（provider/model/temperature/限流/提示词开关） |
-| GET/POST/PATCH/DELETE | `/admin/models`、`/admin/models/{id}` | 模型配置 CRUD |
+| POST | `/admin/test-cases` | 新建测试用例 |
+| PATCH | `/admin/test-cases/{id}` | 更新测试用例 |
+| DELETE | `/admin/test-cases/{id}` | 删除测试用例 |
+| GET | `/admin/projects` | 项目列表 |
+| POST | `/admin/projects` | 新建项目 |
+| PATCH | `/admin/projects/{id}` | 更新项目 |
+| DELETE | `/admin/projects/{id}` | 删除项目 |
+| POST | `/admin/project-files` | 新建项目文件 |
+| PATCH | `/admin/project-files/{id}` | 更新项目文件 |
+| DELETE | `/admin/project-files/{id}` | 删除项目文件 |
+| GET | `/admin/tags` | 标签列表 |
+| POST | `/admin/tags` | 新建标签 |
+| PATCH | `/admin/tags/{id}` | 更新标签 |
+| DELETE | `/admin/tags/{id}` | 删除标签 |
+| GET | `/admin/announcements` | 公告列表 |
+| POST | `/admin/announcements` | 新建公告 |
+| PATCH | `/admin/announcements/{id}` | 更新/发布/下线公告 |
+| DELETE | `/admin/announcements/{id}` | 删除公告 |
+| GET | `/admin/ai-config` | 全局 AI 配置（provider/model/temperature/限流/提示词开关） |
+| PUT | `/admin/ai-config` | 更新 AI 配置 |
+| GET | `/admin/models` | 模型配置列表 |
+| POST | `/admin/models` | 新建模型配置 |
+| PATCH | `/admin/models/{id}` | 更新模型配置 |
+| DELETE | `/admin/models/{id}` | 删除模型配置 |
 | POST | `/admin/models/{id}/test` | 连通性测试 → `{ok, latency_ms, error?}`（**不回显 key**） |
+| GET | `/admin/settings` | 系统设置列表 → `SystemSettingOut[]` |
+| PUT | `/admin/settings/{key}` | 写入单项系统设置 |
 | GET | `/admin/logs/audit` | 审计日志分页 |
 | GET | `/admin/logs/ai-usage` | AI 用量日志（按用户/模型聚合） |
 | GET | `/admin/logs/errors` | 错误日志（按 code 聚合） |
+| GET | `/admin/logs/sessions` | 学习会话概览 → `SessionOverviewOut` |
 | POST | `/admin/maintenance/rejudge` | `{problem_id? , limit?}` 批量重判（入队） |
 
-### 2.22 健康检查（2）
+### 2.23 健康检查（3）
 
 | Method | Path | 权限 | 响应 |
 |---|---|---|---|
 | GET | `/health` | 公开 | `{status:"ok", version, env}` |
-| GET | `/health/deps` | 公开 | `{db:{flavor, ok}, cache:{backend, ok}, queue:{backend}, runner:{mode, ok}, ai:{provider, degraded}}` |
+| GET | `/health/deps` | 公开 | `{db:{flavor, ok}, cache:{backend, ok}, queue:{backend}, runner:{mode, ok}, ai:{provider, model, degraded, available}}` |
+| GET | `/health/enums` | 公开 | 枚举字典（题型/难度/状态等，前后端一致性校验用） |
 
-### 路由总数统计
+### 路由总数统计（2026-09-27 与实挂 `openapi.json` 校准，正文已回填全部路由）
 
-| 前缀 | 路由数 |
-|---|---|
-| /api/auth | 7 |
-| /api/users | 8 |
-| /api/courses | 7 |
-| /api/lessons | 6 |
-| /api/problems | 7 |
-| /api/submissions | 6 |
-| /api/python | 1 |
-| /api/projects | 7 |
-| /api/editor | 6 |
-| /api/ai | 9 |
-| /api/progress | 6 |
-| /api/statistics | 7 |
-| /api/achievements | 6 |
-| /api/challenges | 7 |
-| /api/notifications | 6 |
-| /api/search | 2 |
-| /api/bookmarks | 5 |
-| /api/mistakes | 7 |
-| /api/code-history | 3 |
-| /api/exams | 6 |
-| /api/admin | 22 |
-| /api/health | 2 |
-| **合计** | **135** |
+| 前缀 | path | op |
+|---|---|---|
+| /api/auth | 7 | 7 |
+| /api/users | 7 | 8 |
+| /api/health | 3 | 3 |
+| /api/courses | 8 | 9 |
+| /api/lessons | 6 | 6 |
+| /api/progress | 10 | 11 |
+| /api/search | 2 | 2 |
+| /api/recommendations | 4 | 4 |
+| /api/statistics | 7 | 7 |
+| /api/achievements | 7 | 7 |
+| /api/challenges | 7 | 7 |
+| /api/exams | 7 | 7 |
+| /api/notifications | 7 | 7 |
+| /api/admin | 34 | 53 |
+| /api/problems | 7 | 7 |
+| /api/submissions | 5 | 6 |
+| /api/projects | 7 | 7 |
+| /api/editor | 5 | 6 |
+| /api/python | 1 | 1 |
+| /api/ai | 8 | 10 |
+| /api/bookmarks | 3 | 5 |
+| /api/mistakes | 5 | 8 |
+| /api/code-history | 2 | 3 |
+| **合计** | **159** | **191** |
+
+> `path < op` 属正常：同一路径承载多个方法（如 `GET+DELETE /users/me`、`GET+POST /mistakes`）。
 
 ---
 
@@ -481,57 +538,59 @@ HTTP 状态码：业务失败统一用 **400/401/403/404/409/422/429** 对应语
 
 ### A.1 分组对照表
 
+> **2026-09-27 更新**：正文 §2 已回填全部实挂路由（159 path / 191 op），下表「文档规划 op」列为回填前快照，供追溯。
+
 | 分组 | 文档规划 op | 实挂 path | 实挂 op | 差异说明 |
 |---|---|---|---|---|
 | `/auth` | 7 | 7 | 7 | 一致 |
 | `/users` | 8 | 7 | 8 | 一致（`/users/me` 由 GET+DELETE 同路径承载） |
-| `/health` | 2 | 3 | 3 | **+1** `/health/enums`（枚举字典，文档未列） |
-| `/courses` | 7 | 8 | 9 | **+2** 扩展（课程内课时/报名等） |
+| `/health` | 2 | 3 | 3 | 已回填 `/health/enums`（§2.23） |
+| `/courses` | 7 | 8 | 9 | 已回填 `/courses/mine`、`DELETE /enroll`（§2.3） |
 | `/lessons` | 6 | 6 | 6 | 一致 |
 | `/problems` | 7 | 7 | 7 | 一致 |
 | `/submissions` | 6 | 5 | 6 | 一致（`/submissions/{id}/status` 等与主路径合并） |
 | `/python` | 1 | 1 | 1 | 一致（`POST /python/run`，实现在 `editor.py` 的 `python_router`） |
 | `/projects` | 7 | 7 | 7 | 一致 |
 | `/editor` | 6 | 5 | 6 | 一致 |
-| `/ai` | 9 | 8 | 10 | **+1** `POST /ai/chat/stream`（SSE 流式，文档未单列） |
-| `/progress` | 6 | 10 | 11 | **+5** 扩展（`sessions` / `heatmap` / `dashboard` / `mastery`） |
+| `/ai` | 9 | 8 | 10 | 已回填 `POST /ai/chat/stream`（SSE，§2.10） |
+| `/progress` | 6 | 10 | 11 | 已回填 `dashboard` / `sessions` 系列（§2.11） |
 | `/statistics` | 7 | 7 | 7 | 一致 |
-| `/achievements` | 6 | 7 | 7 | **+1** `GET /achievements/badge-wall` |
+| `/recommendations` | 0（未规划） | 4 | 4 | 已回填整组（§2.13） |
+| `/achievements` | 6 | 7 | 7 | 已回填 `badge-wall`（§2.14） |
 | `/challenges` | 7 | 7 | 7 | 一致 |
-| `/notifications` | 6 | 7 | 7 | **+1**（公告已读等） |
+| `/notifications` | 6 | 7 | 7 | 已回填公告详情（§2.16） |
 | `/search` | 2 | 2 | 2 | 一致 |
 | `/bookmarks` | 5 | 3 | 5 | 一致（`/bookmarks` 与 `/bookmarks/{id}` 同路径多方法） |
-| `/mistakes` | 7 | 5 | 8 | **+1** `GET /mistakes/topics` |
+| `/mistakes` | 7 | 5 | 8 | 已回填 `topics`（§2.19） |
 | `/code-history` | 3 | 2 | 3 | 一致 |
-| `/exams` | 6 | 7 | 7 | **+1** `PUT /exams/attempts/{id}/answers` |
-| `/admin` | 22 | 34 | 53 | **+31**（管理域实现了完整 CRUD：章节/课时/题库/用例/项目/标签/公告/模型/设置/日志，文档仅给概览） |
-| `/recommendations` | 0（未规划） | 4 | 4 | **文档完全未列**：新增组（`advice` / `next-lesson` / `problems` / `review`） |
-| **合计** | **143\*** | **159** | **191** | \*文档正文「路由总数统计」自报合计 **135**，与其表格逐项相加（**143**）不一致，差 **8**；实挂较逐项规划多 **+48** |
+| `/exams` | 6 | 7 | 7 | 已回填 `PUT /attempts/{id}/answers`（§2.21） |
+| `/admin` | 22 | 34 | 53 | 已回填全量 CRUD + `settings` + `logs/sessions`（§2.22，拆行书写） |
+| **合计** | **143\*** | **159** | **191** | \*回填前正文自报 135 与其表格逐项和 143 不一致；**回填后正文 = 实挂 = 191 op** |
 
-### A.2 文档未规划但已实现（需回填契约）
+### A.2 文档未规划但已实现 → **已回填（2026-09-27）**
 
-- **整组新增**：`/api/recommendations`（4 op）——文档《2.x》章节中完全没有该分组，建议补充契约条目。
-- **组内新增/扩展 op**（与上表「+」项对应）：
-  - `/health/enums`（+1）
-  - `/courses`（+2）、`/progress`（+5）、`/ai/chat/stream`（+1）
-  - `/achievements/badge-wall`（+1）、`/notifications`（+1）、`/mistakes/topics`（+1）、`/exams/attempts/{id}/answers`（+1）
-  - `/admin` 由概览（22）扩展为全量 CRUD（53，+31）
+以下差异已全部回填进正文 §2，正文与实挂一致：
 
-### A.3 规划了但未实现（逐条核实）
+- **整组新增**：`/api/recommendations`（4 op）→ §2.13。
+- **组内新增/扩展 op**：
+  - `/health/enums` → §2.23
+  - `/courses/mine`、`DELETE /courses/{id}/enroll` → §2.3
+  - `/progress/dashboard`、`/progress/sessions`（start/end/heartbeat）、`GET /mastery/{topic_id}` → §2.11
+  - `/ai/chat/stream` → §2.10
+  - `/achievements/badge-wall` → §2.14
+  - `/notifications/announcements/{id}` → §2.16
+  - `/mistakes/topics` → §2.19
+  - `/exams/attempts/{id}/answers`（PUT）→ §2.21
+  - `/admin` 全量 CRUD + `/admin/settings` + `/admin/logs/sessions` → §2.22
 
-经 method×path 归一化（路径参数统一为 `{}`）比对，**真正缺失的 operation = 0**。以下 16 条为**文档路径写法差异**（文档在同一行同时写了集合级与 item 级路径，实现仅提供 item 级——更符合 REST），**功能等价、已在 `/{id}` 实现**，非缺失：
+### A.3 规划了但未实现 → **已修正（2026-09-27）**
 
-| 文档写法（集合级） | 实际实现（item 级） |
-|---|---|
-| `PATCH /admin/{chapters,lessons,projects,project-files,tags,announcements,models,test-cases}` | `PATCH /admin/<资源>/{id}` |
-| `DELETE /admin/{chapters,lessons,projects,project-files,tags,announcements,models,test-cases}` | `DELETE /admin/<资源>/{id}` |
+经 method×path 归一化比对，**真正缺失的 operation = 0**。原 16 条「文档集合级写法 vs 实现 item 级」的路径书写差异，已通过正文 §2.22 拆行（集合级 GET/POST 与 item 级 PATCH/DELETE 分行）消除。
 
-> 结论：无需补实现；如需与文档逐字一致，建议将文档行拆分为「集合级 POST」+「item 级 PATCH/DELETE」。
+### A.4 已知语义差异 → **已统一（2026-09-27）**
 
-### A.4 已知语义差异（记录，不在本附录处理）
-
-- `/api/ai/status`（AI 域）在**降级态**返回 `model="deepseek-chat"`（配置值），而 `/api/health/deps` 的 `ai.model` 返回 `"rule-based"`（降级语义）。二者语义口径不同，**已派由 AI 域负责人统一**，本附录仅作记录。
-- `/api/health/deps` 的 `ai` 项已补 `available` 字段（`true/false`），与 `degraded` 互补可读。
+- ~~`/api/ai/status` 降级态返回配置 model 的矛盾~~ **已修复**：降级态 `provider = model = "rule-based"`；真实配置值移至 `configured_provider` / `configured_model` 字段，两个口径不再混淆。
+- `/api/health/deps` 的 `ai` 项已含 `available` 字段（`true/false`），与 `degraded` 互补可读（§2.23 已同步）。
 
 ### A.5 校验方式（可复现）
 

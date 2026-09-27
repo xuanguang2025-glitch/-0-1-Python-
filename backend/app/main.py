@@ -11,12 +11,13 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import AsyncIterator, Callable, MutableMapping
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.api.router import api_router
 from app.core.config import Settings, get_settings
@@ -106,6 +107,22 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_headers=["*"],
         expose_headers=["X-Request-ID", "X-Response-Time", "Content-Disposition"],
     )
+
+    def _security_headers(headers: MutableMapping[str, str]) -> None:
+        """为所有响应补基础安全头（API-only：不需要 CSP，静态托管由前端层负责）。"""
+        headers.setdefault("X-Content-Type-Options", "nosniff")
+        headers.setdefault("X-Frame-Options", "DENY")
+        headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+
+    class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+        """在响应离开应用前附加安全响应头。"""
+
+        async def dispatch(self, request: Request, call_next: Callable[[Request], Response]) -> Response:
+            response = await call_next(request)
+            _security_headers(response.headers)
+            return response
+
+    app.add_middleware(SecurityHeadersMiddleware)
 
     # ---- 全局异常 ----
     register_exception_handlers(app)
