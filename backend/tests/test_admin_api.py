@@ -10,108 +10,52 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 from app.api.endpoints import admin as admin_endpoint
-from app.core.errors import register_exception_handlers
-from app.core.security import create_access_token, hash_password
-from app.db.init_db import create_all
-from app.db.session import SessionLocal
 from app.models.ai import AIModelConfig
 from app.models.course import Course
 from app.models.system import AuditLog
-from app.models.user import Profile, User
 
-ADMIN_EMAIL = "admin-test@pythonlab.dev"
-USER_EMAIL = "learner-test@pythonlab.dev"
 RAW_KEY = "sk-secret-abcdef1234"
 RAW_SETTING_KEY = "sk-super-secret-1234"
 
 
-def _seed() -> dict[str, Any]:
-    """建表并写入管理员 + 普通用户（幂等）。"""
-    create_all()
-    db = SessionLocal()
-    try:
-        admin = db.scalars(select(User).where(User.email == ADMIN_EMAIL)).one_or_none()
-        if admin is None:
-            admin = User(
-                email=ADMIN_EMAIL,
-                username="admin_test",
-                hashed_password=hash_password("Admin@12345"),
-                role="superadmin",
-                is_verified=True,
-                xp=10_000,
-                level=7,
-            )
-            db.add(admin)
-            db.flush()
-            db.add(Profile(user_id=admin.id, display_name="管理员"))
-
-        user = db.scalars(select(User).where(User.email == USER_EMAIL)).one_or_none()
-        if user is None:
-            user = User(
-                email=USER_EMAIL,
-                username="learner_test",
-                hashed_password=hash_password("Learner@123"),
-                role="user",
-                is_verified=True,
-            )
-            db.add(user)
-            db.flush()
-            db.add(Profile(user_id=user.id, display_name="学习者甲"))
-
-        # 清理历史测试残留，保证唯一约束不冲突
-        for row in db.scalars(
-            select(Course).where((Course.slug == "test-admin-course") | (Course.stage_no == 96))
-        ).all():
-            db.delete(row)
-        for model in db.scalars(select(AIModelConfig).where(AIModelConfig.name == "测试模型")).all():
-            db.delete(model)
-        db.commit()
-        return {"admin_id": admin.id, "user_id": user.id}
-    finally:
-        db.close()
+# ---------------------------------------------------------------------------
+# 测试夹具（复用 conftest 统一基座：内存 SQLite + 会话级缓存 App）
+# ---------------------------------------------------------------------------
 
 
-def _build_app() -> FastAPI:
-    """只挂载 admin 路由。"""
-    app = FastAPI()
-    register_exception_handlers(app)
-    app.include_router(admin_endpoint.router, prefix="/api")
-    return app
+@pytest.fixture()
+def seeded(db, seeded_users) -> dict[str, Any]:
+    """用户由基座 `seeded_users` 提供，这里只需清理本用例域内的历史残留。"""
+    for row in db.scalars(
+        select(Course).where((Course.slug == "test-admin-course") | (Course.stage_no == 96))
+    ).all():
+        db.delete(row)
+    for model in db.scalars(select(AIModelConfig).where(AIModelConfig.name == "测试模型")).all():
+        db.delete(model)
+    db.commit()
+    return {"admin_id": seeded_users.admin_id, "user_id": seeded_users.user_id}
 
 
-@pytest.fixture(scope="module")
-def seeded() -> dict[str, Any]:
-    """初始化数据库与种子数据。"""
-    return _seed()
+@pytest.fixture()
+def client(client_factory) -> TestClient:
+    """测试客户端（只挂载 admin 路由）。"""
+    return client_factory([admin_endpoint.router])
 
 
-@pytest.fixture(scope="module")
-def client() -> TestClient:
-    """测试客户端。"""
-    return TestClient(_build_app())
-
-
-def _headers(user_id: str, role: str, username: str) -> dict[str, str]:
-    """生成 Bearer 认证头。"""
-    token, _, _ = create_access_token(user_id, role=role, username=username)
-    return {"Authorization": f"Bearer {token}"}
-
-
-@pytest.fixture(scope="module")
-def admin_headers(seeded: dict[str, Any]) -> dict[str, str]:
+@pytest.fixture()
+def admin_headers(auth_tokens) -> dict[str, str]:
     """管理员认证头。"""
-    return _headers(seeded["admin_id"], "superadmin", "admin_test")
+    return {"Authorization": f"Bearer {auth_tokens.admin}"}
 
 
-@pytest.fixture(scope="module")
-def user_headers(seeded: dict[str, Any]) -> dict[str, str]:
+@pytest.fixture()
+def user_headers(auth_tokens) -> dict[str, str]:
     """普通用户认证头。"""
-    return _headers(seeded["user_id"], "user", "learner_test")
+    return {"Authorization": f"Bearer {auth_tokens.user}"}
 
 
 # ---------------------------------------------------------------------------
@@ -134,7 +78,7 @@ def test_admin_requires_admin(client: TestClient, user_headers: dict[str, str]) 
 # ---------------------------------------------------------------------------
 
 
-def test_admin_course_crud_and_audit(client: TestClient, admin_headers: dict[str, str]) -> None:
+def test_admin_course_crud_and_audit(client: TestClient, admin_headers: dict[str, str], db) -> None:
     """管理员课程 CRUD 成功且产生审计日志。"""
     create = client.post(
         "/api/admin/courses",
@@ -166,11 +110,7 @@ def test_admin_course_crud_and_audit(client: TestClient, admin_headers: dict[str
     assert "admin.course.delete" in actions
 
     # 数据库侧确认审计日志确实落库
-    db = SessionLocal()
-    try:
-        assert db.scalars(select(AuditLog).where(AuditLog.action == "admin.course.create")).first() is not None
-    finally:
-        db.close()
+    assert db.scalars(select(AuditLog).where(AuditLog.action == "admin.course.create")).first() is not None
 
 
 # ---------------------------------------------------------------------------

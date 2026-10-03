@@ -7,16 +7,12 @@ from datetime import timedelta
 from typing import Any
 
 import pytest
-from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 from app.api.endpoints import achievements, challenges, notifications, statistics
 from app.core.constants import level_of_xp
-from app.core.errors import register_exception_handlers
-from app.core.security import create_access_token, hash_password
-from app.db.init_db import create_all
-from app.db.session import SessionLocal
+from app.core.security import create_access_token
 from app.models.challenge import Challenge
 from app.models.gamification import Achievement, DailyTask, UserAchievement, XPTransaction
 from app.models.learning import LearningSession
@@ -38,105 +34,100 @@ DISPLAY_NAME = f"学习者{RUN}"
 # ---------------------------------------------------------------------------
 
 
-def _seed() -> dict[str, Any]:
-    """建表并写入本次运行唯一的最小可测数据。"""
-    create_all()
-    db = SessionLocal()
-    try:
-        user = User(
-            email=USER_EMAIL,
-            username=USERNAME,
-            hashed_password=hash_password("Learner@123"),
-            role="user",
-            is_verified=True,
-            streak_days=3,
-        )
-        db.add(user)
-        db.flush()
-        db.add(Profile(user_id=user.id, display_name=DISPLAY_NAME))
+def _seed(db, password_hash: str) -> dict[str, Any]:
+    """写入本次运行唯一的最小可测数据（复用基座的每用例内存库）。"""
+    user = User(
+        email=USER_EMAIL,
+        username=USERNAME,
+        hashed_password=password_hash,
+        role="user",
+        is_verified=True,
+        streak_days=3,
+    )
+    db.add(user)
+    db.flush()
+    db.add(Profile(user_id=user.id, display_name=DISPLAY_NAME))
 
-        for code, name, cat, cond in [
-            ("first_ac", "首个 AC", "practice", {"type": "problems_accepted", "value": 1}),
-            ("streak_3", "连续 3 天", "streak", {"type": "streak_days", "value": 3}),
-        ]:
-            if db.scalars(select(Achievement).where(Achievement.code == code)).one_or_none() is None:
-                db.add(Achievement(code=code, name=name, category=cat, condition_json=cond, xp_reward=10))
+    for code, name, cat, cond in [
+        ("first_ac", "首个 AC", "practice", {"type": "problems_accepted", "value": 1}),
+        ("streak_3", "连续 3 天", "streak", {"type": "streak_days", "value": 3}),
+    ]:
+        if db.scalars(select(Achievement).where(Achievement.code == code)).one_or_none() is None:
+            db.add(Achievement(code=code, name=name, category=cat, condition_json=cond, xp_reward=10))
 
-        if db.scalars(select(DailyTask).where(DailyTask.code == "daily_submit")).one_or_none() is None:
-            db.add(DailyTask(code="daily_submit", title="提交 1 次代码", metric="submissions", target_count=1, xp_reward=10))
+    if db.scalars(select(DailyTask).where(DailyTask.code == "daily_submit")).one_or_none() is None:
+        db.add(DailyTask(code="daily_submit", title="提交 1 次代码", metric="submissions", target_count=1, xp_reward=10))
 
-        problem = Problem(
-            slug=f"test-choice-{RUN}",
-            title="测试选择题",
-            problem_type="choice",
-            difficulty="easy",
-            category="basics",
-            answer_json=1,
-            options_json=["A", "B", "C"],
+    problem = Problem(
+        slug=f"test-choice-{RUN}",
+        title="测试选择题",
+        problem_type="choice",
+        difficulty="easy",
+        category="basics",
+        answer_json=1,
+        options_json=["A", "B", "C"],
+        score=10,
+    )
+    db.add(problem)
+    db.flush()
+
+    challenge = Challenge(
+        slug=f"test-challenge-{RUN}",
+        title="测试挑战",
+        challenge_type="daily",
+        difficulty="easy",
+        problem_ids_json=[problem.id],
+        start_at=now_utc() - timedelta(hours=1),
+        end_at=now_utc() + timedelta(days=1),
+        duration_minutes=60,
+        xp_reward=50,
+    )
+    db.add(challenge)
+    db.flush()
+
+    # 让统计 / 成就指标非空：一次通过提交 + 一次学习会话
+    db.add(
+        Submission(
+            user_id=user.id,
+            problem_id=problem.id,
+            status="accepted",
             score=10,
+            passed_cases=1,
+            total_cases=1,
+            finished_at=now_utc(),
         )
-        db.add(problem)
-        db.flush()
-
-        challenge = Challenge(
-            slug=f"test-challenge-{RUN}",
-            title="测试挑战",
-            challenge_type="daily",
-            difficulty="easy",
-            problem_ids_json=[problem.id],
-            start_at=now_utc() - timedelta(hours=1),
-            end_at=now_utc() + timedelta(days=1),
-            duration_minutes=60,
-            xp_reward=50,
-        )
-        db.add(challenge)
-        db.flush()
-
-        # 让统计 / 成就指标非空：一次通过提交 + 一次学习会话
-        db.add(
-            Submission(
-                user_id=user.id,
-                problem_id=problem.id,
-                status="accepted",
-                score=10,
-                passed_cases=1,
-                total_cases=1,
-                finished_at=now_utc(),
-            )
-        )
-        db.add(LearningSession(user_id=user.id, session_type="lesson", duration_seconds=1200, actions_count=3))
-        db.commit()
-        return {
-            "user_id": user.id,
-            "user_email": user.email,
-            "username": USERNAME,
-            "display_name": DISPLAY_NAME,
-            "problem_id": problem.id,
-            "challenge_id": challenge.id,
-        }
-    finally:
-        db.close()
+    )
+    db.add(LearningSession(user_id=user.id, session_type="lesson", duration_seconds=1200, actions_count=3))
+    db.commit()
+    return {
+        "user_id": user.id,
+        "user_email": user.email,
+        "username": USERNAME,
+        "display_name": DISPLAY_NAME,
+        "problem_id": problem.id,
+        "challenge_id": challenge.id,
+    }
 
 
-def _build_app() -> FastAPI:
-    """只挂载本模块负责的路由，避免占用端口。"""
-    app = FastAPI()
-    register_exception_handlers(app)
-    for module in (statistics, achievements, challenges, notifications):
-        app.include_router(module.router, prefix="/api")
-    return app
+#: 本域需要挂载的路由。
+GAMIFICATION_ROUTERS = (
+    statistics.router,
+    achievements.router,
+    challenges.router,
+    notifications.router,
+)
 
 
-@pytest.fixture(scope="module")
-def seeded() -> dict[str, Any]:
-    """初始化数据库与种子数据。"""
-    return _seed()
+@pytest.fixture()
+def seeded(db, password_hash: str) -> dict[str, Any]:
+    """初始化种子数据（每用例独立内存库）。"""
+    return _seed(db, password_hash)
 
 
-@pytest.fixture(scope="module")
-def client() -> TestClient:
-    """构造仅包含本域路由的测试客户端。"""
-    return TestClient(_build_app())
+@pytest.fixture()
+def client(client_factory) -> TestClient:
+    """构造仅包含本域路由的测试客户端（会话级复用）。"""
+    return client_factory(GAMIFICATION_ROUTERS)
 
 
 def _headers(user_id: str, role: str, username: str) -> dict[str, str]:
@@ -145,7 +136,7 @@ def _headers(user_id: str, role: str, username: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture()
 def user_headers(seeded: dict[str, Any]) -> dict[str, str]:
     """普通用户认证头。"""
     return _headers(seeded["user_id"], "user", seeded["username"])
@@ -168,98 +159,81 @@ def test_level_threshold_boundaries() -> None:
     assert level_of_xp(99_999, thresholds) == 7
 
 
-def test_award_xp_level_up(seeded: dict[str, Any]) -> None:
+def test_award_xp_level_up(seeded: dict[str, Any], db) -> None:
     """发放经验触发升级，并写入等级名与流水。"""
-    db = SessionLocal()
-    try:
-        user = db.get(User, seeded["user_id"])
-        user.xp = 95
-        user.level = 1
-        db.commit()
-        earned, level_up = gamification_service.award_xp(db, user, 10, "ac", "problem", seeded["problem_id"])
-        db.commit()
-        assert earned == 10
-        assert level_up is True
-        assert user.level == 2
-        assert user.xp == 105
-        info = gamification_service.level_info(user.xp)
-        assert info["level"] == 2
-        assert info["level_name"] == "Beginner"
-    finally:
-        db.close()
-
+    user = db.get(User, seeded["user_id"])
+    user.xp = 95
+    user.level = 1
+    db.commit()
+    earned, level_up = gamification_service.award_xp(db, user, 10, "ac", "problem", seeded["problem_id"])
+    db.commit()
+    assert earned == 10
+    assert level_up is True
+    assert user.level == 2
+    assert user.xp == 105
+    info = gamification_service.level_info(user.xp)
+    assert info["level"] == 2
+    assert info["level_name"] == "Beginner"
 
 # ---------------------------------------------------------------------------
 # 成就解锁幂等
 # ---------------------------------------------------------------------------
 
 
-def test_check_and_unlock_is_idempotent(seeded: dict[str, Any]) -> None:
+def test_check_and_unlock_is_idempotent(seeded: dict[str, Any], db) -> None:
     """重复调用不重复发放成就。"""
-    db = SessionLocal()
-    try:
-        user = db.get(User, seeded["user_id"])
-        before = len(db.scalars(select(UserAchievement).where(UserAchievement.user_id == user.id)).all())
-        first = gamification_service.check_and_unlock(db, user, {"metric": "problems_accepted"})
-        after_first = len(db.scalars(select(UserAchievement).where(UserAchievement.user_id == user.id)).all())
-        second = gamification_service.check_and_unlock(db, user, {"metric": "problems_accepted"})
-        after_second = len(db.scalars(select(UserAchievement).where(UserAchievement.user_id == user.id)).all())
+    user = db.get(User, seeded["user_id"])
+    before = len(db.scalars(select(UserAchievement).where(UserAchievement.user_id == user.id)).all())
+    first = gamification_service.check_and_unlock(db, user, {"metric": "problems_accepted"})
+    after_first = len(db.scalars(select(UserAchievement).where(UserAchievement.user_id == user.id)).all())
+    second = gamification_service.check_and_unlock(db, user, {"metric": "problems_accepted"})
+    after_second = len(db.scalars(select(UserAchievement).where(UserAchievement.user_id == user.id)).all())
 
-        assert after_first == before + len(first)
-        assert "first_ac" in first
-        assert second == []
-        assert after_second == after_first
-    finally:
-        db.close()
+    assert after_first == before + len(first)
+    assert "first_ac" in first
+    assert second == []
+    assert after_second == after_first
 
 
-def test_check_achievements_alias_unlocks_and_is_idempotent(seeded: dict[str, Any]) -> None:
+def test_check_achievements_alias_unlocks_and_is_idempotent(
+    seeded: dict[str, Any], db, password_hash: str
+) -> None:
     """内容域/判题域按 `check_achievements` 调用应真实解锁（幂等，含 XP + 通知）。"""
-    db = SessionLocal()
-    try:
-        sfx = uuid.uuid4().hex[:8]
-        user = User(email=f"alias_{sfx}@pythonlab.dev", username=f"alias_{sfx}", role="user",
-                    hashed_password=hash_password("Learner@123"), is_verified=True, streak_days=0)
-        db.add(user)
-        db.flush()
-        db.add(Profile(user_id=user.id, display_name=f"别名{sfx}"))
-        db.add(Submission(user_id=user.id, problem_id=seeded["problem_id"], status="accepted",
-                          score=10, passed_cases=1, total_cases=1, finished_at=now_utc()))
-        db.commit()
+    sfx = uuid.uuid4().hex[:8]
+    user = User(email=f"alias_{sfx}@pythonlab.dev", username=f"alias_{sfx}", role="user",
+                hashed_password=password_hash, is_verified=True, streak_days=0)
+    db.add(user)
+    db.flush()
+    db.add(Profile(user_id=user.id, display_name=f"别名{sfx}"))
+    db.add(Submission(user_id=user.id, problem_id=seeded["problem_id"], status="accepted",
+                      score=10, passed_cases=1, total_cases=1, finished_at=now_utc()))
+    db.commit()
 
-        def snap() -> tuple[int, int, int]:
-            uid = user.id
-            return (len(db.scalars(select(UserAchievement).where(UserAchievement.user_id == uid)).all()),
-                    len(db.scalars(select(XPTransaction).where(XPTransaction.user_id == uid)).all()),
-                    len(db.scalars(select(Notification).where(
-                        Notification.user_id == uid, Notification.type == "achievement")).all()))
+    def snap() -> tuple[int, int, int]:
+        uid = user.id
+        return (len(db.scalars(select(UserAchievement).where(UserAchievement.user_id == uid)).all()),
+                len(db.scalars(select(XPTransaction).where(XPTransaction.user_id == uid)).all()),
+                len(db.scalars(select(Notification).where(
+                    Notification.user_id == uid, Notification.type == "achievement")).all()))
 
-        assert callable(getattr(gamification_service, "check_achievements", None))  # 别名必须存在
-        xp0 = int(user.xp or 0)
-        ua0, tx0, nt0 = snap()
-        first = gamification_service.check_achievements(db, user)
-        db.refresh(user)
-        ua1, tx1, nt1 = snap()
-        assert "first_ac" in first and ua1 == ua0 + len(first)  # 成就行 +1/条
-        assert nt1 == nt0 + len(first) and tx1 > tx0            # 通知 +1/条，XP 流水有新增
-        assert int(user.xp) > xp0                               # XP 实际上涨
-        assert gamification_service.check_achievements(db, user) == []  # 幂等
-        assert snap() == (ua1, tx1, nt1)
-    finally:
-        db.close()
+    assert callable(getattr(gamification_service, "check_achievements", None))  # 别名必须存在
+    xp0 = int(user.xp or 0)
+    ua0, tx0, nt0 = snap()
+    first = gamification_service.check_achievements(db, user)
+    db.refresh(user)
+    ua1, tx1, nt1 = snap()
+    assert "first_ac" in first and ua1 == ua0 + len(first)  # 成就行 +1/条
+    assert nt1 == nt0 + len(first) and tx1 > tx0            # 通知 +1/条，XP 流水有新增
+    assert int(user.xp) > xp0                               # XP 实际上涨
+    assert gamification_service.check_achievements(db, user) == []  # 幂等
+    assert snap() == (ua1, tx1, nt1)
 
-
-def test_notification_service_create_positional(seeded: dict[str, Any]) -> None:
+def test_notification_service_create_positional(seeded: dict[str, Any], db) -> None:
     """`notification_service.create` 位置参数调用可用（内容/判题域按此签名调用）。"""
-    db = SessionLocal()
-    try:
-        note = notification_service.create(db, db.get(User, seeded["user_id"]), "achievement",
-                                           "位置调用标题", "位置调用内容", "/achievements")
-        db.commit()
-        assert note.title == "位置调用标题" and note.type == "achievement"
-    finally:
-        db.close()
-
+    note = notification_service.create(db, db.get(User, seeded["user_id"]), "achievement",
+                                       "位置调用标题", "位置调用内容", "/achievements")
+    db.commit()
+    assert note.title == "位置调用标题" and note.type == "achievement"
 
 # ---------------------------------------------------------------------------
 # 每日任务
@@ -360,22 +334,20 @@ def test_statistics_overview_and_trend_non_empty(client: TestClient, user_header
 # ---------------------------------------------------------------------------
 
 
-def test_notifications_unread_and_read(client: TestClient, user_headers: dict[str, str], seeded: dict[str, Any]) -> None:
+def test_notifications_unread_and_read(
+    client: TestClient, user_headers: dict[str, str], seeded: dict[str, Any], db
+) -> None:
     """未读数、标记已读、全部已读。"""
-    db = SessionLocal()
-    try:
-        for index in range(2):
-            db.add(
-                Notification(
-                    user_id=seeded["user_id"],
-                    type="system",
-                    title=f"测试通知 {index}",
-                    content_md="内容",
-                )
+    for index in range(2):
+        db.add(
+            Notification(
+                user_id=seeded["user_id"],
+                type="system",
+                title=f"测试通知 {index}",
+                content_md="内容",
             )
-        db.commit()
-    finally:
-        db.close()
+        )
+    db.commit()
 
     before = client.get("/api/notifications/unread-count", headers=user_headers).json()["data"]["count"]
     assert before >= 2

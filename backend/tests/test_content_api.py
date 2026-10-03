@@ -1,55 +1,31 @@
 """内容与学习域 API 测试（courses / lessons / progress / search / recommendations）。
 
-策略：把真实库 `backend/data/pythonlab.db`（18 课程 / 162 课时 / 167 知识点）复制到临时文件，
-仅挂载本域 5 个 router 构建临时 FastAPI app，并通过依赖覆盖把 `get_db` 指向该临时库，
-从而既能校验真实数据，又不污染真实库。
+策略：用 conftest 提供的 `seeded_real_db`（真实库 `backend/data/pythonlab.db` 的一致副本）
+构建模块级会话工厂，并通过 `client_factory` 挂载本域 5 个 router，
+既能校验真实数据，又不污染真实库。
 """
 
 from __future__ import annotations
 
-import os
-import sqlite3
 from pathlib import Path
 from types import SimpleNamespace
 
-# 必须在导入 app 之前固定测试环境
-os.environ.setdefault("APP_ENV", "testing")
-os.environ.setdefault("CACHE_BACKEND", "memory")
-os.environ.setdefault("QUEUE_BACKEND", "inline")
-os.environ.setdefault("SANDBOX_MODE", "stub")
-os.environ.setdefault("AI_OFFLINE", "true")
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine, select
+from sqlalchemy.orm import Session, sessionmaker
 
-import pytest  # noqa: E402
-from fastapi import FastAPI  # noqa: E402
-from fastapi.testclient import TestClient  # noqa: E402
-from sqlalchemy import create_engine, select  # noqa: E402
-from sqlalchemy.orm import Session, sessionmaker  # noqa: E402
+from app.api.endpoints import courses as courses_ep
+from app.api.endpoints import lessons as lessons_ep
+from app.api.endpoints import progress as progress_ep
+from app.api.endpoints import recommendations as rec_ep
+from app.api.endpoints import search as search_ep
+from app.core.security import create_access_token, hash_password
+from app.models.course import LessonTopic
+from app.models.learning import LearningSession
+from app.models.user import User
 
-from app.api.endpoints import courses as courses_ep  # noqa: E402
-from app.api.endpoints import lessons as lessons_ep  # noqa: E402
-from app.api.endpoints import progress as progress_ep  # noqa: E402
-from app.api.endpoints import recommendations as rec_ep  # noqa: E402
-from app.api.endpoints import search as search_ep  # noqa: E402
-from app.core.deps import get_db  # noqa: E402
-from app.core.errors import register_exception_handlers  # noqa: E402
-from app.core.security import create_access_token, hash_password  # noqa: E402
-from app.models.course import LessonTopic  # noqa: E402
-from app.models.learning import LearningSession  # noqa: E402
-from app.models.user import User  # noqa: E402
-
-REAL_DB: Path = Path(__file__).resolve().parents[1] / "data" / "pythonlab.db"
 API = "/api"
-
-
-def _copy_sqlite(src: Path, dst: Path) -> None:
-    """用 SQLite 在线备份 API 生成一致副本（含 WAL 中已提交的数据）。"""
-    source = sqlite3.connect(str(src))
-    target = sqlite3.connect(str(dst))
-    try:
-        source.backup(target)
-    finally:
-        target.close()
-        source.close()
 
 
 def _auth(token: str) -> dict[str, str]:
@@ -58,13 +34,18 @@ def _auth(token: str) -> dict[str, str]:
 
 
 @pytest.fixture(scope="module")
-def env(tmp_path_factory: pytest.TempPathFactory) -> SimpleNamespace:
-    """构建临时库 + 临时 app + 两个用户与令牌。"""
-    assert REAL_DB.exists(), f"真实数据库不存在：{REAL_DB}"
-    dst = tmp_path_factory.mktemp("contentdb") / "content_test.db"
-    _copy_sqlite(REAL_DB, dst)
-    engine = create_engine(f"sqlite:///{dst.as_posix()}", connect_args={"check_same_thread": False}, future=True)
+def env(seeded_real_db: Path, client_factory, install_session_factory) -> SimpleNamespace:
+    """构建真实种子库副本 + 临时 app + 两个用户与令牌。
+
+    内容域需要校验真实课程数据，因此用 conftest 提供的 `seeded_real_db`
+    （真实库的一致副本）建模块级引擎，并把它持有的会话工厂登记为当前活跃工厂，
+    使会话级缓存的 App 能正确解析到该库。模块级共享数据的行为与迁移前一致。
+    """
+    engine = create_engine(
+        f"sqlite:///{seeded_real_db.as_posix()}", connect_args={"check_same_thread": False}, future=True
+    )
     testing_session = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False, class_=Session)
+    install_session_factory(testing_session)
 
     with testing_session() as db:
         user_a = User(email="content_a@test.dev", username="content_a", hashed_password=hash_password("Test@12345"))
@@ -82,21 +63,7 @@ def env(tmp_path_factory: pytest.TempPathFactory) -> SimpleNamespace:
         link = db.scalars(select(LessonTopic).where(LessonTopic.is_primary.is_(True)).limit(1)).one()
         ids = (user_a.id, user_b.id, session_b.id, link.topic_id)
 
-    app = FastAPI()
-    register_exception_handlers(app)
-    for router in (courses_ep.router, lessons_ep.router, progress_ep.router, search_ep.router, rec_ep.router):
-        app.include_router(router, prefix=API)
-
-    def _override_get_db():
-        """用临时库会话替换默认依赖（含鉴权链路上的 get_db）。"""
-        db = testing_session()
-        try:
-            yield db
-        finally:
-            db.close()
-
-    app.dependency_overrides[get_db] = _override_get_db
-    client = TestClient(app)
+    client = client_factory([courses_ep.router, lessons_ep.router, progress_ep.router, search_ep.router, rec_ep.router])
     yield SimpleNamespace(
         client=client,
         token_a=token_a,
@@ -106,8 +73,8 @@ def env(tmp_path_factory: pytest.TempPathFactory) -> SimpleNamespace:
         session_b_id=ids[2],
         topic_id=ids[3],
     )
-    client.close()
     engine.dispose()
+    install_session_factory(None)
 
 
 def _pick_lesson_id(env: SimpleNamespace, index: int = 1) -> str:

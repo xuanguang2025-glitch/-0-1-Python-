@@ -12,31 +12,23 @@ from __future__ import annotations
 import time
 
 import pytest
-from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, select
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
+from sqlalchemy import select
 
 import app.models  # noqa: F401 - 触发全部模型注册
 from app.api.endpoints import bookmarks, code_history, editor, mistakes, problems, projects, submissions
-from app.core.cache import MemoryCache, cache_container
-from app.core.deps import get_db
-from app.core.errors import register_exception_handlers
-from app.core.security import create_access_token, hash_password
-from app.db.base import Base
+from app.core.security import create_access_token
 from app.models.course import Topic
 from app.models.enums import (
     ComparisonMode,
     ProblemCategory,
     ProblemType,
-    UserRole,
 )
 from app.models.learning import KnowledgeMastery, Mistake
 from app.models.problem import Problem, ProblemTag, Tag
 from app.models.problem import TestCase as ProblemTestCase
-from app.models.user import Profile, User
-from app.services.sandbox_client import SandboxClient, reset_sandbox_client, set_sandbox_client
+from app.models.user import User
+from app.services.sandbox_client import SandboxClient, set_sandbox_client
 
 HIDDEN_EXPECTED = "你好，小明!"
 SAMPLE_EXPECTED = "你好，Python!"
@@ -44,71 +36,33 @@ REFERENCE_CODE = 'name = input()\nprint(f"你好，{name}!")\n'
 
 
 # --------------------------------------------------------------------- 夹具
+#: 本域需要挂载的路由（含 /api/python/run 所在的 python_router）。
+JUDGE_ROUTERS = (
+    problems.router,
+    submissions.router,
+    editor.router,
+    projects.router,
+    bookmarks.router,
+    mistakes.router,
+    code_history.router,
+    editor.python_router,
+)
+
+
 @pytest.fixture()
-def harness():
-    """构建隔离的临时数据库 + 只挂载本域路由的测试应用。
-
-    使用内存 SQLite（单连接 `StaticPool`）而非磁盘文件：本机磁盘 DDL 极慢
-    （建库约 20s / 20+ 张表），内存建库约 0.1s，可避免整套用例被磁盘拖垮。
-    """
-    engine = create_engine(
-        "sqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-        future=True,
-    )
-    Base.metadata.create_all(engine)
-    TestSession = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
-
-    ids = _seed(TestSession)
-
-    app = FastAPI()
-    register_exception_handlers(app)
-    for module in (problems, submissions, editor, projects, bookmarks, mistakes, code_history):
-        app.include_router(module.router, prefix="/api")
-    app.include_router(editor.python_router, prefix="/api")
-
-    def _override_get_db():
-        db = TestSession()
-        try:
-            yield db
-        finally:
-            db.close()
-
-    app.dependency_overrides[get_db] = _override_get_db
-    cache_container.override(MemoryCache())
-    set_sandbox_client(SandboxClient(mode="local"))
-    client = TestClient(app)
-    try:
-        yield {"client": client, "session": TestSession, "ids": ids}
-    finally:
-        reset_sandbox_client()
-        cache_container.reset()
-        client.close()
-        engine.dispose()
+def harness(session_factory, client_factory, seeded_users):
+    """复用统一基座：每用例独立内存库 + 会话级缓存 App + 本机执行器。"""
+    ids = _seed(session_factory)
+    ids["user_id"] = seeded_users.user_id
+    ids["admin_id"] = seeded_users.admin_id
+    client = client_factory(JUDGE_ROUTERS)
+    yield {"client": client, "session": session_factory, "ids": ids}
 
 
 def _seed(TestSession) -> dict:
-    """写入最小但真实的题目 / 用例 / 知识点数据。"""
+    """写入最小但真实的题目 / 用例 / 知识点数据（用户由基座 `seeded_users` 提供）。"""
     db = TestSession()
     try:
-        user = User(
-            email="learner@pythonlab.dev",
-            username="learner",
-            hashed_password=hash_password("Passw0rd!"),
-            role=UserRole.USER.value,
-        )
-        admin = User(
-            email="admin@pythonlab.dev",
-            username="root_admin",
-            hashed_password=hash_password("Passw0rd!"),
-            role=UserRole.SUPERADMIN.value,
-        )
-        db.add_all([user, admin])
-        db.flush()
-        db.add(Profile(user_id=user.id, display_name="学习者"))
-        db.add(Profile(user_id=admin.id, display_name="管理员"))
-
         topic = Topic(slug="loops", name="循环")
         tag = Tag(slug="loops", name="循环", kind="problem")
         db.add_all([topic, tag])
@@ -183,8 +137,6 @@ def _seed(TestSession) -> dict:
         db.add_all([choice, judge])
         db.commit()
         return {
-            "user_id": user.id,
-            "admin_id": admin.id,
             "hello_id": hello.id,
             "choice_id": choice.id,
             "judge_id": judge.id,
@@ -510,19 +462,18 @@ def test_auto_mode_falls_back_to_local() -> None:
 
 
 def test_remote_mode_falls_back_to_local_on_error() -> None:
-    """remote 模式远程不可达时不报错，自动回落本机（runner=local, degraded）。"""
+    """remote 模式远程不可用时不报错，自动回落本机（runner=local, degraded）。
+
+    注意：本机存在系统级代理（v2rayN TUN），连 127.0.0.1 也会被代理接管并返回 502，
+    每次远程尝试约 3.5s。因此这里只做**一次**远程尝试；`judge()` 走的是同一个
+    `_remote_execute` 回落分支，不再重复付出该延迟。
+    """
     client = SandboxClient(mode="remote", url="http://127.0.0.1:9")
     result = client.run({"main.py": "print('remote-down')"})
     assert result.runner == "local"
     assert result.degraded is True
     assert result.status == "success"
     assert "remote-down" in result.stdout
-    judged = client.judge(
-        {"main.py": "print(2)"},
-        [{"id": "c1", "input": "", "expected": "2\n", "comparison": "trimmed"}],
-    )
-    assert judged.runner == "local"
-    assert judged.total_cases == 1
 
 
 def test_endpoints_degrade_gracefully_under_stub_mode(harness) -> None:

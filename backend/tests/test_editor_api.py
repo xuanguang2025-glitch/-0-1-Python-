@@ -7,85 +7,45 @@
 from __future__ import annotations
 
 import pytest
-from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
 
 import app.models  # noqa: F401 - 触发全部模型注册
 from app.api.endpoints import bookmarks, code_history, editor, mistakes, problems, projects, submissions
-from app.core.cache import MemoryCache, cache_container
-from app.core.deps import get_db
-from app.core.errors import register_exception_handlers
-from app.core.security import create_access_token, hash_password
-from app.db.base import Base
-from app.models.enums import ProblemCategory, UserRole
+from app.core.security import create_access_token
+from app.models.enums import ProblemCategory
 from app.models.project import Project, ProjectFile
-from app.models.user import Profile, User
-from app.services.sandbox_client import SandboxClient, reset_sandbox_client, set_sandbox_client
+from app.models.user import User
 
 MULTI_FILE_MAIN = "from utils import add\nprint(add(1, 2))"
 MULTI_FILE_UTILS = "def add(a, b):\n    return a + b"
 
 
+#: 本域需要挂载的路由（含 /api/python/run 所在的 python_router）。
+EDITOR_ROUTERS = (
+    problems.router,
+    submissions.router,
+    editor.router,
+    projects.router,
+    bookmarks.router,
+    mistakes.router,
+    code_history.router,
+    editor.python_router,
+)
+
+
 @pytest.fixture()
-def harness():
-    """构建隔离数据库 + 测试应用（执行器固定为本机 local）。
-
-    内存 SQLite（单连接 `StaticPool`）替代磁盘文件：本机磁盘 DDL 极慢
-    （建库约 20s），内存建库约 0.1s，避免整套用例被磁盘拖垮。
-    """
-    engine = create_engine(
-        "sqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-        future=True,
-    )
-    Base.metadata.create_all(engine)
-    TestSession = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
-    ids = _seed(TestSession)
-
-    app = FastAPI()
-    register_exception_handlers(app)
-    for module in (problems, submissions, editor, projects, bookmarks, mistakes, code_history):
-        app.include_router(module.router, prefix="/api")
-    app.include_router(editor.python_router, prefix="/api")
-
-    def _override_get_db():
-        db = TestSession()
-        try:
-            yield db
-        finally:
-            db.close()
-
-    app.dependency_overrides[get_db] = _override_get_db
-    cache_container.override(MemoryCache())
-    set_sandbox_client(SandboxClient(mode="local"))
-    client = TestClient(app)
-    try:
-        yield {"client": client, "session": TestSession, "ids": ids}
-    finally:
-        reset_sandbox_client()
-        cache_container.reset()
-        client.close()
-        engine.dispose()
+def harness(session_factory, client_factory, seeded_users):
+    """复用统一基座：每用例独立内存库 + 会话级缓存 App + 本机执行器。"""
+    ids = _seed(session_factory)
+    ids["user_id"] = seeded_users.user_id
+    client = client_factory(EDITOR_ROUTERS)
+    yield {"client": client, "session": session_factory, "ids": ids}
 
 
 def _seed(TestSession) -> dict:
-    """写入用户 + 多文件项目模板。"""
+    """写入多文件项目模板（用户由基座 `seeded_users` 提供）。"""
     db = TestSession()
     try:
-        user = User(
-            email="editor@pythonlab.dev",
-            username="editor_user",
-            hashed_password=hash_password("Passw0rd!"),
-            role=UserRole.USER.value,
-        )
-        db.add(user)
-        db.flush()
-        db.add(Profile(user_id=user.id, display_name="编辑器用户"))
-
         project = Project(
             slug="multi-file-demo",
             title="多文件项目演示",
@@ -108,7 +68,7 @@ def _seed(TestSession) -> dict:
             ]
         )
         db.commit()
-        return {"user_id": user.id, "project_id": project.id}
+        return {"project_id": project.id}
     finally:
         db.close()
 
