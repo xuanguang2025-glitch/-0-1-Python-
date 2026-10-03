@@ -90,6 +90,7 @@ FastAPI 后端 ──► SQLite（默认） / PostgreSQL
 | 后端测试（API / 判题 / AI / 权限） | **97 passed** |
 | 沙箱安全用例（死循环 / 命令执行 / 敏感路径 / 输出爆炸） | **6/6 拦截 + 12 项单测** |
 | 安全红线探测（密码哈希 / 越权 / 泄露 / SQL 注入） | **9/9 通过**（`backend/scripts/security_probe.py` 可复跑） |
+| 安全深测第二轮（XSS / CORS / CSRF / 安全响应头） | **11/11 通过**（`backend/scripts/security_probe_round2.py` 可复跑） |
 | 前端 | `tsc` 零错误 · `next build` 通过 · 31 个页面 |
 
 ## 📚 文档
@@ -102,6 +103,7 @@ FastAPI 后端 ──► SQLite（默认） / PostgreSQL
 | [docs/SANDBOX.md](docs/SANDBOX.md) | 沙箱协议、限制策略、Windows 降级说明 |
 | [docs/AI.md](docs/AI.md) | AI Provider 接入（DeepSeek / 通义 / 智谱 / OpenAI / Claude / Gemini） |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | 部署手册（开发 / Docker / 生产） |
+| [docs/SECURITY.md](docs/SECURITY.md) | 安全基线：两轮探测结论、静态审计佐证、上线前核对清单 |
 
 ## 🗺️ Roadmap
 
