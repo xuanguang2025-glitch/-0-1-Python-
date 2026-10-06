@@ -38,6 +38,7 @@ function makeResult(overrides: Partial<RunResponse> = {}): RunResponse {
     time_ms: 12,
     memory_kb: 2048,
     error: null,
+    error_type: null,
     runner: 'local',
     degraded: false,
     ...overrides,

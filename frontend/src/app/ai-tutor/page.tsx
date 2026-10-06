@@ -86,7 +86,7 @@ function AiTutorContent(): React.ReactElement {
           id: message.id,
           role: message.role === 'user' ? 'user' : 'assistant',
           content: message.content_md,
-          kind: message.kind,
+          kind: message.kind ?? undefined,
         })),
       );
     } catch {

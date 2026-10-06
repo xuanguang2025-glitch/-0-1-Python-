@@ -36,7 +36,8 @@ export function usePythonRunner(): UsePythonRunnerResult {
         const response = await pythonApi.run({
           files,
           entry: options?.entry,
-          stdin: options?.stdin,
+          // 后端 RunRequest.stdin 是必填字符串，缺省补空串避免 422
+          stdin: options?.stdin ?? '',
           timeout_ms: options?.timeoutMs ?? 5000,
         });
         setResult(response);

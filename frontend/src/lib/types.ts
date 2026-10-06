@@ -366,14 +366,9 @@ export interface CompleteLessonResult {
 
 /* ------------------------------ 题目与判题 ------------------------------ */
 
-export interface TestCaseOut {
-  id: string;
-  input: string;
-  expected_output: string;
-  comparison: string;
-  is_sample: boolean;
-  is_hidden: boolean;
-  order_index: number;
+export interface TestCaseOut extends TestCaseBrief {
+  /** 后端未返回该字段，保留为可选以兼容历史用法。 */
+  is_hidden?: boolean;
 }
 
 export interface ProblemBrief {
@@ -383,48 +378,79 @@ export interface ProblemBrief {
   problem_type: ProblemType;
   difficulty: Difficulty;
   category: string;
-  acceptance_rate: number;
+  score: number;
+  xp_reward: number;
   submission_count: number;
-  tags?: string[];
-  my_status?: SubmissionStatus | null;
+  accepted_count: number;
+  acceptance_rate: number;
+  tags: string[];
+  my_status: SubmissionStatus | null;
 }
 
+/**
+ * 对齐后端 ProblemDetail —— **扁平结构**（没有 `problem` 嵌套层）。
+ * tags 是 TagOut 对象数组，不是 string[]。
+ */
 export interface ProblemDetail {
-  problem: ProblemBrief & {
-    statement_md: string;
-    input_format: string | null;
-    output_format: string | null;
-    time_limit_ms: number;
-    memory_limit_mb: number;
-    hints_md: string | null;
-  };
-  sample_cases: TestCaseOut[];
-  tags: string[];
+  id: string;
+  slug: string;
+  title: string;
+  statement_md: string;
+  problem_type: ProblemType;
+  difficulty: Difficulty;
+  category: string;
+  input_format: string | null;
+  output_format: string | null;
+  sample_input: string | null;
+  sample_output: string | null;
+  constraints: string | null;
+  options_json: unknown;
+  hint_md: string | null;
+  solution_md: string | null;
+  starter_code: string | null;
+  buggy_code: string | null;
+  time_limit_ms: number;
+  memory_limit_mb: number;
+  score: number;
+  xp_reward: number;
+  submission_count: number;
+  accepted_count: number;
+  acceptance_rate: number;
+  tags: TagOut[];
+  sample_cases: TestCaseBrief[];
   my_status: SubmissionStatus | null;
   my_last_submission_id: string | null;
 }
 
+/** 对齐后端 ProblemTagOut：前三项是 {value,label,count}，tags 是 TagOut[]。 */
 export interface ProblemFilters {
   types: { value: string; label: string; count: number }[];
   difficulties: { value: string; label: string; count: number }[];
   categories: { value: string; label: string; count: number }[];
-  tags: { value: string; label: string; count: number }[];
+  tags: TagOut[];
 }
 
+/** 对齐后端 SubmissionResultOut。 */
 export interface SubmissionCaseResult {
-  test_case_id: string;
+  id: string | null;
+  test_case_id: string | null;
   passed: boolean;
   time_ms: number;
   memory_kb: number;
   actual_output: string | null;
-  expected_output?: string | null;
+  expected_output: string | null;
   diff: string | null;
+  stderr: string | null;
+  message: string | null;
 }
 
+/** 对齐后端 SubmissionOut。 */
 export interface SubmissionOut {
   id: string;
-  user_id: string;
-  problem_id: string;
+  user_id: string | null;
+  problem_id: string | null;
+  lesson_id: string | null;
+  challenge_id: string | null;
   language: string;
   status: SubmissionStatus;
   score: number;
@@ -435,29 +461,41 @@ export interface SubmissionOut {
   error_type: string | null;
   error_message: string | null;
   runner: RunnerKind;
+  judged_by: string;
   code: string;
-  created_at: string;
+  created_at: string | null;
+  finished_at: string | null;
   results: SubmissionCaseResult[];
 }
 
 export interface SubmissionBrief {
   id: string;
-  problem_id: string;
-  problem_title?: string;
+  problem_id: string | null;
+  problem_title: string | null;
+  lesson_id: string | null;
   status: SubmissionStatus;
   score: number;
   passed_cases: number;
   total_cases: number;
   time_ms: number;
   memory_kb: number;
-  runner: RunnerKind;
-  created_at: string;
+  language: string;
+  runner?: RunnerKind;
+  created_at: string | null;
 }
 
+/** 对齐后端 SubmissionStatusOut（finished 是权威的轮询终止信号）。 */
 export interface SubmissionStatusPoll {
   status: SubmissionStatus;
   passed_cases: number;
   total_cases: number;
+  finished: boolean;
+}
+
+/** 对齐后端 DiscussionAIOut。 */
+export interface DiscussionAIOut {
+  summary_md: string;
+  degraded: boolean;
 }
 
 /* ------------------------------ 执行与编辑器 ------------------------------ */
@@ -470,16 +508,32 @@ export interface RunFile {
 export interface RunRequestPayload {
   files: RunFile[];
   entry?: string;
+  /** 后端 RunRequest.stdin 为必填字符串，未传时调用方需补空串。 */
   stdin?: string;
   timeout_ms?: number;
   memory_limit_mb?: number;
 }
 
-export interface SandboxError {
-  type: string | null;
-  message: string | null;
-  traceback: string | null;
-  line: number | null;
+/** 对齐后端 TagOut（标签对象，非字符串）。 */
+export interface TagOut {
+  id: string;
+  slug: string;
+  name: string;
+  color: string | null;
+  kind: string;
+  order_index: number;
+  count: number | null;
+}
+
+/** 对齐后端 TestCaseBrief（样例用例，不含 is_hidden）。 */
+export interface TestCaseBrief {
+  id: string;
+  name: string | null;
+  input: string;
+  expected_output: string;
+  comparison: string;
+  is_sample: boolean;
+  order_index: number;
 }
 
 export interface RunResponse {
@@ -491,7 +545,9 @@ export interface RunResponse {
   truncated: boolean;
   time_ms: number;
   memory_kb: number;
-  error: SandboxError | null;
+  /** 后端返回的是**错误摘要字符串**，不是对象（实测 `ZeroDivisionError: division by zero`）。 */
+  error: string | null;
+  error_type: string | null;
   runner: RunnerKind;
   degraded: boolean;
 }
@@ -503,12 +559,22 @@ export interface CodeHistoryBrief {
   file_path: string;
   label: string | null;
   version_no: number;
-  created_at: string;
+  source: string;
+  size_bytes: number;
+  line_count: number;
+  created_at: string | null;
 }
 
 export interface CodeHistoryOut extends CodeHistoryBrief {
+  user_id: string | null;
   code: string;
-  source: string | null;
+  parent_id: string | null;
+}
+
+/** 对齐后端 CompareOut。 */
+export interface CompareOut {
+  diff_text: string;
+  hunks: { old_start: number; old_lines: number; new_start: number; new_lines: number; lines: unknown[] }[];
 }
 
 /* ------------------------------ 项目 ------------------------------ */
@@ -522,42 +588,65 @@ export interface ProjectBrief {
   category: string;
   difficulty: Difficulty;
   estimated_hours: number;
+  xp_reward: number;
+  order_index: number;
   cover_url: string | null;
-  my_progress_percent?: number | null;
+  my_status: string | null;
+  /** 后端键名就是 progress_percent（实测无 my_progress_percent）。 */
+  progress_percent: number;
 }
 
 export interface ProjectFileOut {
   id: string;
   path: string;
   content: string;
+  language: string;
   is_entry: boolean;
+  is_readonly: boolean;
+  description: string | null;
   order_index: number;
 }
 
+/** 对齐后端 ProjectStepOut：无 id，正文在 detail，完成提示在 done_hint。 */
 export interface ProjectStepOut {
-  id: string;
   title: string;
-  description_md: string | null;
-  order_index: number;
+  detail: string;
+  done_hint: string;
 }
 
+/** 对齐后端 ProjectDetail（description_md 在顶层，不在 project 内）。 */
 export interface ProjectDetail {
-  project: ProjectBrief & { requirement_md: string };
+  project: ProjectBrief;
   files: ProjectFileOut[];
   steps: ProjectStepOut[];
+  rubric: unknown;
+  description_md: string;
   my: UserProjectOut | null;
 }
 
+/** 对齐后端 UserProjectOut（无 completed_steps / submitted_at）。 */
 export interface UserProjectOut {
-  id: string;
-  user_id: string;
+  id: string | null;
+  user_id: string | null;
   project_id: string;
-  files_json: Record<string, string>;
+  status: string;
   progress_percent: number;
   current_step: number;
-  /** 已完成的步骤 id 列表。 */
-  completed_steps: string[];
-  submitted_at: string | null;
+  files_json: Record<string, string>;
+  notes_md: string | null;
+  last_run_status: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  updated_at: string | null;
+}
+
+/** 对齐后端 ProjectSubmitOut。 */
+export interface ProjectSubmitOut {
+  user_project: UserProjectOut;
+  xp_earned: number;
+  level_up: boolean;
+  unlocked_achievements: string[];
+  checks: Record<string, unknown>[];
 }
 
 /* ------------------------------ AI ------------------------------ */
@@ -567,18 +656,26 @@ export interface AiConversationBrief {
   title: string;
   mode: AiMode;
   scene: AiScene;
+  context_type: string | null;
+  context_id: string | null;
   message_count: number;
-  created_at: string;
-  updated_at: string;
+  total_tokens: number;
+  is_archived: boolean;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 export interface AiMessageOut {
   id: string;
-  conversation_id: string;
   role: 'user' | 'assistant' | 'system';
-  kind: AiMessageKind | string;
+  kind: AiMessageKind | string | null;
   content_md: string;
-  created_at: string;
+  tokens_in: number;
+  tokens_out: number;
+  latency_ms: number;
+  degraded: boolean;
+  meta_json: unknown;
+  created_at: string | null;
 }
 
 export interface AiConversationDetail {
@@ -592,7 +689,8 @@ export interface AiChatPayload {
   mode?: AiMode;
   scene?: AiScene;
   level?: AiHintLevel;
-  context?: { type: string; id?: string; code?: string; error?: string } | null;
+  practice_mode?: boolean;
+  context?: { type?: string; id?: string; code?: string; error?: string } | null;
   stream?: boolean;
 }
 
@@ -615,6 +713,9 @@ export interface AiStatus {
   degraded: boolean;
   remaining_quota: number;
   modes: AiMode[];
+  scenes: AiScene[];
+  configured_provider: string | null;
+  configured_model: string | null;
 }
 
 export interface ReviewIssue {
@@ -628,18 +729,17 @@ export interface ReviewOut {
   score: number;
   summary_md: string;
   issues: ReviewIssue[];
-  improved_code: string;
+  improved_code: string | null;
   degraded: boolean;
 }
 
+/** 对齐后端 ErrorAnalysisOut（无 related_topics / degraded）。 */
 export interface ErrorAnalysisOut {
   error_type: string;
   cause: string;
   location: string | null;
   fix_steps: string[];
-  minimal_example: string;
-  related_topics: string[];
-  degraded?: boolean;
+  minimal_example: string | null;
 }
 
 /* ------------------------------ 进度与统计 ------------------------------ */
@@ -980,29 +1080,40 @@ export interface SearchOut {
   keyword: string;
 }
 
+/** 对齐后端 BookmarkOut。 */
 export interface BookmarkOut {
   id: string;
   kind: BookmarkKind;
   ref_id: string | null;
   title: string;
+  description: string | null;
   code_snippet: string | null;
-  collection: string | null;
+  language: string;
+  collection: string;
   tags: string[];
-  created_at: string;
+  created_at: string | null;
 }
 
+/** 对齐后端 MistakeOut（无 problem_title，题目名需自行拼接）。 */
 export interface MistakeOut {
   id: string;
   problem_id: string | null;
-  problem_title?: string | null;
+  submission_id: string | null;
+  lesson_id: string | null;
+  topic_id: string | null;
   title: string;
-  error_type: string | null;
+  question_snapshot_md: string | null;
   user_answer: string | null;
+  correct_answer: string | null;
+  error_type: string;
+  error_message: string | null;
   note_md: string | null;
   resolved: boolean;
+  resolved_at: string | null;
   review_count: number;
   next_review_at: string | null;
-  created_at: string;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 /* ------------------------------ 健康检查 ------------------------------ */

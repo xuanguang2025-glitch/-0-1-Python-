@@ -270,22 +270,31 @@ export const lessonApi = {
 };
 
 export const problemApi = {
+  /** query：type / difficulty / category / tag / status / keyword / page / page_size / sort。 */
   list: (query?: QueryParams) => apiGet<Page<import('./types').ProblemBrief>>('/problems', query),
   filters: () => apiGet<import('./types').ProblemFilters>('/problems/filters'),
   random: (query?: QueryParams) => apiGet<import('./types').ProblemBrief>('/problems/random', query),
   recommend: (limit = 10) => apiGet<import('./types').ProblemBrief[]>('/problems/recommend', { limit }),
   detail: (id: string) => apiGet<import('./types').ProblemDetail>(`/problems/${id}`),
   similar: (id: string, limit = 5) => apiGet<import('./types').ProblemBrief[]>(`/problems/${id}/similar`, { limit }),
-  discussionAi: (id: string) => apiGet<{ summary_md: string }>(`/problems/${id}/discussion-ai`),
+  discussionAi: (id: string) => apiGet<import('./types').DiscussionAIOut>(`/problems/${id}/discussion-ai`),
 };
 
 export const submissionApi = {
-  submit: (payload: { problem_id: string; code: string; lesson_id?: string; language?: string }) =>
-    apiPost<import('./types').SubmissionOut>('/submissions', payload),
+  submit: (payload: {
+    problem_id?: string | null;
+    lesson_id?: string | null;
+    code: string;
+    language?: string;
+    answer?: string | number | boolean | null;
+  }) => apiPost<import('./types').SubmissionOut>('/submissions', payload),
   list: (query?: QueryParams) => apiGet<Page<import('./types').SubmissionBrief>>('/submissions', query),
-  detail: (id: string) => apiGet<import('./types').SubmissionOut>(`/submissions/${id}`),
+  detail: (id: string, includeResults = true) =>
+    apiGet<import('./types').SubmissionOut>(`/submissions/${id}`, { include_results: includeResults }),
   results: (id: string) => apiGet<import('./types').SubmissionCaseResult[]>(`/submissions/${id}/results`),
+  /** 轮询判题：优先用返回的 finished 判定终止。 */
   status: (id: string) => apiGet<import('./types').SubmissionStatusPoll>(`/submissions/${id}/status`),
+  rejudge: (id: string) => apiPost<import('./types').SubmissionOut>(`/submissions/${id}/rejudge`),
 };
 
 export const pythonApi = {
@@ -303,10 +312,7 @@ export const projectApi = {
   run: (id: string, payload: { entry?: string; stdin?: string }) =>
     apiPost<import('./types').RunResponse>(`/projects/${id}/run`, payload),
   submit: (id: string, notes_md?: string) =>
-    apiPost<{ user_project: import('./types').UserProjectOut; xp_earned: number; unlocked_achievements: unknown[] }>(
-      `/projects/${id}/submit`,
-      { notes_md },
-    ),
+    apiPost<import('./types').ProjectSubmitOut>(`/projects/${id}/submit`, { notes_md }),
 };
 
 export const editorApi = {
@@ -322,8 +328,15 @@ export const editorApi = {
   historyDetail: (id: string) => apiGet<import('./types').CodeHistoryOut>(`/editor/history/${id}`),
   restore: (id: string) => apiPost<import('./types').CodeHistoryOut>(`/editor/history/${id}/restore`),
   compare: (left_id: string, right_id: string) =>
-    apiPost<{ diff_text: string; hunks: unknown[] }>('/editor/compare', { left_id, right_id }),
+    apiPost<import('./types').CompareOut>('/editor/compare', { left_id, right_id }),
   remove: (id: string) => apiDelete<null>(`/editor/history/${id}`),
+};
+
+/** `/api/code-history` 与 `/api/editor/history` 同源，单独暴露以对齐后端路由。 */
+export const codeHistoryApi = {
+  list: (query?: QueryParams) => apiGet<Page<import('./types').CodeHistoryBrief>>('/code-history', query),
+  detail: (id: string) => apiGet<import('./types').CodeHistoryOut>(`/code-history/${id}`),
+  remove: (id: string) => apiDelete<null>(`/code-history/${id}`),
 };
 
 export const aiApi = {
@@ -428,9 +441,18 @@ export const searchApi = {
 
 export const bookmarkApi = {
   list: (query?: QueryParams) => apiGet<Page<import('./types').BookmarkOut>>('/bookmarks', query),
-  create: (payload: Partial<import('./types').BookmarkOut>) =>
-    apiPost<import('./types').BookmarkOut>('/bookmarks', payload),
-  update: (id: string, payload: Partial<import('./types').BookmarkOut>) =>
+  /** kind / title 为必填；collection / language 后端要求字符串，缺省补空串。 */
+  create: (payload: {
+    kind: string;
+    title: string;
+    ref_id?: string | null;
+    description?: string | null;
+    code_snippet?: string | null;
+    language?: string;
+    collection?: string;
+    tags?: string[];
+  }) => apiPost<import('./types').BookmarkOut>('/bookmarks', { language: '', collection: '', ...payload }),
+  update: (id: string, payload: { title?: string | null; note?: string | null; collection?: string | null; tags?: string[] | null }) =>
     apiPatch<import('./types').BookmarkOut>(`/bookmarks/${id}`, payload),
   remove: (id: string) => apiDelete<null>(`/bookmarks/${id}`),
   collections: () => apiGet<{ collections: { name: string; count: number }[] }>('/bookmarks/collections'),
@@ -438,12 +460,15 @@ export const bookmarkApi = {
 
 export const mistakeApi = {
   list: (query?: QueryParams) => apiGet<Page<import('./types').MistakeOut>>('/mistakes', query),
-  create: (payload: Partial<import('./types').MistakeOut>) => apiPost<import('./types').MistakeOut>('/mistakes', payload),
+  create: (payload: Partial<import('./types').MistakeOut>) =>
+    apiPost<import('./types').MistakeOut>('/mistakes', payload),
   reviewQueue: (limit = 10) => apiGet<import('./types').MistakeOut[]>('/mistakes/review-queue', { limit }),
+  topics: (limit = 20) => apiGet<Record<string, unknown>[]>('/mistakes/topics', { limit }),
   detail: (id: string) => apiGet<import('./types').MistakeOut>(`/mistakes/${id}`),
-  update: (id: string, payload: Partial<import('./types').MistakeOut>) =>
+  update: (id: string, payload: { note_md?: string | null; topic_id?: string | null }) =>
     apiPatch<import('./types').MistakeOut>(`/mistakes/${id}`, payload),
-  resolve: (id: string, resolved: boolean) => apiPost<import('./types').MistakeOut>(`/mistakes/${id}/resolve`, { resolved }),
+  resolve: (id: string, resolved: boolean) =>
+    apiPost<import('./types').MistakeOut>(`/mistakes/${id}/resolve`, { resolved }),
   remove: (id: string) => apiDelete<null>(`/mistakes/${id}`),
 };
 

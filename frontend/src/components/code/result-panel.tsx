@@ -96,15 +96,9 @@ export function ResultPanel({
           <section className="rounded-lg border border-amber-500/30 bg-amber-500/8 p-3">
             <p className="flex items-center gap-1.5 text-[12px] font-medium text-amber-500">
               <AlertTriangle className="h-3.5 w-3.5" />
-              {result.error.type ?? '运行异常'}
-              {result.error.line ? `（第 ${result.error.line} 行）` : ''}
+              {result.error_type ?? '运行异常'}
             </p>
-            {result.error.message ? (
-              <p className="mt-1 text-[12px] text-muted-foreground">{result.error.message}</p>
-            ) : null}
-            {result.error.traceback ? (
-              <pre className="code-surface mt-2 max-h-40 overflow-auto p-2 text-[12px]">{result.error.traceback}</pre>
-            ) : null}
+            <p className="mt-1 whitespace-pre-wrap text-[12px] text-muted-foreground">{result.error}</p>
           </section>
         ) : null}
 

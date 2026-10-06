@@ -81,7 +81,8 @@ export function ProblemDetailView({ problemId }: ProblemDetailViewProps): React.
   const [aiSolutionLoading, setAiSolutionLoading] = useState(false);
   const [errorAnalysis, setErrorAnalysis] = useState<string | null>(null);
 
-  const problem = detail.data?.problem;
+  /** 后端 ProblemDetail 是扁平结构，没有 `problem` 嵌套层。 */
+  const problem = detail.data;
   const samples = detail.data?.sample_cases ?? [];
   const tags = detail.data?.tags ?? [];
 
@@ -97,11 +98,12 @@ export function ProblemDetailView({ problemId }: ProblemDetailViewProps): React.
     try {
       let result = await submissionApi.submit({ problem_id: problem.id, code, language: 'python' });
       let attempts = 0;
+      // 后端 SubmissionStatusOut.finished 是权威终止信号，status 字符串作为兜底
       while ((result.status === 'pending' || result.status === 'judging') && attempts < POLL_MAX) {
         await new Promise((resolve) => window.setTimeout(resolve, 1000));
         const polled = await submissionApi.status(result.id);
         attempts += 1;
-        if (polled.status !== 'pending' && polled.status !== 'judging') {
+        if (polled.finished || (polled.status !== 'pending' && polled.status !== 'judging')) {
           result = await submissionApi.detail(result.id);
           break;
         }
@@ -140,9 +142,7 @@ export function ProblemDetailView({ problemId }: ProblemDetailViewProps): React.
       setErrorAnalysis(
         `**错误类型：** ${result.error_type}\n\n**原因：** ${result.cause}\n\n**修复步骤：**\n${result.fix_steps
           .map((step, index) => `${index + 1}. ${step}`)
-          .join('\n')}${
-          result.related_topics.length ? `\n\n**相关知识：** ${result.related_topics.join('、')}` : ''
-        }`,
+          .join('\n')}`,
       );
     } catch {
       setErrorAnalysis(null);
@@ -201,8 +201,8 @@ export function ProblemDetailView({ problemId }: ProblemDetailViewProps): React.
           <Card>
             <CardContent className="space-y-3 pt-5">
               <div className="flex flex-wrap items-center gap-2">
-                <Badge className={DIFFICULTY_STYLE[problem.difficulty]}>{DIFFICULTY_LABEL[problem.difficulty]}</Badge>
-                <Badge variant="secondary">{PROBLEM_TYPE_LABEL[problem.problem_type]}</Badge>
+                <Badge className={DIFFICULTY_STYLE[problem.difficulty] ?? ''}>{DIFFICULTY_LABEL[problem.difficulty] ?? problem.difficulty}</Badge>
+                <Badge variant="secondary">{PROBLEM_TYPE_LABEL[problem.problem_type] ?? problem.problem_type}</Badge>
                 {detail.data?.my_status ? (
                   <Badge className={SUBMISSION_STATUS_STYLE[detail.data.my_status as SubmissionStatus]}>
                     {VERDICT_SHORT[detail.data.my_status as SubmissionStatus]} · {SUBMISSION_STATUS_LABEL[detail.data.my_status as SubmissionStatus]}
@@ -302,8 +302,8 @@ export function ProblemDetailView({ problemId }: ProblemDetailViewProps): React.
                 </Card>
               ) : null}
 
-              {problem.hints_md ? (
-                <Alert variant="info" title="提示" description={problem.hints_md} />
+              {problem.hint_md ? (
+                <Alert variant="info" title="提示" description={problem.hint_md} />
               ) : null}
             </TabsContent>
 
@@ -342,7 +342,9 @@ export function ProblemDetailView({ problemId }: ProblemDetailViewProps): React.
                             </TD>
                             <TD>{formatTime(item.time_ms)}</TD>
                             <TD>{formatMemory(item.memory_kb)}</TD>
-                            <TD className="text-muted-foreground">{new Date(item.created_at).toLocaleString('zh-CN')}</TD>
+                            <TD className="text-muted-foreground">
+                              {item.created_at ? new Date(item.created_at).toLocaleString('zh-CN') : '—'}
+                            </TD>
                           </TR>
                         ))}
                       </TBody>

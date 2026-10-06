@@ -126,14 +126,14 @@ export default function ProjectsPage(): React.ReactElement {
                       </span>
                     </div>
 
-                    {typeof project.my_progress_percent === 'number' ? (
-                      <Progress value={project.my_progress_percent} size="sm" showValue />
+                    {typeof project.progress_percent === 'number' ? (
+                      <Progress value={project.progress_percent} size="sm" showValue />
                     ) : null}
 
                     <Button size="sm" className="w-full" asChild>
                       <Link href={`/projects/${project.id}`}>
                         <PlayCircle className="h-3.5 w-3.5" />
-                        {project.my_progress_percent ? '继续项目' : '开始项目'}
+                        {project.progress_percent ? '继续项目' : '开始项目'}
                       </Link>
                     </Button>
                   </div>

@@ -189,20 +189,20 @@ function ProblemsContent(): React.ReactElement {
                 <span className="text-[11px] text-muted-foreground">热门标签：</span>
                 {filters.data.tags.slice(0, 12).map((tag) => (
                   <button
-                    key={tag.value}
+                    key={tag.id}
                     type="button"
                     onClick={() => {
-                      setKeyword(tag.value);
+                      setKeyword(tag.slug);
                       setPage(1);
                     }}
                     className={cn(
                       'rounded-full border px-2 py-0.5 text-[11px] transition-colors',
-                      keyword === tag.value
+                      keyword === tag.slug
                         ? 'border-primary/40 bg-primary/12 text-primary'
                         : 'border-border text-muted-foreground hover:bg-muted',
                     )}
                   >
-                    {tag.label}
+                    {tag.name}
                   </button>
                 ))}
               </div>

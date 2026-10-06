@@ -140,7 +140,6 @@ export function ProjectDetailView({ projectId }: ProjectDetailViewProps): React.
   };
 
   const progressPercent = mine.data?.progress_percent ?? 0;
-  const completedSteps = useMemo(() => new Set(mine.data?.completed_steps ?? []), [mine.data]);
 
   if (detail.loading && !detail.data) {
     return (
@@ -219,8 +218,8 @@ export function ProjectDetailView({ projectId }: ProjectDetailViewProps): React.
             <TabsContent value="requirement" className="pt-3">
               <Card>
                 <CardContent className="pt-5">
-                  {project.requirement_md ? (
-                    <Markdown content={project.requirement_md} />
+                  {detail.data?.description_md ? (
+                    <Markdown content={detail.data.description_md} />
                   ) : (
                     <EmptyState title="暂无需求说明" className="border-0 py-8" />
                   )}
@@ -238,10 +237,11 @@ export function ProjectDetailView({ projectId }: ProjectDetailViewProps): React.
                     <EmptyState title="暂无步骤" description="项目文档还在整理中。" className="border-0 py-6" />
                   ) : (
                     steps.map((step, index) => {
-                      const done = completedSteps.has(step.id) || index < (mine.data?.current_step ?? 0);
+                      // 后端 ProjectStepOut 无 id / completed_steps，用 current_step 进度推断完成态
+                      const done = index < (mine.data?.current_step ?? 0);
                       return (
                         <div
-                          key={step.id}
+                          key={`${index}-${step.title}`}
                           className={cn(
                             'rounded-lg border p-3',
                             done ? 'border-emerald-500/30 bg-emerald-500/6' : 'border-border',
@@ -258,10 +258,13 @@ export function ProjectDetailView({ projectId }: ProjectDetailViewProps): React.
                             </span>
                             {step.title}
                           </p>
-                          {step.description_md ? (
+                          {step.detail ? (
                             <p className="mt-1.5 pl-7 text-[12px] leading-relaxed text-muted-foreground">
-                              {step.description_md}
+                              {step.detail}
                             </p>
+                          ) : null}
+                          {step.done_hint ? (
+                            <p className="mt-1 pl-7 text-[11px] text-muted-foreground/80">提示：{step.done_hint}</p>
                           ) : null}
                         </div>
                       );
