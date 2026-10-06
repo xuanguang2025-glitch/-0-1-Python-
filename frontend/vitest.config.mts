@@ -3,6 +3,14 @@ import { defineConfig } from 'vitest/config';
 import { fileURLToPath } from 'node:url';
 
 export default defineConfig({
+  // ---- JSX 运行时 ----
+  // tsconfig.json 用的是 "jsx": "preserve"（Next 自己编译），
+  // 但 vitest 走 esbuild 独立编译 .tsx，必须显式指定 automatic runtime，
+  // 否则会被编译成 React.createElement 而在测试里抛 "React is not defined"。
+  esbuild: {
+    jsx: 'automatic',
+    jsxImportSource: 'react',
+  },
   test: {
     // ---- 环境 ----
     // 默认 node（纯函数测试零开销），需要 DOM 的测试在文件顶部用
