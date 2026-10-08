@@ -34,6 +34,12 @@ export function useFetch<T>(fetcher: () => Promise<T>, deps: unknown[] = [], opt
   const fetcherRef = useRef(fetcher);
   fetcherRef.current = fetcher;
   const mounted = useRef(true);
+  /**
+   * 请求序号守卫：每次发起请求自增，响应回来时若已不是最新一次请求则丢弃。
+   * 解决「弱网下切换依赖，旧请求后返回覆盖新数据」以及
+   * 「旧请求的失败把新请求已成功的数据打成错误空态」两个乱序缺陷。
+   */
+  const seqRef = useRef(0);
 
   useEffect(() => {
     mounted.current = true;
@@ -47,17 +53,18 @@ export function useFetch<T>(fetcher: () => Promise<T>, deps: unknown[] = [], opt
       setLoading(false);
       return;
     }
+    const seq = ++seqRef.current;
     setLoading(true);
     setError(null);
     fetcherRef
       .current()
       .then((result) => {
-        if (!mounted.current) return;
+        if (!mounted.current || seq !== seqRef.current) return;
         setData(result ?? null);
         setLoading(false);
       })
       .catch((err: unknown) => {
-        if (!mounted.current) return;
+        if (!mounted.current || seq !== seqRef.current) return;
         setData(null);
         setError(err instanceof Error ? err.message : '数据加载失败');
         setLoading(false);
@@ -90,6 +97,15 @@ export function useAsyncAction<A extends unknown[], T>(
   actionRef.current = action;
   const hooksRef = useRef(hooks);
   hooksRef.current = hooks;
+  // 卸载守卫：避免卸载后异步回调用 setState 触发 React 警告。
+  const mounted = useRef(true);
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   const run = useCallback(async (...args: A): Promise<T | null> => {
     setLoading(true);
@@ -100,11 +116,11 @@ export function useAsyncAction<A extends unknown[], T>(
       return result;
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : '操作失败';
-      setError(message);
+      if (mounted.current) setError(message);
       hooksRef.current?.onError?.(message);
       return null;
     } finally {
-      setLoading(false);
+      if (mounted.current) setLoading(false);
     }
   }, []);
 

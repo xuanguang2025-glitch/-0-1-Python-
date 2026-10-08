@@ -2,16 +2,20 @@
 /**
  * `src/hooks/useFetch.ts` —— L3 共享数据层：加载态生命周期 + 竞态。
  *
- * 先读实现再写断言，结论如下（详见文件内注释与报告）：
+ * 读实现后确认的防护机制（结论已锁死在用例中）：
  *
- * ✅ **已有防护**：卸载守卫。`useFetch.ts:36-43` 用 `mounted` ref，
- *    `.then/.catch` 里先判 `mounted.current` 再 setState（:55、:61），
- *    所以「组件卸载后响应回来」不会 setState —— 本文件锁死这一条。
+ * ✅ **卸载守卫**：`useFetch.ts:36-46` 用 `mounted` ref，`.then/.catch` 里先判
+ *    `mounted.current` 再 setState，卸载后响应回来不setState。
  *
- * ❌ **无防护**：请求乱序。`load()`（:45-66）没有 AbortController，
- *    也没有请求序号 / latest-request 守卫。deps 变化会并发发起新请求，
- *    旧请求若后到达会**覆盖**新数据。本文件用「缺陷复现用例」记录当前行为，
- *    修复后这些用例需要翻转断言（已在用例名与注释中标注）。
+ * ✅ **请求序号守卫（乱序防护）**：`useFetch.ts` 的 `seqRef`，每次 `load()` 发起时
+ *    `const seq = ++seqRef.current`，响应回来时若 `seq !== seqRef.current` 说明已被
+ *    更新的请求取代，直接丢弃。由此保证两条契约：
+ *    1. 旧请求后返回**不得**覆盖新请求的数据；
+ *    2. 过期请求的失败**不得**把新请求已成功的数据打成错误空态。
+ *
+ * ⚠️ **已知未修复**：`useAsyncAction` 没有 in-flight 守卫，连点会发出两次请求。
+ *    该 hook 全仓无调用点（死代码），本轮不修，相关用例如实记录**当前行为**，
+ *    名称以「【已知缺陷】」标注，不表述为正确契约。
  *
  * 定时器：本文件全部用 Promise 微任务控制顺序，**不需要 fake timers**
  * （setup.ts 只 fake 了 Date/performance，正好不受影响）。
@@ -254,8 +258,8 @@ describe('useFetch · 依赖数组变化触发重新拉取', () => {
 
 /* ------------------------------ 竞态（实现无防护，缺陷复现） ------------------------------ */
 
-describe('useFetch · 乱序响应（★ 缺陷复现：实现无 latest-request 守卫）', () => {
-  it('【当前行为=缺陷】旧请求后返回会覆盖新请求的数据', async () => {
+describe('useFetch · 乱序响应（请求序号守卫：旧响应必须被丢弃）', () => {
+  it('旧请求后返回不得覆盖新请求的数据', async () => {
     const first = deferred<string>();
     const second = deferred<string>();
     const queue = [first.promise, second.promise];
@@ -285,18 +289,18 @@ describe('useFetch · 乱序响应（★ 缺陷复现：实现无 latest-request
     // 确认两个请求确实都发出过（否则本用例会变成空跑）
     expect(idx).toBe(2);
 
-    // 旧请求后返回 —— 若实现有防护，这里应仍为 'new-data'
+    // 旧请求后返回 —— 序号守卫应把它丢弃
     await act(async () => {
       first.resolve('old-data');
       await first.promise;
     });
 
-    // ⚠️ 断言的是**当前存在缺陷的行为**。修复 useFetch（加请求序号或 AbortController）后，
-    //    此断言会失败，需要翻转为 expect(result.current.data).toBe('new-data')。
-    expect(result.current.data).toBe('old-data');
+    expect(result.current.data).toBe('new-data');
+    expect(result.current.error).toBeNull();
+    expect(result.current.loading).toBe(false);
   });
 
-  it('【当前行为=缺陷】旧请求后失败会覆盖新请求的成功结果', async () => {
+  it('过期失败不得把新请求已成功的数据打成错误空态', async () => {
     const first = deferred<string>();
     const second = deferred<string>();
     const queue = [first.promise, second.promise];
@@ -327,8 +331,85 @@ describe('useFetch · 乱序响应（★ 缺陷复现：实现无 latest-request
       await first.promise.catch(() => undefined);
     });
 
-    // ⚠️ 同样是缺陷表征：过期失败把已成功的新数据打成 error + null
-    expect(result.current.error).toBe('stale failure');
+    // 过期失败被丢弃：新数据与 error 状态都不受影响
+    expect(result.current.data).toBe('new-data');
+    expect(result.current.error).toBeNull();
+    expect(result.current.loading).toBe(false);
+  });
+
+  it('连续三次请求，仅最后一次的响应生效', async () => {
+    const gates = [deferred<string>(), deferred<string>(), deferred<string>()];
+    let idx = 0;
+    const { result, rerender } = renderHook(
+      ({ v }) =>
+        useFetch(() => {
+          const g = gates[idx]!;
+          idx += 1;
+          return g.promise;
+        }, [v]),
+      { initialProps: { v: 1 } },
+    );
+
+    await act(async () => {
+      rerender({ v: 2 });
+    });
+    await act(async () => {
+      rerender({ v: 3 });
+    });
+    expect(idx).toBe(3);
+
+    // 逆序返回：第1 次最后才回来
+    await act(async () => {
+      gates[2]!.resolve('v3');
+      await gates[2]!.promise;
+    });
+    await act(async () => {
+      gates[1]!.resolve('v2');
+      await gates[1]!.promise;
+    });
+    expect(result.current.data).toBe('v3');
+
+    await act(async () => {
+      gates[0]!.resolve('v1');
+      await gates[0]!.promise;
+    });
+    expect(result.current.data).toBe('v3');
+  });
+
+  it('最新一次请求失败时，错误正常落地（序号守卫不能吞掉真实错误）', async () => {
+    const first = deferred<string>();
+    const second = deferred<string>();
+    const queue = [first.promise, second.promise];
+    let idx = 0;
+
+    const { result, rerender } = renderHook(
+      ({ v }) =>
+        useFetch(() => {
+          const p = queue[idx]!;
+          idx += 1;
+          return p;
+        }, [v]),
+      { initialProps: { v: 'a' } },
+    );
+
+    await act(async () => {
+      rerender({ v: 'b' });
+    });
+
+    // 最新请求失败 → 应正常报错
+    await act(async () => {
+      second.reject(new Error('最新请求失败'));
+      await second.promise.catch(() => undefined);
+    });
+    expect(result.current.error).toBe('最新请求失败');
+    expect(result.current.loading).toBe(false);
+
+    // 旧的成功响应后到，不能把错误冲掉
+    await act(async () => {
+      first.resolve('old-data');
+      await first.promise;
+    });
+    expect(result.current.error).toBe('最新请求失败');
     expect(result.current.data).toBeNull();
   });
 });
@@ -478,8 +559,61 @@ describe('useAsyncAction · 基本语义', () => {
   });
 });
 
-describe('useAsyncAction · 重复提交（★ 缺陷复现：实现无 pending 守卫）', () => {
-  it('【当前行为=缺陷】连点两次会发出两次请求', async () => {
+/**
+ * ⚠️ 关于下面两条卸载用例的强度，必须如实说明：
+ * React 18 起「卸载后 setState」本身就是**静默 no-op**（官方已移除该警告），
+ * 因此断言 `console.error` 未被调用在**有无 mounted 守卫时都成立**——
+ * 经变异测试确认：回退守卫后这两条依然通过。
+ * 结论：它们**不构成有效回归防护**，仅记录契约与防未来行为漂移；
+ * 守卫本身的价值是前向兼容（React 17 及以下会告警）与避免持有已卸载组件闭包。
+ */
+describe('useAsyncAction · 卸载守卫（本轮新增防护；用例强度有限，见上方说明）', () => {
+  it('卸载后成功的响应不再 setState（无 React 警告）', async () => {
+    const gate = deferred<string>();
+    const { result, unmount } = renderHook(() => useAsyncAction(() => gate.promise));
+
+    let p: Promise<string | null> | null = null;
+    await act(async () => {
+      p = result.current.run();
+      await Promise.resolve();
+    });
+
+    unmount();
+
+    await act(async () => {
+      gate.resolve('late');
+      await p;
+    });
+
+    expect(console.error).not.toHaveBeenCalled();
+  });
+
+  it('卸载后失败的响应不再 setState，onError 回调仍会被调用', async () => {
+    const gate = deferred<string>();
+    const onError = vi.fn();
+    const { result, unmount } = renderHook(() => useAsyncAction(() => gate.promise, { onError }));
+
+    let p: Promise<string | null> | null = null;
+    await act(async () => {
+      p = result.current.run();
+      await Promise.resolve();
+    });
+
+    unmount();
+
+    await act(async () => {
+      gate.reject(new Error('late failure'));
+      await p;
+    });
+
+    // 副作用回调照常执行（调用方的业务补偿不受卸载影响）——这一条是真断言。
+    expect(onError).toHaveBeenCalledWith('late failure');
+    expect(console.error).not.toHaveBeenCalled();
+  });
+});
+
+describe('useAsyncAction · 重复提交（【已知缺陷】本轮未修，如实记录当前行为）', () => {
+  it('【已知缺陷】连点两次会发出两次请求', async () => {
     const action = vi.fn(() => Promise.resolve('ok'));
     const { result } = renderHook(() => useAsyncAction(action));
 
@@ -490,12 +624,12 @@ describe('useAsyncAction · 重复提交（★ 缺陷复现：实现无 pending 
       await Promise.resolve();
     });
 
-    // ⚠️ 断言的是**当前存在缺陷的行为**。若实现加 in-flight 守卫（pending 时直接 return），
+    // ⚠️ 当前实现无 in-flight 守卫，故为 2 次。若将来补守卫（pending 时直接 return），
     //    此断言会失败，应翻转为 expect(action).toHaveBeenCalledTimes(1)。
     expect(action).toHaveBeenCalledTimes(2);
   });
 
-  it('【当前行为=缺陷】pending 期间 run() 仍会真正执行 action', async () => {
+  it('【已知缺陷】pending 期间 run() 仍会真正执行 action', async () => {
     const gate = deferred<string>();
     const action = vi.fn(() => gate.promise);
     const { result } = renderHook(() => useAsyncAction(action));
