@@ -6,6 +6,7 @@ import { adminApi } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useFetch } from '@/hooks/useFetch';
+import { useSubmitGuard } from '@/hooks/useSubmitGuard';
 import { useToaster } from '@/hooks/useToast';
 import { EmptyState, ErrorState } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -36,10 +37,11 @@ export default function AdminUsersPage(): React.ReactElement {
   const debounced = useDebounce(keyword, 300);
   const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState({ email: '', username: '', password: '', role: 'user' });
-  const [saving, setSaving] = useState(false);
   const [resetUser, setResetUser] = useState<AdminUserItem | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<AdminUserItem | null>(null);
+  /** 提交守卫：防连点重复提交。key 用「资源 id + 操作」，使各按钮互不阻塞。 */
+  const guard = useSubmitGuard();
 
   const list = useFetch(
     () => adminApi.users({ keyword: debounced || undefined, page, page_size: PAGE_SIZE }),
@@ -51,7 +53,7 @@ export default function AdminUsersPage(): React.ReactElement {
       toaster.error('请填写邮箱、用户名与密码');
       return;
     }
-    setSaving(true);
+    if (!guard.begin('create')) return;
     try {
       await adminApi.createUser(form);
       toaster.success('用户已创建', form.username);
@@ -61,28 +63,34 @@ export default function AdminUsersPage(): React.ReactElement {
     } catch (error) {
       toaster.error('创建失败', error instanceof Error ? error.message : '请稍后再试');
     } finally {
-      setSaving(false);
+      guard.end('create');
     }
   };
 
   const changeRole = async (user: AdminUserItem, role: string): Promise<void> => {
+    if (!guard.begin(`${user.id}:role`)) return;
     try {
       await adminApi.updateUser(user.id, { role });
       toaster.success('角色已更新', `${user.username} → ${role}`);
       list.refresh();
     } catch (error) {
       toaster.error('更新失败', error instanceof Error ? error.message : '请稍后再试');
+    } finally {
+      guard.end(`${user.id}:role`);
     }
   };
 
   const toggleStatus = async (user: AdminUserItem): Promise<void> => {
     const next = user.status === 'active' ? 'suspended' : 'active';
+    if (!guard.begin(`${user.id}:status`)) return;
     try {
       await adminApi.updateUser(user.id, { status: next });
       toaster.success(next === 'active' ? '已恢复账号' : '已禁用账号', user.username);
       list.refresh();
     } catch (error) {
       toaster.error('操作失败', error instanceof Error ? error.message : '请稍后再试');
+    } finally {
+      guard.end(`${user.id}:status`);
     }
   };
 
@@ -92,6 +100,7 @@ export default function AdminUsersPage(): React.ReactElement {
       toaster.error('新密码至少 8 位');
       return;
     }
+    if (!guard.begin(`${resetUser.id}:reset`)) return;
     try {
       await adminApi.resetUserPassword(resetUser.id, newPassword);
       toaster.success('密码已重置', resetUser.username);
@@ -99,11 +108,14 @@ export default function AdminUsersPage(): React.ReactElement {
       setNewPassword('');
     } catch (error) {
       toaster.error('重置失败', error instanceof Error ? error.message : '请稍后再试');
+    } finally {
+      guard.end(`${resetUser.id}:reset`);
     }
   };
 
   const removeUser = async (): Promise<void> => {
     if (!deleteTarget) return;
+    if (!guard.begin(`${deleteTarget.id}:delete`)) return;
     try {
       await adminApi.deleteUser(deleteTarget.id);
       toaster.success('已软删除用户', deleteTarget.username);
@@ -111,6 +123,8 @@ export default function AdminUsersPage(): React.ReactElement {
       list.refresh();
     } catch (error) {
       toaster.error('删除失败', error instanceof Error ? error.message : '请稍后再试');
+    } finally {
+      guard.end(`${deleteTarget.id}:delete`);
     }
   };
 
@@ -175,6 +189,7 @@ export default function AdminUsersPage(): React.ReactElement {
                           controlSize="sm"
                           value={user.role}
                           options={ROLE_OPTIONS}
+                          disabled={Boolean(guard.submitting[`${user.id}:role`])}
                           onChange={(event) => void changeRole(user, event.target.value as UserRole)}
                         />
                       </div>
@@ -204,6 +219,8 @@ export default function AdminUsersPage(): React.ReactElement {
                         <Button
                           size="sm"
                           variant="ghost"
+                          disabled={Boolean(guard.submitting[`${user.id}:status`])}
+                          loading={Boolean(guard.submitting[`${user.id}:status`])}
                           onClick={() => void toggleStatus(user)}
                         >
                           {user.status === 'active' ? '禁用' : '恢复'}
@@ -254,7 +271,7 @@ export default function AdminUsersPage(): React.ReactElement {
             <Button variant="ghost" onClick={() => setCreateOpen(false)}>
               取消
             </Button>
-            <Button loading={saving} onClick={() => void create()}>
+            <Button loading={guard.submitting.create} onClick={() => void create()}>
               <Plus className="h-4 w-4" />
               创建
             </Button>
@@ -288,7 +305,12 @@ export default function AdminUsersPage(): React.ReactElement {
             <Button variant="ghost" onClick={() => setResetUser(null)}>
               取消
             </Button>
-            <Button onClick={() => void resetPassword()}>确认重置</Button>
+            <Button
+              loading={Boolean(guard.submitting[`${resetUser?.id}:reset`])}
+              onClick={() => void resetPassword()}
+            >
+              确认重置
+            </Button>
           </>
         }
       >
@@ -303,6 +325,7 @@ export default function AdminUsersPage(): React.ReactElement {
         description="该操作为软删除，30 天内可恢复。"
         danger
         confirmText="确认删除"
+        loading={Boolean(guard.submitting[`${deleteTarget?.id}:delete`])}
         onClose={() => setDeleteTarget(null)}
         onConfirm={() => void removeUser()}
       />
