@@ -8,10 +8,11 @@
 - **审计留痕**：写操作在 `audit_logs` 留痕并可按 action / actor 检索；
 - **批量导入边界**：空数组、缺 slug、非法 JSON 三类输入的 `failed[]` 语义。
 
-已知业务缺陷（详见交付报告，测试中以 `BUG-x` 标注并钉住当前状态，修复时会立即失败提醒）：
+缺陷追踪（`BUG-x` 标注；**已修复的**在用例里断言正确契约，未修复的钉住当前状态）：
 
-- `BUG-1`：`POST /admin/test-cases` 恒 500（`AdminTestCaseIn` 缺 `problem_id`，而
-  `TestCase.problem_id` 为 NOT NULL，且 `StrictModel` 禁止额外字段）。
+- `BUG-1`（**已修复**）：`POST /admin/test-cases` 曾恒 500（`AdminTestCaseIn` 缺 `problem_id`，而
+  `TestCase.problem_id` 为 NOT NULL，且 `StrictModel` 禁止额外字段）→ 见
+  `test_create_test_case_with_problem_id`；
 - `BUG-2`：`POST /admin/problems/import` 传非法 JSON 恒 500（应为 4xx）。
 - `BUG-3`：`import_problems` 对含 `title` 的条目 100% 失败
   （`Problem() got multiple values for keyword argument 'title'`）。
@@ -628,29 +629,41 @@ def test_test_case_crud_via_problem(client: TestClient, admin_headers: dict[str,
     assert missing.json()["error"]["code"] == "NOT_FOUND"
 
 
-def test_create_test_case_endpoint_known_defect_bug1(client: TestClient, admin_headers: dict[str, str]) -> None:
-    """BUG-1：`POST /admin/test-cases` 恒 500（缺 problem_id 且无法补传）。
+def test_create_test_case_with_problem_id(client: TestClient, admin_headers: dict[str, str], db) -> None:
+    """`POST /admin/test-cases` 带 problem_id 正常创建且归属正确（BUG-1 修复验证）。
 
-    复现：管理员带合法 body（input/expected_output）调用，仍因
-    `TestCase.problem_id` 非空约束抛 IntegrityError → 全局 500。
-    修复后本用例应改为断言 200。
+    修复前 `AdminTestCaseIn` 缺 `problem_id`，而 `TestCase.problem_id` 非空且
+    `StrictModel` 禁额外字段，导致该端点恒 500、客户端无法调用。
     """
-    # 未处理的 IntegrityError：基座 TestClient 默认 raise_server_exceptions，故此处断言抛异常。
-    with pytest.raises(Exception):
-        client.post(
-            "/api/admin/test-cases",
-            json={"name": "t", "input": "1", "expected_output": "1"},
-            headers=admin_headers,
-        )
-
-    # 显式补 problem_id 也会被 StrictModel 拦下（extra="forbid"），即该端点当前无法被正确调用。
-    rejected = client.post(
+    pid = _new_problem(client, admin_headers, "adm-tc-create")
+    created = client.post(
         "/api/admin/test-cases",
-        json={"problem_id": _new_problem(client, admin_headers), "input": "1", "expected_output": "1"},
+        json={"problem_id": pid, "name": "样例", "input": "1", "expected_output": "1", "is_sample": True},
         headers=admin_headers,
     )
-    assert rejected.status_code == 422
-    assert rejected.json()["error"]["details"][0]["type"] == "extra_forbidden"
+    assert created.status_code == 200, created.text
+    case_id = created.json()["data"]["id"]
+
+    db.expire_all()
+    case = db.scalars(select(TestCase).where(TestCase.id == case_id)).one()
+    assert case.problem_id == pid, "测试用例必须归属到请求指定的题目"
+    assert case.is_sample is True
+    assert case.input == "1" and case.expected_output == "1"
+
+    # 题目不存在 → 404，而不是外键错误 500
+    missing = client.post(
+        "/api/admin/test-cases",
+        json={"problem_id": "none", "input": "1", "expected_output": "1"},
+        headers=admin_headers,
+    )
+    assert missing.status_code == 404
+    assert missing.json()["error"]["code"] == "PROBLEM_NOT_FOUND"
+
+    # problem_id 为必填字段：缺字段 → 422
+    bad = client.post(
+        "/api/admin/test-cases", json={"input": "1", "expected_output": "1"}, headers=admin_headers
+    )
+    assert bad.status_code == 422
 
 
 def test_problem_import_empty_payload(client: TestClient, admin_headers: dict[str, str]) -> None:

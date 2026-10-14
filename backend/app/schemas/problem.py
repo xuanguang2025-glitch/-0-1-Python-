@@ -100,8 +100,8 @@ class DiscussionAIOut(ORMModel):
     degraded: bool = False
 
 
-class AdminTestCaseIn(StrictModel):
-    """管理端测试用例写入体。"""
+class AdminTestCaseBase(StrictModel):
+    """管理端测试用例公共字段。"""
 
     name: str | None = Field(default=None, max_length=100)
     input: str = ""
@@ -113,6 +113,19 @@ class AdminTestCaseIn(StrictModel):
     weight: int = Field(default=1, ge=0, le=100)
     timeout_ms: int | None = Field(default=None, ge=100, le=30_000)
     order_index: int = 0
+
+
+class AdminTestCaseIn(AdminTestCaseBase):
+    """管理端测试用例写入体（独立端点用，必须指定所属题目）。"""
+
+    problem_id: IdStr
+
+
+class AdminNestedTestCaseIn(AdminTestCaseBase):
+    """题目写入体内嵌的测试用例。
+
+    题目此刻尚未创建，因此不要求（也不接受）`problem_id`，由服务端按题目补齐。
+    """
 
 
 class AdminProblemIn(StrictModel):
@@ -142,7 +155,7 @@ class AdminProblemIn(StrictModel):
     xp_reward: int = Field(default=20, ge=0, le=1000)
     is_published: bool = True
     tags: list[str] = Field(default_factory=list)
-    test_cases: list[AdminTestCaseIn] = Field(default_factory=list)
+    test_cases: list[AdminNestedTestCaseIn] = Field(default_factory=list)
 
 
 class ProblemImportResult(ORMModel):

@@ -94,6 +94,7 @@ def replace_test_cases(db: Session, problem: Problem, cases: list[dict[str, Any]
     db.flush()
     for index, case in enumerate(cases):
         data = dict(case)
+        data.pop("problem_id", None)  # 归属由 problem 决定，避免重复传参
         data.setdefault("order_index", index)
         db.add(TestCase(problem_id=problem.id, **data))
 
@@ -149,8 +150,10 @@ def import_problems(
 
 
 def create_test_case(db: Session, actor: User, payload: dict[str, Any], meta: dict[str, Any]) -> TestCase:
-    """新建测试用例。"""
-    case = TestCase(**payload)
+    """新建测试用例（校验题目存在，避免外键错误）。"""
+    problem_id = str(payload.pop("problem_id"))
+    problem = get_or_404(db, Problem, problem_id, ErrorCode.PROBLEM_NOT_FOUND, "题目不存在")
+    case = TestCase(**payload, problem_id=problem.id)
     db.add(case)
     db.flush()
     audit(db, actor, "admin.test_case.create", "test_case", case.id, meta=meta)
