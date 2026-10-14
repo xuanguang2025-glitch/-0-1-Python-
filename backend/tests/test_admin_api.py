@@ -15,10 +15,13 @@
   `test_create_test_case_with_problem_id`；
 - `BUG-2`（**已修复**）：`POST /admin/problems/import` 传非法 JSON 曾恒 500（应为 4xx）→ 见
   `test_problem_import_invalid_json_returns_400`；
-- `BUG-3`：`import_problems` 对含 `title` 的条目 100% 失败
-  （`Problem() got multiple values for keyword argument 'title'`）。
-- `BUG-4`：`PUT /admin/ai-config` 的 `provider/model/temperature` 等写入
-  `system_settings` 但读回走 app settings，改动不生效（`api_key`/`prompt_overrides` 正常）。
+- `BUG-3`（**已修复**）：`import_problems` 对含 `title` 的条目 100% 失败
+  （`Problem() got multiple values for keyword argument 'title'`）→ 见
+  `test_problem_import_with_title_keeps_title` / `test_problem_import_without_title_falls_back_to_slug`；
+- `BUG-4`（**已修复**）：`PUT /admin/ai-config` 的 `provider/model/temperature` 写入
+  `system_settings(ai.config)` 但 `GET` 走 app settings，覆盖值读不回 → 见
+  `test_ai_config_runtime_params_roundtrip`；顺带把写入改为增量合并（见
+  `test_ai_config_put_merges_instead_of_replacing`）。
 """
 
 from __future__ import annotations
@@ -29,13 +32,14 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from app.api.endpoints import admin as admin_endpoint
 from app.api.endpoints import auth as auth_endpoint
 from app.core.security import verify_password
 from app.models.ai import AIModelConfig
 from app.models.course import Course
-from app.models.problem import TestCase
+from app.models.problem import Problem, TestCase
 from app.models.submission import Submission
 from app.models.system import AuditLog
 from app.models.user import User
@@ -703,11 +707,20 @@ def test_problem_import_reports_failed_items(client: TestClient, admin_headers: 
     assert again.json()["data"]["updated"] == 1
 
 
-def test_problem_import_duplicate_title_defect_bug3(client: TestClient, admin_headers: dict[str, str]) -> None:
-    """BUG-3：含 `title` 的条目 100% 失败（`Problem() got multiple values for 'title'`）。
+def _problem_title_by_slug(db: Session, slug: str) -> str:
+    """按 slug 取落库标题（管理端列表的 `q` 只搜 title，故直接查库）。"""
+    from sqlalchemy import select as _select
 
-    复现：上传 `[{"slug": "x", "title": "T"}]` → created=0 且 failed[0].error 报重复关键字。
-    修复后本用例应改为断言 created == 1。
+    problem = db.scalars(_select(Problem).where(Problem.slug == slug)).one_or_none()
+    assert problem is not None, f"slug={slug} 未落库"
+    return str(problem.title)
+
+
+def test_problem_import_with_title_keeps_title(client: TestClient, admin_headers: dict[str, str], db: Session) -> None:
+    """BUG-3 已修：含 `title` 的条目必须导入成功，且 title 按提交值落库。
+
+    修复前 `Problem(slug=..., title=..., **payload)` 中 payload 也带 title，
+    触发 `got multiple values for keyword argument 'title'`，带标题导入 100% 失败。
     """
     payload = json.dumps([{"slug": "adm-dup-title", "title": "带标题的条目"}]).encode()
     r = client.post(
@@ -717,9 +730,26 @@ def test_problem_import_duplicate_title_defect_bug3(client: TestClient, admin_he
     )
     assert r.status_code == 200, r.text
     data = r.json()["data"]
-    assert data["created"] == 0
-    assert len(data["failed"]) == 1
-    assert "multiple values for keyword argument 'title'" in data["failed"][0]["error"]
+    assert data["created"] == 1, data
+    assert data["failed"] == []
+
+    assert _problem_title_by_slug(db, "adm-dup-title") == "带标题的条目"
+
+
+def test_problem_import_without_title_falls_back_to_slug(
+    client: TestClient, admin_headers: dict[str, str], db: Session
+) -> None:
+    """未给 title 的条目回落到 slug，不因标题缺省而失败。"""
+    payload = json.dumps([{"slug": "adm-no-title"}]).encode()
+    r = client.post(
+        "/api/admin/problems/import",
+        files={"file": ("notitle.json", payload, "application/json")},
+        headers=admin_headers,
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["data"]["created"] == 1
+
+    assert _problem_title_by_slug(db, "adm-no-title") == "adm-no-title"
 
 
 def test_problem_import_invalid_json_returns_400(client: TestClient, admin_headers: dict[str, str]) -> None:
@@ -894,6 +924,40 @@ def test_ai_config_put_and_key_masked(client: TestClient, admin_headers: dict[st
     assert RAW_AI_CONFIG_KEY not in fetched.text
     assert fetched.json()["data"]["api_key_masked"] == body["api_key_masked"]
     assert fetched.json()["data"]["prompt_overrides"] == {"tutor": "自定义提示"}
+    assert fetched.json()["data"]["provider"] == "deepseek"
+
+
+def test_ai_config_runtime_params_roundtrip(client: TestClient, admin_headers: dict[str, str]) -> None:
+    """BUG-4 已修：`PUT` 写入的运行参数必须能被 `GET` 读回（此前写 DB、读 settings，覆盖值丢失）。"""
+    baseline = client.get("/api/admin/ai-config", headers=admin_headers).json()["data"]
+    new_temp = 0.9 if abs(baseline["temperature"] - 0.9) > 1e-6 else 0.1
+
+    r = client.put(
+        "/api/admin/ai-config",
+        json={"temperature": new_temp, "max_tokens": 4096, "model": "deepseek-reasoner"},
+        headers=admin_headers,
+    )
+    assert r.status_code == 200, r.text
+    written = r.json()["data"]
+    assert written["temperature"] == new_temp
+    assert written["max_tokens"] == 4096
+    assert written["model"] == "deepseek-reasoner"
+
+    # 关键：重新 GET（新请求、重新读库），值必须仍然是写进去的
+    again = client.get("/api/admin/ai-config", headers=admin_headers).json()["data"]
+    assert again["temperature"] == new_temp
+    assert again["max_tokens"] == 4096
+    assert again["model"] == "deepseek-reasoner"
+
+
+def test_ai_config_put_merges_instead_of_replacing(client: TestClient, admin_headers: dict[str, str]) -> None:
+    """PUT 是增量更新：后一次只改 max_tokens 不能把前一次的 temperature 冲掉。"""
+    client.put("/api/admin/ai-config", json={"temperature": 0.77}, headers=admin_headers)
+    client.put("/api/admin/ai-config", json={"max_tokens": 1024}, headers=admin_headers)
+
+    data = client.get("/api/admin/ai-config", headers=admin_headers).json()["data"]
+    assert data["temperature"] == 0.77
+    assert data["max_tokens"] == 1024
 
 
 def test_ai_model_key_masked(client: TestClient, admin_headers: dict[str, str]) -> None:

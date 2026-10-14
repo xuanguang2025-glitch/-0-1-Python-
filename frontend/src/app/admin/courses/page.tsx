@@ -6,6 +6,7 @@ import { adminApi } from '@/lib/api';
 import { STAGE_GROUP_LABEL } from '@/lib/constants';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useFetch } from '@/hooks/useFetch';
+import { useSubmitGuard } from '@/hooks/useSubmitGuard';
 import { useToaster } from '@/hooks/useToast';
 import { EmptyState, ErrorState } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -45,7 +46,8 @@ export default function AdminCoursesPage(): React.ReactElement {
   const [editing, setEditing] = useState<CourseBrief | null>(null);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
-  const [saving, setSaving] = useState(false);
+  /** 提交守卫：防连点重复提交。key 用「资源 id + 操作」。 */
+  const guard = useSubmitGuard();
   const [deleteTarget, setDeleteTarget] = useState<CourseBrief | null>(null);
 
   const list = useFetch(
@@ -78,7 +80,7 @@ export default function AdminCoursesPage(): React.ReactElement {
       toaster.error('slug 与标题必填');
       return;
     }
-    setSaving(true);
+    if (!guard.begin('save')) return;
     const payload = {
       slug: form.slug,
       stage_no: Number(form.stage_no),
@@ -101,12 +103,13 @@ export default function AdminCoursesPage(): React.ReactElement {
     } catch (error) {
       toaster.error('保存失败', error instanceof Error ? error.message : '请稍后再试');
     } finally {
-      setSaving(false);
+      guard.end('save');
     }
   };
 
   const remove = async (): Promise<void> => {
     if (!deleteTarget) return;
+    if (!guard.begin(`${deleteTarget.id}:delete`)) return;
     try {
       await adminApi.deleteCourse(deleteTarget.id);
       toaster.success('已删除课程');
@@ -114,6 +117,8 @@ export default function AdminCoursesPage(): React.ReactElement {
       list.refresh();
     } catch (error) {
       toaster.error('删除失败', error instanceof Error ? error.message : '请稍后再试');
+    } finally {
+      guard.end(`${deleteTarget.id}:delete`);
     }
   };
 
@@ -228,7 +233,7 @@ export default function AdminCoursesPage(): React.ReactElement {
             <Button variant="ghost" onClick={() => setOpen(false)}>
               取消
             </Button>
-            <Button loading={saving} onClick={() => void submit()}>
+            <Button loading={guard.submitting.save} onClick={() => void submit()}>
               保存
             </Button>
           </>
@@ -282,6 +287,7 @@ export default function AdminCoursesPage(): React.ReactElement {
         description="会级联删除章节与课时，请谨慎操作。"
         danger
         confirmText="确认删除"
+        loading={Boolean(guard.submitting[`${deleteTarget?.id}:delete`])}
         onClose={() => setDeleteTarget(null)}
         onConfirm={() => void remove()}
       />

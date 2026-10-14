@@ -12,7 +12,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Next.js](https://img.shields.io/badge/Next.js-15-000000?logo=next.js&logoColor=white)](https://nextjs.org)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev)
-[![Tests](https://img.shields.io/badge/tests-97%20passed-brightgreen)](#-测试与安全)
+[![Tests](https://img.shields.io/badge/tests-556%20passed-brightgreen)](#-测试与安全)
 [![License](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
 
 </div>
@@ -68,6 +68,16 @@ npm run dev
 
 **默认管理员**：`admin@pythonlab.dev` / `Admin@12345`（由 `ADMIN_*` 环境变量控制，请在生产环境修改）
 
+**运行测试**
+
+```bash
+# 后端（统一夹具：内存 SQLite + 会话级 App 复用，约 30~60s）
+cd backend && .venv/Scripts/python.exe -m pytest tests/ -q
+
+# 前端（vitest + Testing Library，约 20s）
+cd frontend && npx vitest run && npx tsc --noEmit
+```
+
 ## 🏗️ 架构一览
 
 ```text
@@ -81,17 +91,18 @@ FastAPI 后端 ──► SQLite（默认） / PostgreSQL
 ```
 
 - **五档自动降级**：数据库、缓存、队列、沙箱、AI 均支持 auto 探测 + 优雅降级，本机零依赖即可跑通全流程（`GET /api/health/deps` 实时可观测）
-- **安全设计**：bcrypt 加盐哈希、越权拦截、隐藏测试点不泄露、AI 密钥全链路脱敏、沙箱拦截 `os.system` / 敏感路径读取 / fork 类攻击
+- **安全设计**：bcrypt 加盐哈希、越权拦截、隐藏测试点不泄露、AI 密钥全链路脱敏；沙箱用 **AST 白名单**校验用户代码（禁危险模块属性 / 动态导入 / 绝对路径读写 / 路径穿越），限流不信任伪造 `X-Forwarded-For`，生产环境拒绝弱 JWT 密钥
 
 ## 🧪 测试与安全
 
 | 项 | 结果 |
 | --- | --- |
-| 后端测试（API / 判题 / AI / 权限） | **97 passed** |
-| 沙箱安全用例（死循环 / 命令执行 / 敏感路径 / 输出爆炸） | **6/6 拦截 + 12 项单测** |
+| 后端测试（API / 判题 / AI / 权限 / 管理端 53 op 越权矩阵） | **337 passed / 0 failed**（约 60s，`pytest --junitxml`） |
+| 前端测试（纯函数 / Hook / 组件 / 页面级竞态） | **219 passed / 0 failed**（17 个文件，Vitest + RTL） |
+| 沙箱安全用例（死循环 / 命令执行 / 敏感路径 / 输出爆炸 / 保留名绕过） | **6/6 拦截 + 12 项单测**，另有 47 种绕过 + 45 条误杀回归脚本 |
 | 安全红线探测（密码哈希 / 越权 / 泄露 / SQL 注入） | **9/9 通过**（`backend/scripts/security_probe.py` 可复跑） |
 | 安全深测第二轮（XSS / CORS / CSRF / 安全响应头） | **11/11 通过**（`backend/scripts/security_probe_round2.py` 可复跑） |
-| 前端 | `tsc` 零错误 · `next build` 通过 · 31 个页面 |
+| 前端构建 | `tsc` 零错误 · `next build` 通过 · 31 个页面 |
 
 ## 📚 文档
 
@@ -103,7 +114,8 @@ FastAPI 后端 ──► SQLite（默认） / PostgreSQL
 | [docs/SANDBOX.md](docs/SANDBOX.md) | 沙箱协议、限制策略、Windows 降级说明 |
 | [docs/AI.md](docs/AI.md) | AI Provider 接入（DeepSeek / 通义 / 智谱 / OpenAI / Claude / Gemini） |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | 部署手册（开发 / Docker / 生产） |
-| [docs/SECURITY.md](docs/SECURITY.md) | 安全基线：两轮探测结论、静态审计佐证、上线前核对清单 |
+| [docs/SECURITY.md](docs/SECURITY.md) | 安全基线：两轮探测结论、AST 白名单规则、上线前核对清单 |
+| [docs/TESTING.md](docs/TESTING.md) | 测试分层策略（L1 纯函数 → L5 页面级）、夹具约定、红线清单 |
 
 ## 🗺️ Roadmap
 

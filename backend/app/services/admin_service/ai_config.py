@@ -17,6 +17,8 @@ from app.models.user import User
 
 from .common import (
     AI_KEY_TEMPLATE,
+    AI_PROMPT_OVERRIDES,
+    GLOBAL_AI_CONFIG,
     GLOBAL_AI_KEY,
     audit,
     apply_fields,
@@ -33,24 +35,32 @@ def _model_key(model_id: str) -> str:
 
 
 def get_ai_config(db: Session) -> dict[str, Any]:
-    """`GET /admin/ai-config`：全局 AI 配置（密钥脱敏）。"""
+    """`GET /admin/ai-config`：全局 AI 配置（密钥脱敏）。
+
+    运行参数有两层来源：`PUT /admin/ai-config` 写入 `system_settings(ai.config)` 的
+    覆盖值优先，未覆盖的字段回落到进程 settings。两者必须同源，否则写入后读回仍是
+    旧值（历史上 `temperature` 写 0.5 却读回 0.3 即源于此）。
+    """
     from app.core.config import get_settings
 
     settings = get_settings()
     raw_key = read_setting(db, GLOBAL_AI_KEY)
     stored = raw_key.get("value") if isinstance(raw_key, dict) else raw_key
+    override = read_setting(db, GLOBAL_AI_CONFIG)
+    if not isinstance(override, dict):
+        override = {}
     return {
-        "provider": settings.ai_provider,
-        "model": settings.ai_model,
-        "base_url": settings.ai_base_url,
-        "temperature": settings.ai_temperature,
-        "max_tokens": settings.ai_max_tokens,
-        "offline": settings.ai_offline,
-        "rate_limit_per_hour": settings.ai_rate_limit_per_hour,
+        "provider": override.get("provider", settings.ai_provider),
+        "model": override.get("model", settings.ai_model),
+        "base_url": override.get("base_url", settings.ai_base_url),
+        "temperature": override.get("temperature", settings.ai_temperature),
+        "max_tokens": override.get("max_tokens", settings.ai_max_tokens),
+        "offline": override.get("offline", settings.ai_offline),
+        "rate_limit_per_hour": override.get("rate_limit_per_hour", settings.ai_rate_limit_per_hour),
         "degraded": not settings.ai_enabled,
         "api_key_configured": bool(stored) or settings.ai_enabled,
         "api_key_masked": mask_secret(stored) if stored else None,
-        "prompt_overrides": read_setting(db, "ai.prompt.overrides") or {},
+        "prompt_overrides": read_setting(db, AI_PROMPT_OVERRIDES) or {},
     }
 
 
@@ -62,10 +72,16 @@ def update_ai_config(
     if api_key:
         write_setting(db, GLOBAL_AI_KEY, {"value": api_key}, actor=actor, description="全局 AI 密钥（只写）")
     if payload.get("prompt_overrides") is not None:
-        write_setting(db, "ai.prompt.overrides", payload["prompt_overrides"], actor=actor)
+        write_setting(db, AI_PROMPT_OVERRIDES, payload["prompt_overrides"], actor=actor)
     changed = {k: v for k, v in payload.items() if v is not None and k != "prompt_overrides"}
     if changed:
-        write_setting(db, "ai.config", changed, actor=actor, description="AI 运行参数覆盖")
+        # 增量合并：PUT 是「改这几个字段」，不是「用这几个字段整体替换」，
+        # 否则先设 temperature 再设 max_tokens 会把前者冲掉。
+        merged = read_setting(db, GLOBAL_AI_CONFIG)
+        if not isinstance(merged, dict):
+            merged = {}
+        merged.update(changed)
+        write_setting(db, GLOBAL_AI_CONFIG, merged, actor=actor, description="AI 运行参数覆盖")
     audit(
         db, actor, "admin.ai_config.update", "system_setting", GLOBAL_AI_KEY,
         after={"changed": list(changed.keys()), "api_key": "***" if api_key else None}, meta=meta,

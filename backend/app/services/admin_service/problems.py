@@ -128,8 +128,10 @@ def import_problems(
                 if k in ("title", "statement_md", "problem_type", "difficulty",
                          "category", "answer_json", "options_json", "score", "xp_reward")
             }
+            # title 既要做显式参数（提供 slug 兜底），就不能再留在 payload 里展开，否则重复传参
+            title = str(payload.pop("title", None) or raw.get("title") or slug)
             if existing is None:
-                problem = Problem(slug=slug, title=str(raw.get("title") or slug), created_by=actor.id, **payload)
+                problem = Problem(slug=slug, title=title, created_by=actor.id, **payload)
                 db.add(problem)
                 db.flush()
                 created += 1

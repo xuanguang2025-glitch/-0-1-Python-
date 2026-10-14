@@ -27,6 +27,10 @@ ACCEPTED: str = SubmissionStatus.ACCEPTED.value
 AI_KEY_TEMPLATE: str = "ai.model.{model_id}.api_key"
 # 全局 AI 密钥在 system_settings 中的存储键
 GLOBAL_AI_KEY: str = "ai.api_key"
+# 全局 AI 运行参数覆盖在 system_settings 中的存储键
+GLOBAL_AI_CONFIG: str = "ai.config"
+# 提示词覆盖在 system_settings 中的存储键
+AI_PROMPT_OVERRIDES: str = "ai.prompt.overrides"
 
 
 def mask_secret(value: str | None) -> str | None:

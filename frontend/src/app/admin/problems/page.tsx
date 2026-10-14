@@ -7,6 +7,7 @@ import { DIFFICULTY_LABEL, DIFFICULTY_STYLE, PROBLEM_TYPE_LABEL } from '@/lib/co
 import { formatPercent } from '@/lib/utils';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useFetch } from '@/hooks/useFetch';
+import { useSubmitGuard } from '@/hooks/useSubmitGuard';
 import { useToaster } from '@/hooks/useToast';
 import { Alert, EmptyState, ErrorState } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -52,7 +53,8 @@ export default function AdminProblemsPage(): React.ReactElement {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ProblemBrief | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
-  const [saving, setSaving] = useState(false);
+  /** 提交守卫：防连点重复提交。key 用「资源 id + 操作」。 */
+  const guard = useSubmitGuard();
   const [deleteTarget, setDeleteTarget] = useState<ProblemBrief | null>(null);
 
   const list = useFetch(
@@ -92,7 +94,7 @@ export default function AdminProblemsPage(): React.ReactElement {
       toaster.error('slug 与标题必填');
       return;
     }
-    setSaving(true);
+    if (!guard.begin('save')) return;
     const payload = {
       slug: form.slug,
       title: form.title,
@@ -116,12 +118,13 @@ export default function AdminProblemsPage(): React.ReactElement {
     } catch (error) {
       toaster.error('保存失败', error instanceof Error ? error.message : '请稍后再试');
     } finally {
-      setSaving(false);
+      guard.end('save');
     }
   };
 
   const remove = async (): Promise<void> => {
     if (!deleteTarget) return;
+    if (!guard.begin(`${deleteTarget.id}:delete`)) return;
     try {
       await adminApi.deleteProblem(deleteTarget.id);
       toaster.success('已删除题目');
@@ -129,6 +132,8 @@ export default function AdminProblemsPage(): React.ReactElement {
       list.refresh();
     } catch (error) {
       toaster.error('删除失败', error instanceof Error ? error.message : '请稍后再试');
+    } finally {
+      guard.end(`${deleteTarget.id}:delete`);
     }
   };
 
@@ -261,7 +266,7 @@ export default function AdminProblemsPage(): React.ReactElement {
             <Button variant="ghost" onClick={() => setOpen(false)}>
               取消
             </Button>
-            <Button loading={saving} onClick={() => void submit()}>
+            <Button loading={guard.submitting.save} onClick={() => void submit()}>
               保存
             </Button>
           </>
@@ -317,6 +322,7 @@ export default function AdminProblemsPage(): React.ReactElement {
         description="会同时删除其测试用例与提交记录关联。"
         danger
         confirmText="确认删除"
+        loading={Boolean(guard.submitting[`${deleteTarget?.id}:delete`])}
         onClose={() => setDeleteTarget(null)}
         onConfirm={() => void remove()}
       />
