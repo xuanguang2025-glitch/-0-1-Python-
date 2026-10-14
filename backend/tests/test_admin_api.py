@@ -8,7 +8,8 @@
 - **审计留痕**：写操作在 `audit_logs` 留痕并可按 action / actor 检索；
 - **批量导入边界**：空数组、缺 slug、非法 JSON 三类输入的 `failed[]` 语义。
 
-缺陷追踪（`BUG-x` 标注；**已修复的**在用例里断言正确契约，未修复的钉住当前状态）：
+缺陷追踪（`BUG-1`~`BUG-4` 均已修复，用例断言的是**正确契约**；改动前均经变异验证——
+撤掉源码修复后对应用例必须变红，否则说明用例没真正守住这个 bug）：
 
 - `BUG-1`（**已修复**）：`POST /admin/test-cases` 曾恒 500（`AdminTestCaseIn` 缺 `problem_id`，而
   `TestCase.problem_id` 为 NOT NULL，且 `StrictModel` 禁止额外字段）→ 见
