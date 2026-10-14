@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { CalendarClock, Flag, Swords, Target, Timer, Trophy, Users } from 'lucide-react';
 import { challengeApi } from '@/lib/api';
 import { cn, formatRelativeTime } from '@/lib/utils';
@@ -36,6 +36,14 @@ function ChallengesContent(): React.ReactElement {
   const [status, setStatus] = useState<'active' | 'ended'>('active');
   const [type, setType] = useState('');
   const [joined, setJoined] = useState<Record<string, boolean>>({});
+  /**
+   * 报名 in-flight 守卫，防双击发出重复 POST。
+   * 用 ref 而非纯 state：ref 的读写是同步的，同一 tick 内第二次调用也能立刻看到
+   * 「已在报名中」；纯 state 受 React 重渲染时机影响，连点场景下闭包读到的仍是旧值。
+   * state 那份仅用于驱动按钮的 disabled / loading 展示。
+   */
+  const submittingRef = useRef<Record<string, boolean>>({});
+  const [submitting, setSubmitting] = useState<Record<string, boolean>>({});
   const [selected, setSelected] = useState<ChallengeBrief | null>(null);
 
   const list = useFetch(() => challengeApi.list({ status, type: type || undefined, page: 1, page_size: 20 }), [status, type]);
@@ -51,6 +59,19 @@ function ChallengesContent(): React.ReactElement {
       toaster.info('请先登录再参加挑战');
       return;
     }
+    // in-flight 守卫：同一挑战报名中直接忽略，避免连点发出重复 POST。
+    if (submittingRef.current[challenge.id]) return;
+    const mark = (value: boolean): void => {
+      const next = { ...submittingRef.current };
+      if (value) {
+        next[challenge.id] = true;
+      } else {
+        delete next[challenge.id];
+      }
+      submittingRef.current = next;
+      setSubmitting(next);
+    };
+    mark(true);
     try {
       await challengeApi.join(challenge.id);
       setJoined((prev) => ({ ...prev, [challenge.id]: true }));
@@ -58,6 +79,9 @@ function ChallengesContent(): React.ReactElement {
       toaster.success('已报名', `${challenge.title} 加油！`);
     } catch (error) {
       toaster.error('报名失败', error instanceof Error ? error.message : '请稍后再试');
+    } finally {
+      // finally 保证成功/失败路径都复位，否则失败后按钮会永久禁用。
+      mark(false);
     }
   };
 
@@ -154,8 +178,13 @@ function ChallengesContent(): React.ReactElement {
                       </div>
 
                       <div className="flex shrink-0 flex-col gap-2">
-                        <Button size="sm" disabled={ended || isJoined} onClick={() => void join(challenge)}>
-                          {isJoined ? '已报名' : ended ? '已结束' : '立即参加'}
+                        <Button
+                          size="sm"
+                          disabled={ended || isJoined || submitting[challenge.id]}
+                          loading={submitting[challenge.id]}
+                          onClick={() => void join(challenge)}
+                        >
+                          {submitting[challenge.id] ? '报名中' : isJoined ? '已报名' : ended ? '已结束' : '立即参加'}
                         </Button>
                         <Button size="sm" variant="outline" onClick={() => setSelected(challenge)}>
                           查看榜单
