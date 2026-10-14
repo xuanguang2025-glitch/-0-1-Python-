@@ -15,6 +15,7 @@ import { aiApi } from '@/lib/api';
 import { AI_MODE_DESC, AI_MODE_LABEL } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import { useFetch } from '@/hooks/useFetch';
+import { useSubmitGuard } from '@/hooks/useSubmitGuard';
 import { useAuth } from '@/hooks/useAuth';
 import { useToaster } from '@/hooks/useToast';
 import { AuthGate } from '@/components/common/auth-gate';
@@ -67,9 +68,11 @@ function AiTutorContent(): React.ReactElement {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Bubble[]>([]);
   const [input, setInput] = useState('');
-  const [sending, setSending] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>(QUICK_PROMPTS.slice(0, 3));
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  /** 提交守卫：发消息 / 删会话防连点重复提交。 */
+  const guard = useSubmitGuard();
+  const sending = Boolean(guard.submitting.send);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
@@ -96,10 +99,11 @@ function AiTutorContent(): React.ReactElement {
 
   const send = async (text: string): Promise<void> => {
     const message = text.trim();
-    if (!message || sending) return;
+    if (!message) return;
+    // in-flight 守卫：ref 同步判断，同一 tick 的连点也会被拦下
+    if (!guard.begin('send')) return;
     setMessages((prev) => [...prev, { id: `u-${Date.now()}`, role: 'user', content: message }]);
     setInput('');
-    setSending(true);
     try {
       const response = await aiApi.chat({
         conversation_id: conversationId ?? undefined,
@@ -125,7 +129,7 @@ function AiTutorContent(): React.ReactElement {
         { id: `e-${Date.now()}`, role: 'assistant', content: `暂时无法连接 AI 服务：${friendly}`, degraded: true },
       ]);
     } finally {
-      setSending(false);
+      guard.end('send');
     }
   };
 
@@ -136,6 +140,7 @@ function AiTutorContent(): React.ReactElement {
   };
 
   const removeConversation = async (id: string): Promise<void> => {
+    if (!guard.begin(`${id}:delete`)) return;
     try {
       await aiApi.deleteConversation(id);
       if (conversationId === id) newConversation();
@@ -143,6 +148,8 @@ function AiTutorContent(): React.ReactElement {
       toaster.success('已删除会话');
     } catch {
       toaster.error('删除失败');
+    } finally {
+      guard.end(`${id}:delete`);
     }
   };
 
@@ -193,6 +200,8 @@ function AiTutorContent(): React.ReactElement {
                       variant="ghost"
                       aria-label="删除会话"
                       className="opacity-0 group-hover:opacity-100"
+                      disabled={Boolean(guard.submitting[`${item.id}:delete`])}
+                      loading={Boolean(guard.submitting[`${item.id}:delete`])}
                       onClick={() => void removeConversation(item.id)}
                     >
                       <Trash2 className="h-3 w-3" />
@@ -265,8 +274,9 @@ function AiTutorContent(): React.ReactElement {
                         <button
                           key={prompt}
                           type="button"
+                          disabled={sending}
                           onClick={() => void send(prompt)}
-                          className="rounded-full border border-border px-2.5 py-1 text-[11.5px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                          className="rounded-full border border-border px-2.5 py-1 text-[11.5px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
                         >
                           {prompt}
                         </button>
@@ -324,8 +334,9 @@ function AiTutorContent(): React.ReactElement {
                     <button
                       key={item}
                       type="button"
+                      disabled={sending}
                       onClick={() => void send(item)}
-                      className="rounded-full border border-border px-2.5 py-1 text-[11.5px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      className="rounded-full border border-border px-2.5 py-1 text-[11.5px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
                     >
                       {item}
                     </button>
