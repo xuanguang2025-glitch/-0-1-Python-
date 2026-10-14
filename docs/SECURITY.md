@@ -58,7 +58,15 @@
 ## 3. 部署安全清单（上线前核对）
 
 - [ ] `CORS_ORIGINS` 改为真实前端域名（禁 `*`）
-- [ ] `JWT_SECRET` 换为 ≥32 位随机值（禁用默认值）
+- [ ] **`JWT_SECRET_KEY` 与 `SECRET_KEY` 各自设为 ≥32 字符的强随机值**（两者不得相同）。
+      二者只要仍是默认值 / 占位符 / 长度不足，`app_env=production` 下**应用会直接拒绝启动**
+      （`_startup_self_check` → `enforce_secret_policy` 抛 `RuntimeError`）。
+      原因：HS256 是对称签名，密钥即权限 —— 弱密钥可被离线用来伪造 `role=superadmin` 的合法 token。
+      生成方式：`python -c "import secrets; print(secrets.token_urlsafe(48))"`。
+      非生产环境缺 `.env` 时会自动生成随机临时密钥并打 WARNING（重启后变化，不可用于多实例）。
+- [ ] `TRUSTED_PROXIES` 按实际反代填写（IP 或 CIDR，逗号分隔）；**留空表示不信任任何代理**。
+      限流取 IP 的规则：仅当 TCP 对端在名单内才读 `X-Forwarded-For`，并取**最右侧**一跳；
+      否则一律用 `request.client.host`。留空可防止伪造/轮换 XFF 绕过登录与运行限流。
 - [ ] `AI_API_KEY` 仅存服务端环境变量；`/admin/models/{id}/test` 不回显 key
 - [ ] 生产沙箱必须容器隔离（`SANDBOX_MODE=remote` 指向 hardened 容器，本机 runner 仅限开发）
 - [ ] `docs_url/redoc/openapi_url` 生产已自动关闭
@@ -67,5 +75,14 @@
 
 ## 4. 变更记录
 
+- 2026-09-27（第三轮 · QA 挖掘的 3 个 P0 + 2 个 P2）：
+  ① 代码执行由**字符串黑名单**改为 **AST 白名单**（`app/sandbox/ast_guard.py`）：
+  `__import__("os")`、`getattr(os,"system")`、`open("C:/Windows/win.ini")`、`os.listdir("C:/")`
+  等绕过手法全部返回 `security_error` 且无输出；语法解析失败一律拒绝执行；
+  同时保留 `os.path` / `dict.get` / `str.replace` / `list.remove` / 相对路径 `open` / `input()`
+  与「多文件项目自带模块 import」的正常能力（详见 `tests/test_sandbox_security.py` 的正向用例）。
+  ② 生产环境弱 JWT 密钥**拒绝启动**（见 §3）。
+  ③ 限流不再无条件信任 `X-Forwarded-For`，改为可信代理白名单（见 §3）。
+  ④ 测试不再以读写方式连接真实库（`tests/conftest.py` 改 `mode=ro` 只读打开）。
 - 2026-09-27：第一轮 9 项上线（`security_probe.py`）；判题域补 `_resolve_mistakes`（AC 自动解决错题，幂等）；
   第二轮 11 项上线（`security_probe_round2.py`）；新增 `SecurityHeadersMiddleware`（nosniff / DENY / Referrer-Policy）。

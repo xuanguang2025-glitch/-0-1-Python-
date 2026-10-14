@@ -10,6 +10,8 @@
 
 from __future__ import annotations
 
+import logging
+import secrets
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Literal
@@ -88,8 +90,10 @@ class Settings(BaseSettings):
     sandbox_allow_network: bool = Field(default=False)
     local_runner_enabled: bool = Field(default=True)
     sandbox_allowed_imports: str = Field(
-        default="math,json,itertools,collections,re,string,sys,random,datetime,"
-        "functools,heapq,bisect,typing"
+        default="math,json,itertools,collections,re,string,sys,os,io,csv,pathlib,random,"
+        "datetime,functools,heapq,bisect,typing,decimal,fractions,statistics,textwrap,"
+        "unicodedata,copy,operator,enum,dataclasses,abc,time,hashlib,base64,secrets,"
+        "calendar,uuid,keyword,argparse,pprint,numbers,array,queue,struct,zlib"
     )
     allow_anon_run: bool = Field(default=False, description="是否允许匿名调用 /api/python/run")
 
@@ -124,6 +128,13 @@ class Settings(BaseSettings):
     # ---------------- 分页 ----------------
     default_page_size: int = Field(default=20)
     max_page_size: int = Field(default=100)
+
+    # ---------------- 反向代理（限流取 IP 的可信来源）----------------
+    trusted_proxies: str = Field(
+        default="",
+        description="可信反向代理地址列表（逗号分隔，支持 IP 或 CIDR，如 127.0.0.1,10.0.0.0/8）；"
+        "为空表示不信任任何代理，限流只用 request.client.host",
+    )
 
     # ---------------- 校验与派生 ----------------
     @field_validator("database_url", mode="before")
@@ -189,6 +200,11 @@ class Settings(BaseSettings):
         return [item.strip() for item in self.sandbox_allowed_imports.split(",") if item.strip()]
 
     @property
+    def trusted_proxy_list(self) -> list[str]:
+        """可信反向代理地址列表（原始字符串项，非法项在解析时忽略）。"""
+        return [item.strip() for item in self.trusted_proxies.split(",") if item.strip()]
+
+    @property
     def level_threshold_list(self) -> list[int]:
         """等级经验阈值列表（升序）。"""
         items: list[int] = []
@@ -250,3 +266,100 @@ def get_settings() -> Settings:
 
 
 settings: Settings = get_settings()
+
+
+# --------------------------------------------------------------------- 密钥强度
+#: HS256 签名密钥最小长度（256 bit ≈ 32 字符）
+MIN_SECRET_LENGTH: int = 32
+
+#: 明确视为「弱密钥」的值（默认值、示例值、占位符）
+WEAK_SECRETS: frozenset[str] = frozenset(
+    {
+        "change-me",
+        "change-me-please",
+        "change-me-in-production",
+        "changeme",
+        "secret",
+        "secret-key",
+        "jwt-secret",
+        "pythonlab",
+        "your-secret-key",
+        "your-jwt-secret",
+        "test",
+        "dev",
+        "pythonlab-dev-secret",
+    }
+)
+
+
+def is_weak_secret(value: str | None) -> bool:
+    """判断密钥是否属于「默认值 / 占位符 / 过短」。
+
+    QA 实测：本机无 `backend/.env` 时 `jwt_secret_key` 取默认值 `change-me`，
+    可被离线伪造出 `role=superadmin` 的合法 token（HS256 对称签名，密钥即权限）。
+    """
+    text = (value or "").strip()
+    if not text:
+        return True
+    lowered = text.lower()
+    if lowered in WEAK_SECRETS:
+        return True
+    if len(text) < MIN_SECRET_LENGTH:
+        return True
+    # 形如 `change-me-2026` / `your-jwt-key` 的占位符同样不可用
+    if "change-me" in lowered or "changeme" in lowered:
+        return True
+    if lowered.startswith("your-") or lowered.endswith("-placeholder"):
+        return True
+    return False
+
+
+def generate_strong_secret(nbytes: int = 48) -> str:
+    """生成 URL 安全的强随机密钥（开发环境无 `.env` 时的兜底）。"""
+    return secrets.token_urlsafe(nbytes)
+
+
+def enforce_secret_policy(settings: Settings, logger: logging.Logger | None = None) -> list[str]:
+    """密钥策略：生产环境硬失败，开发/测试环境自动生成强随机密钥。
+
+    - `app_env == "production"`：JWT 密钥为默认值/占位符/短于 32 字符 → 抛
+      `RuntimeError` 拒绝启动（宁可不启动，也不要用可预测密钥签发管理员 token）；
+    - 其他环境：就地替换为随机强密钥并 `warning` 提示「临时密钥，重启后变化」。
+
+    Returns:
+        实际被自动替换的字段名列表（生产环境正常返回空列表）。
+    """
+    log = logger or _secret_logger
+    problems: list[str] = []
+    if is_weak_secret(settings.jwt_secret_key):
+        problems.append("jwt_secret_key")
+    if is_weak_secret(settings.secret_key):
+        problems.append("secret_key")
+
+    if not problems:
+        return []
+
+    if settings.is_production:
+        raise RuntimeError(
+            "拒绝以弱密钥启动生产环境："
+            + "、".join(problems)
+            + " 仍为默认值/占位符或长度不足 "
+            + str(MIN_SECRET_LENGTH)
+            + " 字符。请在 backend/.env（或部署环境变量）中设置强随机值，例如："
+            "python -c \"import secrets; print(secrets.token_urlsafe(48))\"，"
+            "并分别写入 JWT_SECRET_KEY / SECRET_KEY。"
+        )
+
+    replaced: list[str] = []
+    for name in problems:
+        setattr(settings, name, generate_strong_secret())
+        replaced.append(name)
+    log.warning(
+        "检测到弱密钥 %s，已自动生成临时随机密钥（仅本次进程有效，重启后会变化）。"
+        "生产环境请务必在 backend/.env 中显式配置 JWT_SECRET_KEY / SECRET_KEY。",
+        "、".join(replaced),
+    )
+    return replaced
+
+
+_secret_logger = logging.getLogger("pythonlab.config")

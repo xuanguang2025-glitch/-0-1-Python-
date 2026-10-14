@@ -20,7 +20,7 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.api.router import api_router
-from app.core.config import Settings, get_settings
+from app.core.config import Settings, enforce_secret_policy, get_settings
 from app.core.errors import register_exception_handlers
 from app.core.logging import RequestContextMiddleware, setup_logging
 
@@ -28,7 +28,10 @@ logger = logging.getLogger("pythonlab")
 
 
 def _startup_self_check(settings: Settings) -> None:
-    """启动期自检：打印实际生效的降级实现，并在缺表时给出明确指引。"""
+    """启动期自检：密钥策略（可硬失败）→ 打印实际生效的降级实现 → 缺表指引。"""
+    # 密钥策略放在最前：生产环境弱密钥必须「拒绝启动」，不能被后续自检异常吞掉
+    enforce_secret_policy(settings, logger=logger)
+
     from app.core.cache import get_cache_instance
     from app.core.queue import get_queue_instance
     from app.db.session import ping as db_ping

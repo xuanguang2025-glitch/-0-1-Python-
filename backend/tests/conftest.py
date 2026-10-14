@@ -312,8 +312,12 @@ def admin_headers(auth_tokens: SimpleNamespace) -> dict[str, str]:
 
 # ------------------------------------------------------------------ 真实种子库
 def copy_real_db(target: Path) -> None:
-    """把真实种子库在线备份到 `target`（含 WAL 中已提交的数据）。"""
-    source = sqlite3.connect(str(REAL_DB))
+    """把真实种子库在线备份到 `target`（含 WAL 中已提交的数据）。
+
+    源库以**只读**方式打开（`mode=ro`）：测试绝不能以读写方式连接真实库，
+    否则可能在测试期间产生 journal/WAL 写入甚至锁库，污染开发数据。
+    """
+    source = sqlite3.connect(f"file:{REAL_DB.as_posix()}?mode=ro", uri=True)
     dest = sqlite3.connect(str(target))
     try:
         source.backup(dest)
