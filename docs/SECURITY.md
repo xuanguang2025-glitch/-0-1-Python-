@@ -75,6 +75,26 @@
 
 ## 4. 变更记录
 
+- 2026-10-14（第四轮 · 第三轮 AST 白名单的回归加固与误杀收窄）：
+  ① **保留名不再跳过校验**（第三轮引入的新 P0）：`scan_source` 曾把整个
+  `RESERVED_FILENAMES` 按 basename 跳过，载荷写进 `_plab_guard.py` 并以其为入口
+  即可免检执行。现只有系统生成的引导文件 `__plab_boot__.py` 免检；保留名在
+  schema 层（`RunRequest`，HTTP 400 `INVALID_PATH`）与路径校验层
+  （`validate_relative_path`，覆盖判题 / 项目运行 / 代码快照所有入口）直接拒绝，
+  执行器层仍照常 AST 校验（四层防线，回归见 `tests/test_sandbox_reserved_name.py`）。
+  ② **目录逃逸拦截**：`os.chdir('..')`、`os.makedirs` / `os.mkdir`、
+  `Path('../x').write_text()`、`Path('C:/...')` 及 `from os import chdir` 等
+  别名导入形态，全部 `security_error`（QA 已用「工作目录外是否出现证明文件」复现）。
+  ③ **误杀收窄**：放行 `sys.exit(0)` / `exit()` / `quit()`（OJ 标准写法，
+  stage-16 课程正文用到；最坏只是退出子进程，而子进程本来就会被超时 kill）；
+  `path_literal` 收窄为仅 `open()` / `Path()` **实参位置**检查，
+  `print("path example:", "/usr", "/tmp")` 等纯展示用法放行。
+  ④ **已知权衡**：`os.remove` 保留拦截（删工作目录外文件的前提是路径已逃逸，
+  而逃逸路径本身被 open / Path / chdir 规则拦下）；工作目录内建目录的正当需求
+  用 `pathlib.Path('sub').mkdir()`（未拦截）。
+  ⑤ QA 攻击面回归脚本（47 种绕过手法 + 45 条误杀检查）移至
+  `backend/scripts/security/` 并补 README；判定口径修正为「stdout 非空才算泄漏」
+  （拒绝原因按契约写在 stderr）。
 - 2026-09-27（第三轮 · QA 挖掘的 3 个 P0 + 2 个 P2）：
   ① 代码执行由**字符串黑名单**改为 **AST 白名单**（`app/sandbox/ast_guard.py`）：
   `__import__("os")`、`getattr(os,"system")`、`open("C:/Windows/win.ini")`、`os.listdir("C:/")`
