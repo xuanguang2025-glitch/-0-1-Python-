@@ -4,10 +4,20 @@ from __future__ import annotations
 
 from pydantic import Field, field_validator
 
+from app.core.constants import SANDBOX_RESERVED_FILENAMES
+from app.core.errors import AppError, ErrorCode
 from app.schemas.common import ORMModel, StrictModel
 
 #: 单次执行可提交的最大文件数
 MAX_FILES: int = 20
+
+#: 保留名判定用的说明（供两处校验器共用，避免文案漂移）
+_RESERVED_HINT = "该文件名为沙箱保留名，禁止提交"
+
+
+def _basename(path: str) -> str:
+    """取 POSIX 风格路径的最后一段（文件名）。"""
+    return str(path).replace("\\", "/").rstrip("/").split("/")[-1]
 
 
 class RunFileIn(StrictModel):
@@ -31,6 +41,29 @@ class RunRequest(StrictModel):
     def _require_files(cls, value: list[RunFileIn]) -> list[RunFileIn]:
         if not value:
             raise ValueError("files 不能为空")
+        for item in value:
+            # 保留名（`_plab_guard.py` 等）是沙箱系统文件的身份：曾被整体跳过 AST
+            # 校验而形成免检入口（QA 实测 P0）。这里在入口处直接拒绝。
+            # 抛 AppError（而非 ValueError）→ 全局异常处理器返回 400 INVALID_PATH，
+            # 语义上是「请求了一个被占用的名字」，不是字段格式错误（422）。
+            if _basename(item.path) in SANDBOX_RESERVED_FILENAMES:
+                raise AppError(
+                    code=ErrorCode.INVALID_PATH,
+                    message=f"{_RESERVED_HINT}：{_basename(item.path)}",
+                    details=item.path,
+                )
+        return value
+
+    @field_validator("entry")
+    @classmethod
+    def _entry_not_reserved(cls, value: str | None) -> str | None:
+        """入口文件同样不得使用保留名（与 files 校验保持一致，拒绝越早越好）。"""
+        if value and _basename(value) in SANDBOX_RESERVED_FILENAMES:
+            raise AppError(
+                code=ErrorCode.INVALID_PATH,
+                message=f"{_RESERVED_HINT}：{_basename(value)}",
+                details=value,
+            )
         return value
 
     def as_mapping(self) -> dict[str, str]:
