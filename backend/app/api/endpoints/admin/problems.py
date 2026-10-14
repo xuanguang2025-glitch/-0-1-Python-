@@ -8,6 +8,7 @@ from typing import Any
 from fastapi import APIRouter, Body, File, Query, Request, UploadFile
 
 from app.core.deps import AdminUser, DbSession, Pagination
+from app.core.errors import AppError, ErrorCode
 from app.core.pagination import build_page
 from app.core.response import PageModel, ResponseModel, success_response
 from app.schemas.problem import AdminProblemIn, AdminTestCaseIn, ProblemBrief
@@ -63,9 +64,21 @@ async def import_problems(
     file: UploadFile = File(..., description="JSON 文件（数组或 {items: []}）"),
 ) -> dict:
     """批量导入题目（multipart JSON），返回 `{created, updated, failed}`。"""
-    payload = json.loads((await file.read()).decode("utf-8"))
+    raw = await file.read()
+    try:
+        payload = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise AppError(
+            code=ErrorCode.BAD_REQUEST, message="导入文件不是合法 JSON", status_code=400
+        ) from exc
     items = payload.get("items") if isinstance(payload, dict) else payload
-    result = admin_service.import_problems(db, admin, list(items or []), meta(request))
+    if not isinstance(items, list):
+        raise AppError(
+            code=ErrorCode.BAD_REQUEST,
+            message="导入文件需为 JSON 数组，或含 items 数组的对象",
+            status_code=400,
+        )
+    result = admin_service.import_problems(db, admin, items, meta(request))
     return success_response(result)
 
 

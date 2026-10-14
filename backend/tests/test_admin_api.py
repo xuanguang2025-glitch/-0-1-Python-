@@ -13,7 +13,8 @@
 - `BUG-1`（**已修复**）：`POST /admin/test-cases` 曾恒 500（`AdminTestCaseIn` 缺 `problem_id`，而
   `TestCase.problem_id` 为 NOT NULL，且 `StrictModel` 禁止额外字段）→ 见
   `test_create_test_case_with_problem_id`；
-- `BUG-2`：`POST /admin/problems/import` 传非法 JSON 恒 500（应为 4xx）。
+- `BUG-2`（**已修复**）：`POST /admin/problems/import` 传非法 JSON 曾恒 500（应为 4xx）→ 见
+  `test_problem_import_invalid_json_returns_400`；
 - `BUG-3`：`import_problems` 对含 `title` 的条目 100% 失败
   （`Problem() got multiple values for keyword argument 'title'`）。
 - `BUG-4`：`PUT /admin/ai-config` 的 `provider/model/temperature` 等写入
@@ -721,19 +722,36 @@ def test_problem_import_duplicate_title_defect_bug3(client: TestClient, admin_he
     assert "multiple values for keyword argument 'title'" in data["failed"][0]["error"]
 
 
-def test_problem_import_invalid_json_defect_bug2(client: TestClient, admin_headers: dict[str, str]) -> None:
-    """BUG-2：上传非法 JSON 恒 500（期望 4xx）。
+def test_problem_import_invalid_json_returns_400(client: TestClient, admin_headers: dict[str, str]) -> None:
+    """上传非法 JSON / 非数组结构返回 400，而非 500（BUG-2 修复验证）。
 
-    复现：文件内容 `{not json` → JSONDecodeError 未被捕获，走全局 500。
-    修复后本用例应改为断言 4xx。
+    修复前 `json.loads` 未捕获 `JSONDecodeError`，直接走全局 500。
     """
-    # 未捕获的 JSONDecodeError：基座 TestClient 默认 raise_server_exceptions，故此处断言抛异常。
-    with pytest.raises(Exception):
-        client.post(
-            "/api/admin/problems/import",
-            files={"file": ("bad.json", b"{not json", "application/json")},
-            headers=admin_headers,
-        )
+    bad = client.post(
+        "/api/admin/problems/import",
+        files={"file": ("bad.json", b"{not json", "application/json")},
+        headers=admin_headers,
+    )
+    assert bad.status_code == 400, bad.text
+    assert bad.json()["error"]["code"] == "BAD_REQUEST"
+    assert "JSON" in bad.json()["message"]
+
+    # 合法 JSON 但结构不对（既不是数组也没有 items）也要 400，而不是把字符串逐个当条目
+    wrong_shape = client.post(
+        "/api/admin/problems/import",
+        files={"file": ("str.json", b'"just-a-string"', "application/json")},
+        headers=admin_headers,
+    )
+    assert wrong_shape.status_code == 400
+    assert wrong_shape.json()["error"]["code"] == "BAD_REQUEST"
+
+    no_items = client.post(
+        "/api/admin/problems/import",
+        files={"file": ("obj.json", b'{"problems": []}', "application/json")},
+        headers=admin_headers,
+    )
+    assert no_items.status_code == 400
+    assert no_items.json()["error"]["code"] == "BAD_REQUEST"
 
 
 # ---------------------------------------------------------------------------
