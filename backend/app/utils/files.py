@@ -29,12 +29,22 @@ def cleanup_dir(path: str | Path) -> None:
         pass
 
 
-def write_files(base_dir: str | Path, files: Mapping[str, str]) -> list[Path]:
-    """把 `{相对路径: 内容}` 落盘到临时目录，返回写入的绝对路径列表。"""
+def write_files(
+    base_dir: str | Path, files: Mapping[str, str], *, allow_reserved: bool = False
+) -> list[Path]:
+    """把 `{相对路径: 内容}` 落盘到临时目录，返回写入的绝对路径列表。
+
+    Args:
+        base_dir: 目标目录（通常是执行器的临时工作目录）。
+        files: `{相对路径: 内容}`。
+        allow_reserved: 是否放行沙箱保留名。仅执行器传 True：引导文件
+            `__plab_boot__.py` 由系统注入，且所有文件落盘前已过 AST 校验
+            （保留名照常校验，只有引导文件免检）。
+    """
     root = Path(base_dir)
     written: list[Path] = []
     for rel_path, content in files.items():
-        safe_path = validate_relative_path(rel_path)
+        safe_path = validate_relative_path(rel_path, allow_reserved=allow_reserved)
         target = root / safe_path
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(content or "", encoding="utf-8")

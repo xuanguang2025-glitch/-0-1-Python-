@@ -14,6 +14,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.core.constants import SANDBOX_BOOTSTRAP_FILENAME, SANDBOX_RESERVED_FILENAMES
+
 #: 执行状态常量
 STATUS_SUCCESS = "success"
 STATUS_ERROR = "error"
@@ -39,7 +41,21 @@ MAX_FILE_BYTES: int = 200_000
 #: 输出上限（超出即截断并置 truncated=True）
 MAX_OUTPUT_BYTES: int = 65_536
 
-#: 危险语法黑名单（命中即 `security_error`，不执行）
+#: 系统生成的引导文件名（`app/services/sandbox_local.py` 注入，用户代码不可见，
+#: 不参与用户代码安全校验）。规范定义在 `app/core/constants.py`，此处转出以便
+#: 沙箱层与服务层共同引用，避免循环依赖。
+LOCAL_BOOTSTRAP_NAME: str = SANDBOX_BOOTSTRAP_FILENAME
+
+#: 沙箱自身保留的文件名（禁止用户占用）。
+#: 只有 `LOCAL_BOOTSTRAP_NAME` 会被 AST 校验跳过（系统生成、每次覆盖）；
+#: 其余保留名（如 `_plab_guard.py`）**照常校验** —— 早期版本按 basename 跳过
+#: 整个集合，等于给攻击者一个免检入口（QA 实测 P0，回归见
+#: `tests/test_sandbox_reserved_name.py`，证据脚本见 `scripts/security/qa_reserved_name.py`）。
+RESERVED_FILENAMES: frozenset[str] = SANDBOX_RESERVED_FILENAMES
+
+#: **第二层**字符串黑名单（仅作 AST 白名单之外的补充防线，不再是主要判据）。
+#: 历史原因：早期实现只有这张表，被 QA 用 `__import__("os")`（双引号）、
+#: `getattr(os, "system")` 等手法绕过。现由 `app/sandbox/ast_guard.py` 承担主判定。
 FORBIDDEN_PATTERNS: tuple[str, ...] = (
     "os.system",
     "os.popen",
@@ -59,7 +75,7 @@ FORBIDDEN_PATTERNS: tuple[str, ...] = (
     "rm -rf",
 )
 
-#: 允许 import 的模块前缀（白名单，可在脚本头部补充标准库）
+#: 允许 import 的模块前缀（白名单；实际生效值取 `SANDBOX_ALLOWED_IMPORTS` 配置）
 DEFAULT_ALLOWED_MODULES: tuple[str, ...] = (
     "math",
     "json",
@@ -68,6 +84,10 @@ DEFAULT_ALLOWED_MODULES: tuple[str, ...] = (
     "re",
     "string",
     "sys",
+    "os",
+    "io",
+    "csv",
+    "pathlib",
     "random",
     "datetime",
     "functools",
@@ -85,6 +105,19 @@ DEFAULT_ALLOWED_MODULES: tuple[str, ...] = (
     "dataclasses",
     "abc",
     "time",
+    "hashlib",
+    "base64",
+    "secrets",
+    "calendar",
+    "uuid",
+    "keyword",
+    "argparse",
+    "pprint",
+    "numbers",
+    "array",
+    "queue",
+    "struct",
+    "zlib",
 )
 
 

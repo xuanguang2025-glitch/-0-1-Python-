@@ -17,6 +17,7 @@ from app.core.constants import (
     AVATAR_MIME_TYPES,
     IMPORT_MAX_BYTES,
     MAX_CODE_BYTES,
+    SANDBOX_RESERVED_FILENAMES,
 )
 from app.core.errors import AppError, ErrorCode
 
@@ -24,12 +25,21 @@ _WINDOWS_DRIVE_RE = r"^[A-Za-z]:"
 _ABSOLUTE_PREFIXES = ("/", "\\")
 
 
-def validate_relative_path(path: str, *, allow_hidden: bool = False) -> str:
+def validate_relative_path(
+    path: str, *, allow_hidden: bool = False, allow_reserved: bool = False
+) -> str:
     """校验并返回安全的相对路径（禁止绝对路径、盘符、`..` 与隐藏目录）。
+
+    安全相关：沙箱保留名（`_plab_guard.py` / `__plab_boot__.py`）同样在此拒绝 ——
+    这些名字是沙箱系统文件的身份，用户占用即可伪装成系统文件（历史上曾因此
+    整体跳过 AST 校验，形成免检入口）。所有会触达执行器 / 落盘的入口
+    （`/api/python/run`、判题、项目文件、代码快照）都经过本函数，属单点 choke。
 
     Args:
         path: 用户提供的文件路径，如 `utils/helper.py`。
         allow_hidden: 是否允许以 `.` 开头的路径段。
+        allow_reserved: 是否放行沙箱保留名。仅执行器（`LocalRunner`）为 True：
+            引导文件由系统注入，且全部文件落盘前已过 AST 校验（保留名照常校验）。
 
     Returns:
         规范化后的相对路径（POSIX 分隔符）。
@@ -46,6 +56,12 @@ def validate_relative_path(path: str, *, allow_hidden: bool = False) -> str:
         raise AppError(code=ErrorCode.INVALID_PATH, message="文件路径不允许包含 ..", details=raw)
     if "\x00" in raw:
         raise AppError(code=ErrorCode.INVALID_PATH, message="文件路径包含非法字符", details=raw)
+    if not allow_reserved and raw.replace("\\", "/").rstrip("/").split("/")[-1] in SANDBOX_RESERVED_FILENAMES:
+        raise AppError(
+            code=ErrorCode.INVALID_PATH,
+            message="该文件名为沙箱保留名，禁止使用",
+            details=raw,
+        )
 
     normalized = PurePosixPath(raw.replace("\\", "/"))
     if not allow_hidden and any(part.startswith(".") for part in normalized.parts):

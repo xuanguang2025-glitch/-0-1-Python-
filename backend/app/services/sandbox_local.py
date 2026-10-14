@@ -13,6 +13,7 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from app.sandbox.protocol import (
+    LOCAL_BOOTSTRAP_NAME,
     STATUS_INTERNAL,
     STATUS_MEMORY,
     STATUS_REJECTED,
@@ -33,8 +34,8 @@ from app.services.sandbox_result import (
     from_sandbox_response,
 )
 
-#: 本机多文件执行的引导文件名。
-LOCAL_BOOTSTRAP_NAME: str = "__plab_boot__.py"
+#: 本机多文件执行的引导文件名（规范定义在 `app.sandbox.protocol`，此处仅转出兼容旧调用方）
+LOCAL_BOOTSTRAP_FILE: str = LOCAL_BOOTSTRAP_NAME
 
 #: 遇到即短路（不再执行剩余用例）的致命状态。
 _FATAL_STATUSES: frozenset[str] = frozenset(

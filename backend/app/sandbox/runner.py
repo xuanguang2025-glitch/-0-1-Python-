@@ -15,10 +15,13 @@ import sys
 import time
 import uuid
 from pathlib import Path
+from typing import Mapping
 
 from app.core.config import get_settings
+from app.sandbox.ast_guard import GuardViolation, check_files
 from app.sandbox.protocol import (
     FORBIDDEN_PATTERNS,
+    LOCAL_BOOTSTRAP_NAME,
     MAX_OUTPUT_BYTES,
     STATUS_ERROR,
     STATUS_INTERNAL,
@@ -35,14 +38,76 @@ from app.utils.files import cleanup_dir, make_temp_dir, write_files
 logger = logging.getLogger("pythonlab.runner")
 
 
-def scan_source(files: dict[str, str]) -> str | None:
-    """扫描源码中的危险语法，命中返回命中的模式，否则返回 None。"""
-    for content in files.values():
-        lowered = content or ""
+def scan_source(files: Mapping[str, str], *, skip_paths: frozenset[str] | set[str] | None = None) -> GuardViolation | None:
+    """扫描源码中的危险构造，命中返回 `GuardViolation`，否则返回 None。
+
+    主判定是 **AST 白名单**（`app/sandbox/ast_guard.py`）：字符串黑名单在 Python 上
+    必然可绕过（QA 实测 `__import__("os")`、`getattr(os, "system")` 均可逃逸），
+    因此这里再叠加一层历史黑名单只作为补充防线。
+
+    Args:
+        files: `{相对路径: 源码}`。
+        skip_paths: 跳过校验的文件名。**只允许**系统生成的引导文件
+            `__plab_boot__.py`（内容由 `sandbox_local.bootstrap_code()` 产生且
+            每次覆盖）。保留名（如 `_plab_guard.py`）曾被整体跳过，形成免检入口，
+            现在必须照常校验；提交侧由 schema / 路径校验层直接拒绝（HTTP 400）。
+    """
+    skip = set(skip_paths or ())
+    violation = check_files(files, skip_paths=skip)
+    if violation is not None:
+        return violation
+
+    # 第二层：历史字符串黑名单（保留以覆盖 AST 之外的形态，如文档字符串里的痕迹）
+    for path, content in files.items():
+        name = str(path).replace("\\", "/").split("/")[-1]
+        if path in skip or name in skip:
+            continue
         for pattern in FORBIDDEN_PATTERNS:
-            if pattern in lowered:
-                return pattern
+            if pattern in (content or ""):
+                return GuardViolation(
+                    "forbidden_pattern", f"源码包含被禁止的内容：{pattern}", 0, str(path)
+                )
     return None
+
+
+def _guard_response(
+    request: SandboxRequest, violation: GuardViolation, *, runner_name: str, degraded: bool
+) -> SandboxResponse:
+    """把 AST 违规转成执行响应。
+
+    两类违规要区别对待：
+
+    - **安全类**（`dangerous_*` / `import_*` / `open_*` / `path_literal` /
+      `shell_injection` / `dunder_*` / `forbidden_pattern`）→ `security_error`，
+      绝不执行；
+    - **语法类**（`syntax_error`）→ 同样是「**不执行**」，但状态表达为
+      `error` + `SyntaxError`（由 `sandbox_result.normalize_status` 归一化为
+      `compile_error`）。因为对学习者来说「代码写错了」是判题结论（CE），
+      不是安全事件；若报成 `security_error` 会误导用户，也破坏判题链路语义。
+    """
+    if violation.rule == "syntax_error":
+        return SandboxResponse(
+            request_id=request.request_id,
+            status=STATUS_ERROR,
+            exit_code=1,
+            stdout="",
+            stderr=f"SyntaxError: {violation.message}",
+            error=violation.describe(),
+            error_type="SyntaxError",
+            runner=runner_name,
+            degraded=degraded,
+        )
+    return SandboxResponse(
+        request_id=request.request_id,
+        status=STATUS_SECURITY,
+        exit_code=-1,
+        stdout="",
+        stderr=violation.describe(),
+        error=violation.describe(),
+        error_type="SecurityError",
+        runner=runner_name,
+        degraded=degraded,
+    )
 
 
 class LocalRunner:
@@ -56,20 +121,18 @@ class LocalRunner:
     def run(self, request: SandboxRequest) -> SandboxResponse:
         """在本机子进程中执行入口文件并返回结果。"""
         files = {item.path: item.content for item in request.files}
-        hit = scan_source(files)
+        # 只跳过系统生成的引导文件；保留名（`_plab_guard.py` 等）照常 AST 校验，
+        # 否则攻击者可用保留名作入口完全绕过安全门（QA 实测 P0）。
+        hit = scan_source(files, skip_paths={LOCAL_BOOTSTRAP_NAME})
         if hit is not None:
-            return SandboxResponse(
-                request_id=request.request_id,
-                status=STATUS_SECURITY,
-                error=f"源码包含被禁止的语法：{hit}",
-                error_type="SecurityError",
-                runner=self.name,
-                degraded=True,
-            )
+            logger.warning("源码安全校验拒绝 request_id=%s rule=%s", request.request_id, hit.rule)
+            return _guard_response(request, hit, runner_name=self.name, degraded=True)
 
         workdir = make_temp_dir("plab_run_")
         try:
-            write_files(workdir, files)
+            # allow_reserved：引导文件 `__plab_boot__.py` 由 `sandbox_local` 注入，
+            # 且上方 AST 校验只对它免检（其余保留名照常校验），此处必须放行写入。
+            write_files(workdir, files, allow_reserved=True)
             entry = workdir / request.entry
             if not entry.exists():
                 return SandboxResponse(
@@ -296,7 +359,19 @@ class RunnerFacade:
         return bool(get_settings().local_runner_enabled)
 
     def run(self, request: SandboxRequest) -> SandboxResponse:
-        """执行代码：remote 优先，失败或不可用时回退 local。"""
+        """执行代码：先做 AST 安全校验，再 remote 优先，失败或不可用时回退 local。"""
+        violation = scan_source(
+            {item.path: item.content for item in request.files},
+            # 同上：仅引导文件免检，保留名必须照常校验（纵深防御的最后一层）。
+            skip_paths={LOCAL_BOOTSTRAP_NAME},
+        )
+        if violation is not None:
+            # 远程沙箱与本机执行器共用同一道门：避免 remote 模式绕过校验
+            logger.warning("源码安全校验拒绝 request_id=%s rule=%s", request.request_id, violation.rule)
+            return _guard_response(
+                request, violation, runner_name=self.mode, degraded=self.degraded
+            )
+
         if self.mode == "remote" and self._remote is not None:
             result = self._remote.run(request)
             if result.status != STATUS_INTERNAL:

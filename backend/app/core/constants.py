@@ -76,6 +76,23 @@ AI_HINT_LEVELS: tuple[str, ...] = ("hint", "approach", "partial", "full", "expla
 CHALLENGE_LEADERBOARD_LIMIT: int = 100
 EXAM_DEFAULT_DURATION_MIN: int = 60
 
+# ---------------- 沙箱保留文件名 ----------------
+#: 本机执行器注入的引导文件名（系统生成并每次覆盖，用户代码不可见）。
+#: 定义在 core 层：`app/sandbox/protocol.py`、`app/schemas/sandbox.py` 与
+#: `app/utils/validators.py` 都要引用，集中在这里可避免 utils → sandbox 的循环导入。
+SANDBOX_BOOTSTRAP_FILENAME: str = "__plab_boot__.py"
+
+#: 沙箱保留的文件名集合（用户不得占用）。
+#: 历史教训：`_plab_guard.py` 曾被 `scan_source` 的 `skip_paths` 整体跳过 AST
+#: 校验，攻击者把载荷写进该文件并以它为入口即可免检执行（QA 实测的 P0）。
+#: 现在仅引导文件跳过校验；保留名在 schema 与路径校验层直接拒绝（HTTP 400）。
+SANDBOX_RESERVED_FILENAMES: frozenset[str] = frozenset(
+    {
+        SANDBOX_BOOTSTRAP_FILENAME,
+        "_plab_guard.py",
+    }
+)
+
 
 def mastery_level_of(score: float) -> str:
     """把 0-100 的掌握度分数映射为级别字符串。"""
