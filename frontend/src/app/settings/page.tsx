@@ -7,6 +7,7 @@ import { authApi, userApi } from '@/lib/api';
 import { AI_MODE_DESC, AI_MODE_LABEL } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import { useFetch } from '@/hooks/useFetch';
+import { useSubmitGuard } from '@/hooks/useSubmitGuard';
 import { useToaster } from '@/hooks/useToast';
 import { useAuth } from '@/hooks/useAuth';
 import { useThemeStore } from '@/store/theme';
@@ -53,16 +54,15 @@ function SettingsContent(): React.ReactElement {
   const [learningMode, setLearningMode] = useState('system');
   const [weeklyGoal, setWeeklyGoal] = useState('300');
   const [publicProfile, setPublicProfile] = useState(true);
-  const [savingPrefs, setSavingPrefs] = useState(false);
 
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [changingPassword, setChangingPassword] = useState(false);
 
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
-  const [deleting, setDeleting] = useState(false);
+  /** 提交守卫：防连点重复提交（注销账号重复提交是数据正确性问题，风险最高）。 */
+  const guard = useSubmitGuard();
 
   useEffect(() => {
     if (!profile.data) return;
@@ -78,7 +78,7 @@ function SettingsContent(): React.ReactElement {
   };
 
   const savePreferences = async (): Promise<void> => {
-    setSavingPrefs(true);
+    if (!guard.begin('save-prefs')) return;
     try {
       await userApi.preferences({
         ai_mode: aiMode,
@@ -92,7 +92,7 @@ function SettingsContent(): React.ReactElement {
     } catch (error) {
       toaster.error('保存失败', error instanceof Error ? error.message : '请稍后再试');
     } finally {
-      setSavingPrefs(false);
+      guard.end('save-prefs');
     }
   };
 
@@ -105,7 +105,7 @@ function SettingsContent(): React.ReactElement {
       toaster.error('两次输入的新密码不一致');
       return;
     }
-    setChangingPassword(true);
+    if (!guard.begin('change-password')) return;
     try {
       await authApi.changePassword(oldPassword, newPassword);
       toaster.success('密码已修改', '下次登录请使用新密码');
@@ -115,7 +115,7 @@ function SettingsContent(): React.ReactElement {
     } catch (error) {
       toaster.error('修改失败', error instanceof Error ? error.message : '请检查原密码');
     } finally {
-      setChangingPassword(false);
+      guard.end('change-password');
     }
   };
 
@@ -125,7 +125,7 @@ function SettingsContent(): React.ReactElement {
   };
 
   const deleteAccount = async (): Promise<void> => {
-    setDeleting(true);
+    if (!guard.begin('delete-account')) return;
     try {
       await userApi.deleteAccount(deletePassword);
       toaster.success('账号已注销');
@@ -134,7 +134,7 @@ function SettingsContent(): React.ReactElement {
     } catch (error) {
       toaster.error('注销失败', error instanceof Error ? error.message : '请检查密码');
     } finally {
-      setDeleting(false);
+      guard.end('delete-account');
     }
   };
 
@@ -200,7 +200,7 @@ function SettingsContent(): React.ReactElement {
                   </div>
                   <Switch checked={publicProfile} onCheckedChange={setPublicProfile} label="公开资料" />
                 </div>
-                <Button loading={savingPrefs} onClick={() => void savePreferences()}>
+                <Button loading={guard.submitting['save-prefs']} onClick={() => void savePreferences()}>
                   保存偏好
                 </Button>
               </>
@@ -242,7 +242,7 @@ function SettingsContent(): React.ReactElement {
                 </span>
               </button>
             ))}
-            <Button variant="outline" loading={savingPrefs} onClick={() => void savePreferences()}>
+            <Button variant="outline" loading={guard.submitting['save-prefs']} onClick={() => void savePreferences()}>
               保存 AI 模式
             </Button>
           </CardContent>
@@ -274,7 +274,7 @@ function SettingsContent(): React.ReactElement {
                 <Input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
               </Field>
             </div>
-            <Button loading={changingPassword} onClick={() => void changePassword()}>
+            <Button loading={guard.submitting['change-password']} onClick={() => void changePassword()}>
               修改密码
             </Button>
 
@@ -317,10 +317,10 @@ function SettingsContent(): React.ReactElement {
         size="sm"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setDeleteOpen(false)} disabled={deleting}>
+            <Button variant="ghost" onClick={() => setDeleteOpen(false)} disabled={guard.submitting['delete-account']}>
               取消
             </Button>
-            <Button variant="destructive" loading={deleting} onClick={() => void deleteAccount()}>
+            <Button variant="destructive" loading={guard.submitting['delete-account']} onClick={() => void deleteAccount()}>
               确认注销
             </Button>
           </>
