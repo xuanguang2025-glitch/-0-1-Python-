@@ -29,6 +29,7 @@ import {
 } from '@/lib/constants';
 import { cn, formatMemory, formatPercent, formatTime } from '@/lib/utils';
 import { useFetch } from '@/hooks/useFetch';
+import { useSubmitGuard } from '@/hooks/useSubmitGuard';
 import { usePythonRunner } from '@/hooks/usePythonRunner';
 import { useToaster } from '@/hooks/useToast';
 import { MonacoEditor } from '@/components/code/monaco-editor';
@@ -73,7 +74,9 @@ export function ProblemDetailView({ problemId }: ProblemDetailViewProps): React.
   const similar = useFetch(() => problemApi.similar(problemId, 5), [problemId]);
 
   const [code, setCode] = useState(TEMPLATE);
-  const [submitting, setSubmitting] = useState(false);
+  /** 提交守卫：防连点重复提交判题。窗口含轮询，比一般提交点更长。 */
+  const guard = useSubmitGuard();
+  const submitting = Boolean(guard.submitting.submit);
   const [submission, setSubmission] = useState<SubmissionOut | null>(null);
   const [tab, setTab] = useState('statement');
   const [editorTab, setEditorTab] = useState('code');
@@ -93,7 +96,7 @@ export function ProblemDetailView({ problemId }: ProblemDetailViewProps): React.
   /** 提交判题：同步返回；pending 时轮询状态。 */
   const submit = async (): Promise<void> => {
     if (!problem) return;
-    setSubmitting(true);
+    if (!guard.begin('submit')) return;
     setEditorTab('result');
     try {
       let result = await submissionApi.submit({ problem_id: problem.id, code, language: 'python' });
@@ -122,7 +125,7 @@ export function ProblemDetailView({ problemId }: ProblemDetailViewProps): React.
     } catch (error) {
       toaster.error('提交失败', error instanceof Error ? error.message : '请稍后再试');
     } finally {
-      setSubmitting(false);
+      guard.end('submit');
     }
   };
 
@@ -423,7 +426,12 @@ export function ProblemDetailView({ problemId }: ProblemDetailViewProps): React.
                   <Play className="h-3.5 w-3.5" />
                   运行样例
                 </Button>
-                <Button size="sm" loading={submitting} onClick={() => void submit()}>
+                <Button
+                  size="sm"
+                  disabled={submitting}
+                  loading={submitting}
+                  onClick={() => void submit()}
+                >
                   <Send className="h-3.5 w-3.5" />
                   提交判题
                 </Button>
