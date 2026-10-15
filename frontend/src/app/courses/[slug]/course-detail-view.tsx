@@ -20,6 +20,7 @@ import { courseApi } from '@/lib/api';
 import { DIFFICULTY_LABEL, STAGE_GROUP_LABEL } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import { useFetch } from '@/hooks/useFetch';
+import { useSubmitGuard } from '@/hooks/useSubmitGuard';
 import { useAuth } from '@/hooks/useAuth';
 import { useToaster } from '@/hooks/useToast';
 import { PageContainer } from '@/components/layout/page-container';
@@ -48,7 +49,9 @@ export function CourseDetailView({ slug }: CourseDetailViewProps): React.ReactEl
   const toaster = useToaster();
   const { isAuthenticated } = useAuth();
   const detail = useFetch(() => courseApi.detail(slug), [slug]);
-  const [enrolling, setEnrolling] = useState(false);
+  /** 提交守卫：防连点重复报名。 */
+  const guard = useSubmitGuard();
+  const enrolling = Boolean(guard.submitting.enroll);
   const [openChapters, setOpenChapters] = useState<Record<string, boolean>>({});
 
   const course = detail.data?.course;
@@ -68,7 +71,7 @@ export function CourseDetailView({ slug }: CourseDetailViewProps): React.ReactEl
       router.push(`/login?redirect=${encodeURIComponent(`/courses/${slug}`)}`);
       return;
     }
-    setEnrolling(true);
+    if (!guard.begin('enroll')) return;
     try {
       await courseApi.enroll(course.id);
       toaster.success('已加入学习', `开始你的「${course.title}」吧`);
@@ -76,7 +79,7 @@ export function CourseDetailView({ slug }: CourseDetailViewProps): React.ReactEl
     } catch (error) {
       toaster.error('加入失败', error instanceof Error ? error.message : '请稍后再试');
     } finally {
-      setEnrolling(false);
+      guard.end('enroll');
     }
   };
 
@@ -148,7 +151,12 @@ export function CourseDetailView({ slug }: CourseDetailViewProps): React.ReactEl
                       </Link>
                     </Button>
                   ) : null}
-                  <Button variant="outline" loading={enrolling} onClick={() => void enroll()}>
+                  <Button
+                    variant="outline"
+                    disabled={enrolling}
+                    loading={enrolling}
+                    onClick={() => void enroll()}
+                  >
                     <Target className="h-4 w-4" />
                     加入我的课程
                   </Button>

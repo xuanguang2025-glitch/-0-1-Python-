@@ -6,6 +6,7 @@ import { Bell, CheckCheck, Info, Megaphone, Trash2 } from 'lucide-react';
 import { notificationApi } from '@/lib/api';
 import { cn, formatRelativeTime } from '@/lib/utils';
 import { useFetch } from '@/hooks/useFetch';
+import { useSubmitGuard } from '@/hooks/useSubmitGuard';
 import { useToaster } from '@/hooks/useToast';
 import { AuthGate } from '@/components/common/auth-gate';
 import { PageContainer } from '@/components/layout/page-container';
@@ -32,6 +33,8 @@ function NotificationsContent(): React.ReactElement {
   const toaster = useToaster();
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
   const [page, setPage] = useState(1);
+  /** 提交守卫：防连点重复标记 / 重复删除。key 用「资源 id + 操作」。 */
+  const guard = useSubmitGuard();
 
   const list = useFetch(
     () => notificationApi.list({ is_read: filter === 'unread' ? false : undefined, page, page_size: 20 }),
@@ -43,16 +46,20 @@ function NotificationsContent(): React.ReactElement {
   const items = list.data?.items ?? [];
 
   const markRead = async (id: string): Promise<void> => {
+    if (!guard.begin(`${id}:read`)) return;
     try {
       await notificationApi.read(id);
       list.refresh();
       unread.refresh();
     } catch (error) {
       toaster.error('操作失败', error instanceof Error ? error.message : '请稍后再试');
+    } finally {
+      guard.end(`${id}:read`);
     }
   };
 
   const markAllRead = async (): Promise<void> => {
+    if (!guard.begin('read-all')) return;
     try {
       const result = await notificationApi.readAll();
       toaster.success(`已标记 ${result.updated} 条为已读`);
@@ -60,16 +67,21 @@ function NotificationsContent(): React.ReactElement {
       unread.refresh();
     } catch (error) {
       toaster.error('操作失败', error instanceof Error ? error.message : '请稍后再试');
+    } finally {
+      guard.end('read-all');
     }
   };
 
   const remove = async (id: string): Promise<void> => {
+    if (!guard.begin(`${id}:remove`)) return;
     try {
       await notificationApi.remove(id);
       list.refresh();
       unread.refresh();
     } catch (error) {
       toaster.error('删除失败', error instanceof Error ? error.message : '请稍后再试');
+    } finally {
+      guard.end(`${id}:remove`);
     }
   };
 
@@ -78,7 +90,13 @@ function NotificationsContent(): React.ReactElement {
       title="通知中心"
       description="系统消息、成就解锁、复习提醒与挑战通知都在这里。"
       actions={
-        <Button size="sm" variant="outline" onClick={() => void markAllRead()}>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={Boolean(guard.submitting['read-all'])}
+          loading={Boolean(guard.submitting['read-all'])}
+          onClick={() => void markAllRead()}
+        >
           <CheckCheck className="h-3.5 w-3.5" />
           全部标为已读
         </Button>
@@ -150,11 +168,24 @@ function NotificationsContent(): React.ReactElement {
                     </div>
                     <div className="flex shrink-0 items-center gap-1">
                       {!item.is_read ? (
-                        <Button size="sm" variant="ghost" onClick={() => void markRead(item.id)}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={Boolean(guard.submitting[`${item.id}:read`])}
+                          loading={Boolean(guard.submitting[`${item.id}:read`])}
+                          onClick={() => void markRead(item.id)}
+                        >
                           标为已读
                         </Button>
                       ) : null}
-                      <Button size="icon-sm" variant="ghost" aria-label="删除通知" onClick={() => void remove(item.id)}>
+                      <Button
+                        size="icon-sm"
+                        variant="ghost"
+                        aria-label="删除通知"
+                        disabled={Boolean(guard.submitting[`${item.id}:remove`])}
+                        loading={Boolean(guard.submitting[`${item.id}:remove`])}
+                        onClick={() => void remove(item.id)}
+                      >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>

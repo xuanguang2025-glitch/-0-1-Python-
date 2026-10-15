@@ -119,6 +119,27 @@ function setup(options: SetupOptions = {}) {
   return { fetchMock };
 }
 
+/** 可控 deferred：用于精确控制写请求何时返回。 */
+function deferred<T>(): { promise: Promise<T>; resolve: (v: T) => void } {
+  let resolve!: (v: T) => void;
+  const promise = new Promise<T>((res) => {
+    resolve = res;
+  });
+  return { promise, resolve };
+}
+
+/** 置为已登录（连点用例各自建 mock，故抽出共用）。 */
+function login(): void {
+  useAuthStore.setState({
+    hydrated: true,
+    accessToken: 'test-access-token',
+    refreshToken: 'test-refresh-token',
+    user: USER,
+    loading: false,
+    error: null,
+  });
+}
+
 /** 最近一次错题列表请求的 URL。 */
 function lastListUrl(fetchMock: FetchMock): URL {
   const calls = fetchMock.calls.filter(
@@ -370,6 +391,94 @@ describe('wrong-answers · 筛选与状态分支', () => {
     expect(await screen.findByText('错题加载失败')).toBeTruthy();
     expect(screen.getByText('错题服务异常')).toBeTruthy();
     expect(screen.getByRole('button', { name: /重试|重新加载/ })).toBeTruthy();
+  });
+});
+
+describe('wrong-answers · 重复提交防护（连点）', () => {
+  it('★ 标记掌握：pending 期间同步连点三次，只发出一次 resolve 请求', async () => {
+    const resolveGate = deferred<Response>();
+    const fetchMock = mockFetchByPath({
+      '/mistakes/review-queue': () => ok([]),
+      '/resolve': () => resolveGate.promise as unknown as Response,
+      '/mistakes': () => ok({ items: [makeMistake('m-1', '两数之和')], total: 1, page: 1, pages: 1 } as Page),
+    });
+    login();
+    render(<WrongAnswersPage />);
+    await screen.findByText('两数之和');
+
+    await act(async () => {
+      const btn = buttonInMistake('两数之和', '标记掌握');
+      btn.click();
+      btn.click();
+      btn.click();
+      await Promise.resolve();
+    });
+
+    expect(fetchMock.countOf('/resolve')).toBe(1);
+    await act(async () => {
+      resolveGate.resolve(ok(makeMistake('m-1', '两数之和', { resolved: true })));
+      await resolveGate.promise;
+    });
+  });
+
+  it('★ 删除错题：pending 期间同步连点两次，只发出一次 DELETE', async () => {
+    const removeGate = deferred<Response>();
+    const fetchMock = mockFetchByPath({
+      '/mistakes/review-queue': () => ok([]),
+      '/mistakes': () => {
+        const last = fetchMock.calls[fetchMock.calls.length - 1];
+        if (last?.init?.method === 'DELETE') return removeGate.promise as unknown as Response;
+        return ok({ items: [makeMistake('m-1', '两数之和')], total: 1, page: 1, pages: 1 } as Page);
+      },
+    });
+    login();
+    render(<WrongAnswersPage />);
+    await screen.findByText('两数之和');
+
+    await act(async () => {
+      const btn = buttonInMistake('两数之和', /删除错题/);
+      btn.click();
+      btn.click();
+      await Promise.resolve();
+    });
+
+    expect(fetchMock.countOf('/mistakes/m-1')).toBe(1);
+    await act(async () => {
+      removeGate.resolve(ok(null));
+      await removeGate.promise;
+    });
+  });
+
+  it('标记失败后复位：可再次提交（守卫必须释放）', async () => {
+    const resolveGate = deferred<Response>();
+    const fetchMock = mockFetchByPath({
+      '/mistakes/review-queue': () => ok([]),
+      '/resolve': () => resolveGate.promise as unknown as Response,
+      '/mistakes': () => ok({ items: [makeMistake('m-1', '两数之和')], total: 1, page: 1, pages: 1 } as Page),
+    });
+    login();
+    render(<WrongAnswersPage />);
+    await screen.findByText('两数之和');
+
+    await act(async () => {
+      buttonInMistake('两数之和', '标记掌握').click();
+      await Promise.resolve();
+    });
+    expect(fetchMock.countOf('/resolve')).toBe(1);
+
+    await act(async () => {
+      resolveGate.resolve(err('NOT_FOUND', '错题不存在', 404));
+      await resolveGate.promise;
+    });
+
+    const retry = buttonInMistake('两数之和', '标记掌握');
+    expect(retry).not.toBeDisabled();
+
+    await act(async () => {
+      retry.click();
+      await Promise.resolve();
+    });
+    expect(fetchMock.countOf('/resolve')).toBe(2);
   });
 });
 

@@ -23,6 +23,7 @@ import { lessonApi } from '@/lib/api';
 import { DIFFICULTY_LABEL } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import { useFetch } from '@/hooks/useFetch';
+import { useSubmitGuard } from '@/hooks/useSubmitGuard';
 import { useAuth } from '@/hooks/useAuth';
 import { usePythonRunner } from '@/hooks/usePythonRunner';
 import { useToaster } from '@/hooks/useToast';
@@ -74,10 +75,12 @@ export function LessonView({ lessonId }: LessonViewProps): React.ReactElement {
   const [tab, setTab] = useState('content');
   const [code, setCode] = useState('');
   const [resultOpen, setResultOpen] = useState(false);
-  const [completing, setCompleting] = useState(false);
+  /** 提交守卫：防连点重复提交课时 / 重复提交随堂练习。 */
+  const guard = useSubmitGuard();
   const [quizAnswers, setQuizAnswers] = useState<Record<string, string>>({});
   const [quizResult, setQuizResult] = useState<{ correct_count: number; total: number; passed: boolean } | null>(null);
-  const [quizSubmitting, setQuizSubmitting] = useState(false);
+  const completing = Boolean(guard.submitting.complete);
+  const quizSubmitting = Boolean(guard.submitting.quiz);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const startedAt = useRef<number>(Date.now());
 
@@ -125,7 +128,7 @@ export function LessonView({ lessonId }: LessonViewProps): React.ReactElement {
       toaster.info('登录后才能记录学习进度');
       return;
     }
-    setCompleting(true);
+    if (!guard.begin('complete')) return;
     const timeSpent = Math.round((Date.now() - startedAt.current) / 1000);
     try {
       const result = await lessonApi.complete(lesson.id, timeSpent);
@@ -134,13 +137,13 @@ export function LessonView({ lessonId }: LessonViewProps): React.ReactElement {
     } catch (error) {
       toaster.error('提交失败', error instanceof Error ? error.message : '请稍后再试');
     } finally {
-      setCompleting(false);
+      guard.end('complete');
     }
   };
 
   const submitQuiz = async (): Promise<void> => {
     if (quiz.length === 0) return;
-    setQuizSubmitting(true);
+    if (!guard.begin('quiz')) return;
     try {
       const answers = quiz.map((item, index) => ({
         qid: item.qid ?? item.id ?? String(index),
@@ -155,7 +158,7 @@ export function LessonView({ lessonId }: LessonViewProps): React.ReactElement {
     } catch (error) {
       toaster.error('提交失败', error instanceof Error ? error.message : '请稍后再试');
     } finally {
-      setQuizSubmitting(false);
+      guard.end('quiz');
     }
   };
 
@@ -522,7 +525,11 @@ export function LessonView({ lessonId }: LessonViewProps): React.ReactElement {
                       />
                     ) : null}
 
-                    <Button loading={quizSubmitting} onClick={() => void submitQuiz()}>
+                    <Button
+                      disabled={quizSubmitting}
+                      loading={quizSubmitting}
+                      onClick={() => void submitQuiz()}
+                    >
                       提交答案
                     </Button>
                   </CardContent>
@@ -574,7 +581,12 @@ export function LessonView({ lessonId }: LessonViewProps): React.ReactElement {
               <span />
             )}
 
-            <Button loading={completing} onClick={() => void markComplete()} variant={completed ? 'outline' : 'default'}>
+            <Button
+              disabled={completing}
+              loading={completing}
+              onClick={() => void markComplete()}
+              variant={completed ? 'outline' : 'default'}
+            >
               <CheckCircle2 className="h-4 w-4" />
               {completed ? '再次标记完成' : '标记为已完成'}
             </Button>

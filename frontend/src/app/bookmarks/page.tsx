@@ -6,6 +6,7 @@ import { Bookmark, BookmarkPlus, FolderOpen, Trash2 } from 'lucide-react';
 import { bookmarkApi } from '@/lib/api';
 import { cn, formatRelativeTime } from '@/lib/utils';
 import { useFetch } from '@/hooks/useFetch';
+import { useSubmitGuard } from '@/hooks/useSubmitGuard';
 import { useToaster } from '@/hooks/useToast';
 import { AuthGate } from '@/components/common/auth-gate';
 import { CodeBlock } from '@/components/code/code-block';
@@ -43,6 +44,8 @@ function BookmarksContent(): React.ReactElement {
   const [page, setPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState({ title: '', collection: '', code_snippet: '', tags: '' });
+  /** 提交守卫：防连点重复收藏 / 重复移除。key 用「资源 id + 操作」。 */
+  const guard = useSubmitGuard();
 
   const list = useFetch(
     () => bookmarkApi.list({ kind: kind || undefined, collection: collection || undefined, page, page_size: 20 }),
@@ -55,6 +58,7 @@ function BookmarksContent(): React.ReactElement {
       toaster.error('请填写收藏标题');
       return;
     }
+    if (!guard.begin('create')) return;
     try {
       await bookmarkApi.create({
         kind: form.code_snippet ? 'snippet' : 'problem',
@@ -70,10 +74,13 @@ function BookmarksContent(): React.ReactElement {
       collections.refresh();
     } catch (error) {
       toaster.error('收藏失败', error instanceof Error ? error.message : '请稍后再试');
+    } finally {
+      guard.end('create');
     }
   };
 
   const remove = async (id: string): Promise<void> => {
+    if (!guard.begin(`${id}:remove`)) return;
     try {
       await bookmarkApi.remove(id);
       list.refresh();
@@ -81,6 +88,8 @@ function BookmarksContent(): React.ReactElement {
       toaster.success('已移除收藏');
     } catch (error) {
       toaster.error('移除失败', error instanceof Error ? error.message : '请稍后再试');
+    } finally {
+      guard.end(`${id}:remove`);
     }
   };
 
@@ -220,7 +229,14 @@ function BookmarksContent(): React.ReactElement {
                           <Link href={`/problems/${item.ref_id}`}>打开题目</Link>
                         </Button>
                       ) : null}
-                      <Button size="icon-sm" variant="ghost" aria-label="移除收藏" onClick={() => void remove(item.id)}>
+                      <Button
+                        size="icon-sm"
+                        variant="ghost"
+                        aria-label="移除收藏"
+                        disabled={Boolean(guard.submitting[`${item.id}:remove`])}
+                        loading={Boolean(guard.submitting[`${item.id}:remove`])}
+                        onClick={() => void remove(item.id)}
+                      >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
@@ -242,7 +258,9 @@ function BookmarksContent(): React.ReactElement {
             <Button variant="ghost" onClick={() => setCreateOpen(false)}>
               取消
             </Button>
-            <Button onClick={() => void create()}>保存</Button>
+            <Button loading={guard.submitting.create} onClick={() => void create()}>
+              保存
+            </Button>
           </>
         }
       >

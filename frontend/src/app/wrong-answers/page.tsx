@@ -6,6 +6,7 @@ import { AlertTriangle, BookX, CheckCircle2, RefreshCw, Trash2 } from 'lucide-re
 import { mistakeApi } from '@/lib/api';
 import { cn, formatRelativeTime } from '@/lib/utils';
 import { useFetch } from '@/hooks/useFetch';
+import { useSubmitGuard } from '@/hooks/useSubmitGuard';
 import { useToaster } from '@/hooks/useToast';
 import { AuthGate } from '@/components/common/auth-gate';
 import { PageContainer } from '@/components/layout/page-container';
@@ -29,6 +30,8 @@ function WrongAnswersContent(): React.ReactElement {
   const toaster = useToaster();
   const [resolved, setResolved] = useState('');
   const [page, setPage] = useState(1);
+  /** 提交守卫：防连点重复标记 / 重复删除。key 用「资源 id + 操作」。 */
+  const guard = useSubmitGuard();
 
   const list = useFetch(
     () => mistakeApi.list({ resolved: resolved || undefined, page, page_size: 20 }),
@@ -40,6 +43,7 @@ function WrongAnswersContent(): React.ReactElement {
   const pending = useMemo(() => items.filter((item) => !item.resolved).length, [items]);
 
   const toggleResolve = async (id: string, next: boolean): Promise<void> => {
+    if (!guard.begin(`${id}:resolve`)) return;
     try {
       await mistakeApi.resolve(id, next);
       list.refresh();
@@ -47,10 +51,13 @@ function WrongAnswersContent(): React.ReactElement {
       toaster.success(next ? '已标记为掌握' : '已加入复习队列');
     } catch (error) {
       toaster.error('操作失败', error instanceof Error ? error.message : '请稍后再试');
+    } finally {
+      guard.end(`${id}:resolve`);
     }
   };
 
   const remove = async (id: string): Promise<void> => {
+    if (!guard.begin(`${id}:remove`)) return;
     try {
       await mistakeApi.remove(id);
       list.refresh();
@@ -58,6 +65,8 @@ function WrongAnswersContent(): React.ReactElement {
       toaster.success('已删除');
     } catch (error) {
       toaster.error('删除失败', error instanceof Error ? error.message : '请稍后再试');
+    } finally {
+      guard.end(`${id}:remove`);
     }
   };
 
@@ -99,7 +108,13 @@ function WrongAnswersContent(): React.ReactElement {
                       {item.next_review_at ? formatRelativeTime(item.next_review_at) : '待安排'}
                     </p>
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => void toggleResolve(item.id, true)}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={Boolean(guard.submitting[`${item.id}:resolve`])}
+                    loading={Boolean(guard.submitting[`${item.id}:resolve`])}
+                    onClick={() => void toggleResolve(item.id, true)}
+                  >
                     我掌握了
                   </Button>
                   {item.problem_id ? (
@@ -184,10 +199,23 @@ function WrongAnswersContent(): React.ReactElement {
                           <Link href={`/problems/${item.problem_id}`}>重做</Link>
                         </Button>
                       ) : null}
-                      <Button size="sm" variant="ghost" onClick={() => void toggleResolve(item.id, !item.resolved)}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={Boolean(guard.submitting[`${item.id}:resolve`])}
+                        loading={Boolean(guard.submitting[`${item.id}:resolve`])}
+                        onClick={() => void toggleResolve(item.id, !item.resolved)}
+                      >
                         {item.resolved ? '恢复待复习' : '标记掌握'}
                       </Button>
-                      <Button size="icon-sm" variant="ghost" aria-label="删除错题" onClick={() => void remove(item.id)}>
+                      <Button
+                        size="icon-sm"
+                        variant="ghost"
+                        aria-label="删除错题"
+                        disabled={Boolean(guard.submitting[`${item.id}:remove`])}
+                        loading={Boolean(guard.submitting[`${item.id}:remove`])}
+                        onClick={() => void remove(item.id)}
+                      >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
