@@ -143,8 +143,8 @@ describe('admin/users · 重复提交防护', () => {
 
     // 后端拒绝
     await act(async () => {
-      gates.get('u-1:update')!.reject(err('FORBIDDEN', '不能禁用超级管理员', 403));
-      await gates.get('u-1:update')!.promise.catch(() => undefined);
+      gates.get('u-1:update')!.resolve(err('FORBIDDEN', '不能禁用超级管理员', 403));
+      await gates.get('u-1:update')!.promise;
     });
 
     const retry = await findStatusButton('alice');

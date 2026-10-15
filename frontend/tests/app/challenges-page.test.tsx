@@ -209,8 +209,8 @@ describe('challenges 页面 · 报名 in-flight 守卫（缺陷 C）', () => {
 
     // 第一次报名被后端拒绝（409）
     await act(async () => {
-      gates.get('ch-1')!.reject(err('CONFLICT', '你已经报名过该挑战', 409));
-      await gates.get('ch-1')!.promise.catch(() => undefined);
+      gates.get('ch-1')!.resolve(err('CONFLICT', '你已经报名过该挑战', 409));
+      await gates.get('ch-1')!.promise;
     });
 
     // 失败路径同样复位 → 按钮回到「立即参加」且可点（不复位则会永久禁用）

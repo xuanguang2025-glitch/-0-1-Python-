@@ -208,8 +208,8 @@ describe('admin/courses · 重复提交防护', () => {
     expect(countCalls(fetchMock, '/admin/courses/c-1', 'DELETE')).toBe(1);
 
     await act(async () => {
-      deleteGate.reject(err('CONFLICT', '课程下还有题目', 409));
-      await deleteGate.promise.catch(() => undefined);
+      deleteGate.resolve(err('CONFLICT', '课程下还有题目', 409));
+      await deleteGate.promise;
     });
 
     const retry = await screen.findByRole('button', { name: '确认删除' });

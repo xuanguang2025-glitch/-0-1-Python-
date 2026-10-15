@@ -163,8 +163,8 @@ describe('ai-tutor · 发消息重复提交', () => {
     expect(fetchMock.countOf('/ai/chat')).toBe(1);
 
     await act(async () => {
-      chatGate.reject(err('AI_UNAVAILABLE', 'AI 服务暂不可用', 503));
-      await chatGate.promise.catch(() => undefined);
+      chatGate.resolve(err('AI_UNAVAILABLE', 'AI 服务暂不可用', 503));
+      await chatGate.promise;
     });
 
     // 复位 → 可再次发送

@@ -140,8 +140,8 @@ describe('settings · 注销账号重复提交（最高优先级）', () => {
 
     // 密码错误导致注销失败
     await act(async () => {
-      deleteGate.reject(err('BAD_PASSWORD', '密码错误', 400));
-      await deleteGate.promise.catch(() => undefined);
+      deleteGate.resolve(err('BAD_PASSWORD', '密码错误', 400));
+      await deleteGate.promise;
     });
 
     // 复位 → 可再次点击（不复位则按钮永久禁用，用户被卡死）
@@ -194,8 +194,8 @@ describe('settings · 偏好与密码重复提交', () => {
     expect(countCalls(fetchMock, '/users/me/preferences', 'PATCH')).toBe(1);
 
     await act(async () => {
-      prefsGate.reject(err('VALIDATION', '参数不合法', 422));
-      await prefsGate.promise.catch(() => undefined);
+      prefsGate.resolve(err('VALIDATION', '参数不合法', 422));
+      await prefsGate.promise;
     });
 
     const retry = await screen.findByRole('button', { name: '保存偏好' });
