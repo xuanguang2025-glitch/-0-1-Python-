@@ -3,6 +3,10 @@
 
 pytest>=8.3.0
 pytest-cov>=6.0.0
+# pytest.ini 的 env 段（APP_ENV / SANDBOX_MODE / DATABASE_URL …）由该插件注入。
+# 缺失时不会立刻报错，而是整段环境变量失效、退化到 conftest 的 setdefault 兜底 ——
+# 属于「静默降级」，必须显式声明为依赖。
+pytest-env>=1.1.5
 httpx>=0.28.0
 ruff>=0.8.0
 black>=24.10.0

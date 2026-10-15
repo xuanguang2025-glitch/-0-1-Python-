@@ -1,0 +1,95 @@
+# PYTHON LAB —— 测试门禁（后端 pytest + 前端 typecheck/vitest）
+#
+# 设计取舍（详见 docs/TESTING.md §5 第 4 步）：
+# 1. **后端跑在 ubuntu-latest**：本机开发是 Windows，但只在本机跑等于没验证跨平台性
+#    （路径分隔符、SQLite 文件锁、subprocess 行为都不同）。Linux 是部署目标环境。
+# 2. **前端先 typecheck 再测试**：类型错误会让 vitest 的 esbuild 转译产出难懂的运行时
+#    错误，先过 tsc 能把「类型回归」与「行为回归」分开定位。
+# 3. **不设覆盖率阈值**：docs/TESTING.md 明确不设。当前关注点是「红即阻断」，
+#    覆盖率数字对门禁无价值（高分也可能是无效断言）。
+# 4. **不设 lint/mypy job**：ruff / black / mypy 已在 requirements-dev.txt 中但尚未
+#    在代码库上收敛（存量违规多），贸然设为门禁会立刻把 CI 打红。等存量清理完再加。
+# 5. npm 镜像走仓库内已提交的 `frontend/.npmrc`（npmmirror），此处不再重复设置。
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}
+
+# 同一分支的新推送自动取消旧运行，避免排队浪费额度
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: 后端 pytest (Linux)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: backend/requirements-dev.txt
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      # tests/test_content_api.py 通过 seeded_real_db 夹具校验真实课程/题库数据，
+      # 而 backend/data/ 被 .gitignore 排除（库文件不入库），因此 CI 必须先建库播种，
+      # 否则这批用例会 skip —— 门禁要的是与本机一致的绿灯，而不是「跳过也算过」。
+      # seed.py 内部会 create_all()，无需先跑 alembic upgrade head。
+      - name: 建库并导入种子数据
+        run: python scripts/seed.py
+
+      - name: 运行测试
+        run: pytest tests/ -q --junitxml=pytest-backend.xml
+
+      - name: 上传 JUnit 报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-junit
+          path: backend/pytest-backend.xml
+          if-no-files-found: warn
+
+  frontend:
+    name: 前端 typecheck + vitest
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # 镜像地址来自已提交的 frontend/.npmrc（registry.npmmirror.com）
+      - name: 安装依赖
+        run: npm ci
+
+      # 顺序有意义：类型检查必须在测试之前（docs/TESTING.md §5 第 4 步验收标志）
+      - name: 类型检查
+        run: npm run typecheck
+
+      - name: 单元测试
+        run: npm run test:ci
