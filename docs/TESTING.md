@@ -2,7 +2,8 @@
 
 > 版本：v1.1 ｜ 架构师：高见远（Gao） ｜ 状态：4 步全部落地（CI 已接入，见 §5 第 4 步）
 > 适用版本：Next.js 15.1 + React 19 + TypeScript 5.7 + Tailwind 3.4（见 `frontend/package.json`）
-> 现状：18 个测试文件、228 条用例（不含后端 pytest 套件）；`useEnums` 仍待测（§4.8）。
+> 现状：**26 个测试文件、331 条用例全绿**（不含后端 pytest 套件 337 条）；`useEnums` 已补测（§4.8 的待测项已清零）。
+> CI：`.github/workflows/ci.yml` 首轮 run `38736181143` 后端 job 以 `exit code 4`(USAGE ERROR) 失败，已修复并复跑为绿（run 对应 commit `bcd7740`）—— 详见 §5 第 4 步的「跨平台调用方式差异」。
 
 ---
 
@@ -464,8 +465,39 @@ npm run typecheck
 
 | job | runner | 步骤 |
 |---|---|---|
-| `backend` | `ubuntu-latest` + Python 3.13 | `pip install -r requirements-dev.txt` → `python scripts/seed.py` → `pytest tests/ -q --junitxml=…` → 上传 JUnit 报告（`if: always()`） |
+| `backend` | `ubuntu-latest` + Python 3.13 | `pip install -r requirements-dev.txt` → `python scripts/seed.py` → `python -m pytest tests/ -q --junitxml=…` → 上传 JUnit 报告（`if: always()`） |
 | `frontend` | `ubuntu-latest` + Node 22 | `npm ci` → `npm run typecheck` → `npm run test:ci` |
+
+#### ⚠️ 首轮 CI 失败与「跨平台调用方式差异」（真实教训，勿删）
+
+**现象**：run `38736181143`（commit `75557df`）前端 job ✅ 成功，后端 job ❌ 失败于
+「运行测试」步骤，报 `Process completed with exit code 4`，且 JUnit 报告未生成
+（`No files were found with the provided path`）。
+
+**关键判读**：`exit code 4` 是 pytest 的 **USAGE ERROR**，不是测试失败
+（`0`=全过、`1`=有失败、`2`=中断、`4`=用法错误、`5`=未收集到测试）。
+所以它**没有失败用例清单**可看 —— 因为 pytest 根本没进入执行阶段。
+按「某些用例在 Linux 上挂掉」去排查会完全走错方向。
+
+**根因**：pytest 的 `pythonpath` 插件**不会**自动把 rootdir 放进 `sys.path`；
+而 console script（裸 `pytest`）不同于 `python -m pytest`，**不会隐式把 CWD 放进
+`sys.path[0]`**。于是 `tests/conftest.py` 的 `import app...` 直接
+`ModuleNotFoundError: No module named 'app'`。
+
+**为什么本机测不出来**：本机长期用 `python -m pytest`（有隐式 CWD），
+这个差异被完全掩盖 —— 只有 CI 的裸 `pytest` 才会暴露。
+**教训：CI 里跑的命令必须与本机验证用的命令一致**，否则「本机全绿」不等于「CI 会绿」。
+
+**修法（双保险）**
+1. `backend/pytest.ini` 显式声明 `pythonpath = .`（该配置为 pytest 内置 `pythonpath` 插件提供，
+   无需额外依赖），并在文件内注释记录三种调用方式的实测差异；
+2. `ci.yml` 改用 `python -m pytest`，即使 ini 被误改也不会挂。
+
+**顺带修掉的静默失败**：JUnit 上传的 `if-no-files-found` 由 `warn` 改为 `error`。
+首轮正是因为测试没跑起来、xml 未生成，而 `warn` 让报告**静默缺失**，
+排查时极易误判为「没有失败用例」。
+
+**验证**：修复后复跑 commit `bcd7740`，两个 job 均 `success`。
 
 **关键决策**
 - **后端跑 Linux**：本机开发是 Windows，只在本机跑等于没验证跨平台性（路径分隔符、
@@ -482,7 +514,9 @@ npm run typecheck
   `requirements-dev.txt` 显式声明 —— 缺失时不会报错而是静默退化到 conftest 兜底）。
 
 **验证状态（务必如实理解）**：三条命令均已在本机 Windows 逐条跑通
-（`pytest tests/ -q`、`npm run typecheck`、`npm run test:ci`），但 **GitHub Actions 的实际执行尚未验证** —— 本机无法运行 Actions。首个 PR 的运行结果才是最终依据；若 Linux 上出现平台差异导致的红灯，应修测试或代码，**不得删测试保绿**。
+（`pytest tests/ -q`、`npm run typecheck`、`npm run test:ci`），并**已实测过 GitHub Actions 的真实执行（两轮：失败→修复→绿）**：首轮 run `38736181143` 后端 job 因跨平台调用方式差异失败（`exit code 4`），修复后复跑 commit `bcd7740` 两个 job 均 `success`。首轮失败暴露的正是「本机 `python -m pytest` 全绿、CI 裸 `pytest` 挂掉」这一类问题 —— 上文「跨平台调用方式差异」小节记录了完整根因与修法。
+
+后续若 Linux 上再出现平台差异导致的红灯，应修测试或代码，**不得删测试保绿**；若判定某用例确实不适用于某平台，必须写明**具体语义理由**（如依赖某平台特有的错误消息），`skipif` 条件要精确，禁止笼统跳过整类。
 
 ### 关键路径
 
