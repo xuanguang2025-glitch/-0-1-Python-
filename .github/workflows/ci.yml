@@ -55,16 +55,21 @@ jobs:
       - name: 建库并导入种子数据
         run: python scripts/seed.py
 
+      # 用 `python -m pytest` 而非裸 `pytest`：console script 不会把 CWD 放进 sys.path，
+      # 导致 conftest.py 的 `import app...` 失败并以 usage error(exit 4) 收场。
+      # pytest.ini 里同时声明了 `pythonpath = .` 作双保险。
       - name: 运行测试
-        run: pytest tests/ -q --junitxml=pytest-backend.xml
+        run: python -m pytest tests/ -q --junitxml=pytest-backend.xml
 
+      # if-no-files-found 用 error 而非 warn：首轮 CI 曾因 pytest 以 usage error(exit 4) 收场，
+      # junit xml 根本没生成，而这里是 warn —— 报告静默缺失，排查时容易误以为"没失败用例"。
       - name: 上传 JUnit 报告
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: backend-junit
           path: backend/pytest-backend.xml
-          if-no-files-found: warn
+          if-no-files-found: error
 
   frontend:
     name: 前端 typecheck + vitest
