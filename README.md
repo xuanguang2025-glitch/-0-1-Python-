@@ -12,7 +12,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Next.js](https://img.shields.io/badge/Next.js-15-000000?logo=next.js&logoColor=white)](https://nextjs.org)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev)
-[![Tests](https://img.shields.io/badge/tests-556%20passed-brightgreen)](#-测试与安全)
+[![Tests](https://img.shields.io/badge/tests-668%20passed-brightgreen)](#-测试与安全)
 [![License](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
 
 </div>
@@ -97,8 +97,9 @@ FastAPI 后端 ──► SQLite（默认） / PostgreSQL
 
 | 项 | 结果 |
 | --- | --- |
-| 后端测试（API / 判题 / AI / 权限 / 管理端 53 op 越权矩阵） | **337 passed / 0 failed**（约 60s，`pytest --junitxml`） |
-| 前端测试（纯函数 / Hook / 组件 / 页面级竞态） | **219 passed / 0 failed**（17 个文件，Vitest + RTL） |
+| 后端测试（API / 判题 / AI / 权限 / 管理端 53 op 越权矩阵） | **337 passed / 0 failed**（约 55s，`pytest --junitxml`） |
+| 前端测试（纯函数 / Hook / store / 组件 / 页面级竞态） | **331 passed / 0 failed**（26 个文件，Vitest + RTL），页面级覆盖 8 页 + 5 个 view 组件 |
+| 测试门禁 | **GitHub Actions**（`.github/workflows/ci.yml`）：后端 ubuntu pytest · 前端 Node 22 typecheck → vitest |
 | 沙箱安全用例（死循环 / 命令执行 / 敏感路径 / 输出爆炸 / 保留名绕过） | **6/6 拦截 + 12 项单测**，另有 47 种绕过 + 45 条误杀回归脚本 |
 | 安全红线探测（密码哈希 / 越权 / 泄露 / SQL 注入） | **9/9 通过**（`backend/scripts/security_probe.py` 可复跑） |
 | 安全深测第二轮（XSS / CORS / CSRF / 安全响应头） | **11/11 通过**（`backend/scripts/security_probe_round2.py` 可复跑） |
