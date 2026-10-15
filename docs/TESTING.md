@@ -1,8 +1,8 @@
 # PYTHON LAB —— 前端测试基座设计（增量）
 
-> 版本：v1.0 ｜ 架构师：高见远（Gao） ｜ 状态：可直接执行
+> 版本：v1.1 ｜ 架构师：高见远（Gao） ｜ 状态：4 步全部落地（CI 已接入，见 §5 第 4 步）
 > 适用版本：Next.js 15.1 + React 19 + TypeScript 5.7 + Tailwind 3.4（见 `frontend/package.json`）
-> 现状：31 个页面、0 个测试。本设计目标是用**最小依赖、零外部服务**的方式覆盖高风险逻辑。
+> 现状：18 个测试文件、228 条用例（不含后端 pytest 套件）；`useEnums` 仍待测（§4.8）。
 
 ---
 
@@ -387,9 +387,15 @@ export const unauthorized = () => err('TOKEN_EXPIRED', '登录已过期', 401);
 | 31 | 原始 HTML 不渲染 | `content='<img src=x onerror=alert(1)>'` → 容器内**无 `img` 元素**（证明未启用 rehype-raw） |
 | 32 | 正常 GFM | `**粗体**` → 生成 `<strong>`（确认 remark-gfm 生效） |
 
-### 4.8 建议第 3 步再测
+### 4.8 第 3 步已测 / 仍待测
 
-`src/store/auth.ts`（token 存取 + `configureApiClient` 注入）、`src/hooks/useDebounce.ts`、`src/hooks/useEnums.ts`（与 `GET /health/enums` 的字段一致性）。
+| 目标 | 状态 | 落地文件 |
+|---|---|---|
+| `src/store/auth.ts`（token 存取 + `configureApiClient` 注入） | ✅ 已测 | `tests/store/auth.test.ts`（login / register / logout / hydrate 主路径 + 401 刷新链路）、`tests/store/auth-store.test.tsx`（`getRefreshToken` 的 localStorage 回退、令牌缺失时的用户兜底、hydrate 的 loading 状态机、**作为 React hook 的订阅与重渲染契约**） |
+| `src/hooks/useDebounce.ts` | ✅ 已测 | `tests/hooks/useDebounce.test.ts` |
+| `src/hooks/useEnums.ts`（与 `GET /health/enums` 字段一致性） | ⬜ **仍待测** | — |
+
+> 错误码映射表由 `tests/store/resolve-error-message.test.ts` 逐码断言（9 条），不重复在 store 用例里。
 
 ---
 
@@ -438,23 +444,45 @@ npx vitest run tests/lib/highlight.test.ts tests/components
 # 期望：全绿，且 §1.5 六条断言全部存在（人工核对文件名与用例名）
 ```
 
-### 第 3 步：Hook 与 store（P1）
+### 第 3 步：Hook 与 store（P1）✅ 已完成
 
-**做什么**：`usePythonRunner` / `useDebounce` / `useEnums` / `store/auth.ts`；视需要装 `@vitest/coverage-v8`。
+**做什么**：`usePythonRunner` / `useDebounce` / `useFetch` / `store/auth.ts`。
+（`useEnums` 未做，仍待测，见 §4.8；`@vitest/coverage-v8` 未安装 —— 本项目不设覆盖率）
 
-**可验证标志**
+**可验证标志（已达成）**
 ```powershell
 npx vitest run
-# 期望：Test Files 8~9 passed | Tests 45+ passed
+# 实测：Test Files 18 passed (18) | Tests  228 passed (228)
 npm run typecheck
-# 期望：0 error
+# 实测：0 error（tsc 退出码 0）
 ```
 
-### 第 4 步：接入 CI 门禁（P1）
+### 第 4 步：接入 CI 门禁（P1）✅ 已完成
 
-**做什么**：`package.json` 加 `"test:ci": "vitest run --reporter=basic"`，CI 里 `npm run typecheck && npm run test:ci`。**不设覆盖率阈值**。
+**实际配置**：`.github/workflows/ci.yml`，触发条件 `push main` / `PR → main` / 手动触发，
+两个并行 job（同分支新 push 自动取消旧运行）：
 
-**可验证标志**：CI 日志出现 `Tests  N passed`，且 `typecheck` 在测试之前执行。
+| job | runner | 步骤 |
+|---|---|---|
+| `backend` | `ubuntu-latest` + Python 3.13 | `pip install -r requirements-dev.txt` → `python scripts/seed.py` → `pytest tests/ -q --junitxml=…` → 上传 JUnit 报告（`if: always()`） |
+| `frontend` | `ubuntu-latest` + Node 22 | `npm ci` → `npm run typecheck` → `npm run test:ci` |
+
+**关键决策**
+- **后端跑 Linux**：本机开发是 Windows，只在本机跑等于没验证跨平台性（路径分隔符、
+  SQLite 文件锁、subprocess 行为都不同），而 Linux 才是部署目标环境。
+- **CI 必须先播种**：`backend/data/` 被 `.gitignore` 排除（库文件不入库），而
+  `tests/test_content_api.py` 通过 `seeded_real_db` 夹具校验真实课程/题库数据。
+  `scripts/seed.py` 内部会 `create_all()`，无需先跑 `alembic upgrade head`。
+- **`typecheck` 必须在测试之前**：类型回归与行为回归分开定位（esbuild 转译不做类型检查，
+  类型错误会伪装成难懂的运行时异常）。
+- **不设覆盖率阈值**（§1.4）；**也未加 ruff / black / mypy job** —— 三者已在
+  `requirements-dev.txt` 里，但存量代码尚未收敛，贸然设为门禁会立刻把 CI 打红。
+- npm 镜像走仓库内已提交的 `frontend/.npmrc`（npmmirror），workflow 不再重复设置。
+- 后端测试环境由 `pytest.ini` 的 `env` 段注入（`pytest-env` 插件，已在
+  `requirements-dev.txt` 显式声明 —— 缺失时不会报错而是静默退化到 conftest 兜底）。
+
+**验证状态（务必如实理解）**：三条命令均已在本机 Windows 逐条跑通
+（`pytest tests/ -q`、`npm run typecheck`、`npm run test:ci`），但 **GitHub Actions 的实际执行尚未验证** —— 本机无法运行 Actions。首个 PR 的运行结果才是最终依据；若 Linux 上出现平台差异导致的红灯，应修测试或代码，**不得删测试保绿**。
 
 ### 关键路径
 
