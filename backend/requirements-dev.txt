@@ -1,7 +1,10 @@
 # PYTHON LAB —— 后端开发期依赖（测试 / 静态检查 / 格式化）
 -r requirements.txt
 
-pytest>=8.3.0
+# 上界锁到 pytest 9.x：本项目已按 pytest 9 验证（CI 首轮 green 的 run 对应 9.1.x）。
+# 不封顶会让每次 CI 静默跑在不同版本上，跨版本行为差异只能等红灯才发现 ——
+# 首轮 CI 的 exit 4 已证明「本机全绿 ≠ CI 会绿」，版本可复现性同样要显式约束。
+pytest>=8.3.0,<10
 pytest-cov>=6.0.0
 # pytest.ini 的 env 段（APP_ENV / SANDBOX_MODE / DATABASE_URL …）由该插件注入。
 # 缺失时不会立刻报错，而是整段环境变量失效、退化到 conftest 的 setdefault 兜底 ——
