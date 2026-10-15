@@ -21,7 +21,7 @@ import type { UserBrief } from '@/lib/types';
 
 import StatisticsPage from '@/app/statistics/page';
 import { useAuthStore } from '@/store/auth';
-import { mockFetchByPath, ok } from '../helpers/fetch-mock';
+import { err, mockFetchByPath, ok } from '../helpers/fetch-mock';
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/statistics',
@@ -102,6 +102,8 @@ type FetchMock = ReturnType<typeof mockFetchByPath>;
 
 interface SetupOptions {
   overview?: unknown;
+  /** overview 失败响应（独立于 ok() 信封，故单列一个选项）。 */
+  overviewError?: Response;
   trend?: unknown;
   categories?: unknown;
   heatmap?: unknown;
@@ -127,7 +129,7 @@ function setup(options: SetupOptions = {}) {
     '/statistics/heatmap': () => ok(pick(options, 'heatmap', HEATMAP)),
     '/statistics/report': () => ok(pick(options, 'report', REPORT)),
     '/statistics/ranking': () => ok(pick(options, 'ranking', RANKING)),
-    '/statistics/overview': () => ok(pick(options, 'overview', OVERVIEW)),
+    '/statistics/overview': () => options.overviewError ?? ok(pick(options, 'overview', OVERVIEW)),
   });
 
   useAuthStore.setState({
@@ -192,21 +194,26 @@ describe('statistics · 核心指标渲染', () => {
     expect(screen.getByText('97%')).toBeTruthy();
   });
 
-  it('★【BUG-2 缺陷表征】my_rank 为 null 时排名渲染成「第 null / 340」而非占位符', async () => {
-    // RankingOut.my_rank 的类型是 `number | null`，后端在「未上榜/新用户」时会返回 null。
-    // 页面 `statistics/page.tsx:126` 只判了 `ranking.data` 是否存在，没判 my_rank：
-    //   value={ranking.data ? `第 ${ranking.data.my_rank} / ${ranking.data.total_users}` : '—'}
-    // 于是 null 被插值成字符串 "null"，用户会看到「第 null / 340」这种脏文案。
-    // 期望：「—」或「第 — / 340」；实际：「第 null / 340」。
-    //
-    // ⚠️ 断言的是**当前缺陷行为**。修复后此断言会失败，应翻转为
-    //    expect(screen.queryByText(/第 null/)).toBeNull();
+  it('my_rank 为 null（未上榜）→ 排名显示占位符，不渲染「第 null」', async () => {
+    // RankingOut.my_rank 是 `number | null`，后端在未上榜 / 新用户场景返回 null。
+    // 修复前 statistics/page.tsx:126 只判了 ranking.data 存在就直接插值，
+    // 于是 null 被渲染成字符串「第 null / 340」；现已改为判空后显示「—」。
     setup({ ranking: { ...RANKING, my_rank: null } });
     await screen.findByText('我的排名');
 
-    expect(screen.getByText('第 null / 340')).toBeTruthy();
-    // 击败比例仍能算（percentile 正常时）
+    expect(screen.getByText('—')).toBeTruthy();
+    expect(screen.queryByText(/第 null/)).toBeNull();
+    // 击败比例不受影响，仍按 percentile 计算
     expect(screen.getByText('97%')).toBeTruthy();
+  });
+
+  it('my_rank 为 0 时不能被当成空值（0 是有效名次）', async () => {
+    // 防回归：修复时若用真值判断（my_rank ? ... : '—'）会把 0 误判为空。
+    setup({ ranking: { ...RANKING, my_rank: 0 } });
+    await screen.findByText('我的排名');
+
+    expect(screen.getByText('第 0 / 340')).toBeTruthy();
+    expect(screen.queryByText('—')).toBeNull();
   });
 
   it('overview 全零 → 各指标兜底为 0，不出现 NaN', async () => {
@@ -350,6 +357,33 @@ describe('statistics · 筛选器进入请求参数', () => {
     });
 
     await waitFor(() => expect(lastQuery(fetchMock, '/statistics/report').get('period')).toBe('month'));
+  });
+});
+
+describe('statistics · 错误态（BUG-3 修复）', () => {
+  it('overview 失败 → 显示错误态与后端文案，而非 8 张全 0 的卡片', async () => {
+    setup({ overviewError: err('SERVER_ERROR', '统计服务异常', 500) });
+
+    // 修复前：该页无任何 error 分支，接口失败会静默降级成「全 0 + 空图表」，
+    // 用户无法区分「真的没数据」和「接口挂了」。
+    expect(await screen.findByText('统计数据加载失败')).toBeTruthy();
+    expect(screen.getByText('统计服务异常')).toBeTruthy();
+    // 关键：不能再把 0 当成有效指标展示
+    expect(screen.queryByText('累计学习时长')).toBeNull();
+  });
+
+  it('overview 失败时提供重试入口', async () => {
+    setup({ overviewError: err('SERVER_ERROR', '统计服务异常', 500) });
+    await screen.findByText('统计数据加载失败');
+
+    expect(screen.getByRole('button', { name: /重试|重新加载/ })).toBeTruthy();
+  });
+
+  it('overview 正常时不渲染错误态', async () => {
+    setup();
+    await screen.findByText('累计学习时长');
+
+    expect(screen.queryByText('统计数据加载失败')).toBeNull();
   });
 });
 

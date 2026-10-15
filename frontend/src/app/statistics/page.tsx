@@ -9,7 +9,7 @@ import { useFetch } from '@/hooks/useFetch';
 import { AuthGate } from '@/components/common/auth-gate';
 import { Markdown } from '@/components/markdown';
 import { PageContainer } from '@/components/layout/page-container';
-import { Alert, EmptyState } from '@/components/ui/alert';
+import { Alert, EmptyState, ErrorState } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -77,7 +77,17 @@ function StatisticsContent(): React.ReactElement {
     >
       <div className="space-y-6">
         {/* 总览 */}
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {overview.error && !overview.data ? (
+          // overview 失败时下方 8 张卡会全部显示 0，用户会误以为「真的没有任何数据」。
+          // 这里显式给出错误态 + 重试；其余 5 个接口（趋势/分类/热力图/报告/排名）
+          // 已有 ChartEmpty / EmptyState 兜底，不会白屏，故不重复接错误态以免页面过吵。
+          <ErrorState
+            title="统计数据加载失败"
+            description={overview.error}
+            onRetry={overview.refresh}
+          />
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
             label="累计学习时长"
             value={formatMinutes(overview.data?.total_minutes ?? 0)}
@@ -123,9 +133,10 @@ function StatisticsContent(): React.ReactElement {
           <StatCard
             label="我的排名"
             value={
-              ranking.data
-                ? `第 ${ranking.data.my_rank} / ${ranking.data.total_users}`
-                : '—'
+              // my_rank 是 number | null（未上榜 / 新用户），必须判空：
+              // 直接插值会把 null 渲染成字符串「第 null / 340」。
+              // 用 == null 而非真值判断，避免把 rank 0（第 1 名）误判为空。
+              ranking.data?.my_rank == null ? '—' : `第 ${ranking.data.my_rank} / ${ranking.data.total_users}`
             }
             hint="仅显示名次，不暴露他人信息"
             icon={<Award className="h-3.5 w-3.5" />}
@@ -139,7 +150,8 @@ function StatisticsContent(): React.ReactElement {
             tone="success"
             loading={ranking.loading && !ranking.data}
           />
-        </div>
+          </div>
+        )}
 
         {/* 趋势 */}
         <Card>
