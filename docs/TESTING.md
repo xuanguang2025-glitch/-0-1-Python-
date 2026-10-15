@@ -94,7 +94,7 @@ CI 只需保证：**下面 6 条断言永远存在且通过**。这是本项目�
 | 方案 | 结论 |
 |---|---|
 | msw@2 | ❌ 本阶段不引入。理由：本项目 API 层已高度封装（**所有请求都收敛到 `lib/api.ts` 的 `rawRequest`**，组件内禁止直接 fetch，见该文件头注释 §1）。既然只有一个调用点，直接 `vi.stubGlobal('fetch', mockFn)` 即可断言「URL、方法、Header、Body、重试次数」。msw 的价值在于「就近拦截任意组件的请求」，本项目不存在这个场景。 |
-| 手写 stub | ✅ 采用。`tests/helpers/fetch-mock.ts` 提供 `mockFetchOnce` / `mockFetchSequence` / `jsonResponse` 三个小工具。 |
+| 手写 stub | ✅ 采用。`tests/helpers/fetch-mock.ts` 提供 `jsonResponse` / `ok` / `err` / `unauthorized` / `mockFetchSequence` / `mockFetchByPath` 六个工具。**默认用 `mockFetchByPath`**（按路径分派，不受调用次序影响，适合有并发刷新的页面）；只有需要严格校验「发了恰好 N 次请求」时才用 `mockFetchSequence`。 |
 
 > **决策留口**：若将来出现绕过 `lib/api.ts` 的第三方请求（如 SDK 直连），再引入 msw，届时只需改 L2 一处。
 
@@ -500,13 +500,45 @@ npm run typecheck
 
 | 场景 | 做法 | 反例（禁止） |
 |---|---|---|
-| HTTP 请求 | 统一用 `tests/helpers/fetch-mock.ts` 的 `mockFetchSequence` + `ok()`/`err()`/`unauthorized()` | ❌ 在用例里手搓 `new Response(...)`；❌ 引入 msw 打真实网络 |
-| 只测某业务模块 | `vi.mock('@/lib/api', () => ({ pythonApi: { run: vi.fn() } }))` | ❌ 部分 mock：`vi.spyOn(apiModule,'pythonApi')` 会污染同文件其他用例 |
+| HTTP 请求 | 统一用 `tests/helpers/fetch-mock.ts` 的 `mockFetchByPath` + `ok()`/`err()`/`unauthorized()` | ❌ 在用例里手搓 `new Response(...)`；❌ 引入 msw 打真实网络 |
+| 只测某业务模块 | `vi.mock('@/lib/api', () => ({ pythonApi: { run: vi.fn() } }))` | ❌ 部分 mock：`vi.spyOn(apiModule, 'pythonApi')` 会污染同文件其他用例 |
 | Monaco | `vi.mock('@monaco-editor/react', () => ({ default: () => <div data-testid="monaco-stub" /> }))` | ❌ 尝试在 jsdom 里真跑 Monaco（必失败） |
 | 图表（recharts） | 同上整体 mock 成 `null` 占位 | ❌ 断言 SVG path 的 `d` |
-| 令牌注入 | 用例内先 `configureApiClient({ getAccessToken: () => 'test-access', getRefreshToken: () => 'test-refresh', onTokensRefreshed: vi.fn(), onSessionExpired: vi.fn() })` | ❌ 依赖真实 localStorage |
+| **store 模块（auth 等）** | **部分 mock + 真实 localStorage**（见下方「为什么 store 是例外」） | ❌ 整体 mock `@/lib/api`（会在 import 阶段炸） |
+| 其他有初始化期副作用的模块 | 优先用 fetch 层 mock，让真实模块原样加载 | ❌ 整体 mock 后断言「测的和跑的」不是同一份代码 |
 
-> **Mock 必须整体替换模块，禁止部分打补丁。** 部分 mock 会让「测的和跑的」不是同一份代码。
+> **Mock 默认必须整体替换模块，禁止部分打补丁**——部分 mock 会让「测的和跑的」不是同一份代码。
+
+#### 为什么 store（`@/store/auth`）是例外，而不是反例
+
+`src/store/auth.ts` 在**模块顶层**（第 160 行）就调用了 `configureApiClient({...})`：
+
+```ts
+// src/store/auth.ts:160 —— import 该模块时立即执行，早于任何 beforeEach
+configureApiClient({
+  getAccessToken: () => useAuthStore.getState().accessToken,
+  getRefreshToken: () => useAuthStore.getState().refreshToken ?? readLocal(...),
+  ...
+});
+```
+
+如果整体 mock `@/lib/api`，`configureApiClient` 这个导出就会变成 `undefined`，模块初始化直接抛 `TypeError: configureApiClient is not a function` —— **测试在 import 阶段就炸了，根本进不到用例**。这不是测试写得不好，是**模块边界决定的**：凡是在 import 期有初始化副作用的模块，都不能用整体 mock 覆盖它的依赖。
+
+因此 store 相关测试采用：
+
+```ts
+// 保留 apiGet / configureApiClient 等真实实现，只替换要测的方法
+vi.mock('@/lib/api', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/api')>()),
+  authApi: { ...real.authApi, login: vi.fn(), refresh: vi.fn() },
+}));
+```
+
+同时**依赖真实 localStorage**（jsdom 提供），因为 token 落盘本身就是被测行为之一（`auth.test.ts` 断言 `refresh_token` 必须落盘、`access_token` 绝不能落盘）。用假 localStorage 反而测不到 `readLocal`/`writeLocal` 的真实序列化行为。
+
+参考实现：`tests/store/auth.test.ts`、`tests/store/auth-store.test.tsx`、页面级 `tests/app/*.test.tsx`（页面链路会import `store/auth`，所以一律走 fetch 层 mock 而非 mock `@/lib/api`）。
+
+**判据**：目标模块 import 时有副作用 → 用 fetch 层 mock 或「部分 mock + 真实副作用依赖」；否则 → 整体 mock。
 
 ### 6.2 时间与时区约定
 
