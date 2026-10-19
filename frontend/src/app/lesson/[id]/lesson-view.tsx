@@ -487,10 +487,19 @@ export function LessonView({ lessonId }: LessonViewProps): React.ReactElement {
                       const text = item.q ?? item.question ?? `第 ${index + 1} 题`;
                       return (
                         <div key={qid} className="space-y-2 rounded-lg border border-border p-3">
-                          <p className="text-[13px] font-medium">
+                          <p id={`quiz-q-${index}`} className="text-[13px] font-medium">
                             {index + 1}. {text}
                           </p>
-                          <div className="space-y-1.5">
+                          {/* 一题 = 一个 radio 组：用 role=radiogroup + aria-labelledby 把整组
+                              关联到上方题干，屏幕阅读器才能播报「第 N 题，共 M 个选项」。
+                              分组本身仍由每个 input 的 name={qid} 保证（原生同名即互斥）。
+                              注意：这里刻意保留 <label> 包裹 input 的写法，不要改成
+                              htmlFor + id —— 包裹写法下点击选项文字仍会转发为点击控件。 */}
+                          <div
+                            role="radiogroup"
+                            aria-labelledby={`quiz-q-${index}`}
+                            className="space-y-1.5"
+                          >
                             {(item.options ?? []).map((option) => (
                               <label
                                 key={option}
