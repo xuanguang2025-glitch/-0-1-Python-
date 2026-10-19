@@ -31,11 +31,39 @@ export interface AlertProps {
   children?: React.ReactNode;
 }
 
+/**
+ * 各 variant 的实时播报分级（live region）。
+ *
+ * - `error` → `role="alert"`：隐含 `aria-live="assertive"`，**立即**打断播报。
+ *   只给「用户必须马上知道」的错误用——目前全站 2 处：登录/注册失败
+ *   （`auth-form.tsx`）、判题运行错误（`problem-detail-view.tsx`）。
+ * - 其余三种 → `role="status"`：隐含 `aria-live="polite"`，等读完当前内容再播报。
+ *
+ * **为什么 `warning` 不做 assertive**（本项目的实际用法决定的，不是通用惯例）：
+ * warning 承载的多是「降级提示」而非紧急状况——
+ *   · dashboard「部分数据暂时无法获取…页面其余内容仍可正常使用」
+ *   · admin「无法获取依赖状态／后端健康检查接口暂不可用」
+ *   · project「项目尚未初始化」（其实是引导文案）
+ *   · **随堂练习未通过的判题结果**（`lesson-view.tsx` 用 `passed ? 'success' : 'warning'`）
+ * 对这些内容打断用户当前朗读是负体验；尤其判题结果是用户正等着看的反馈。
+ *
+ * 两个刻意的「不做」：
+ * 1. 不显式写 `aria-live` / `aria-atomic`——role 已隐含
+ *    （alert → assertive + atomic；status → polite + atomic），重复写属冗余。
+ * 2. role 只落在**最外层 div**：挂在内部元素上读屏软件不会播报整条提示。
+ */
+const LIVE_ROLE: Record<AlertVariant, 'alert' | 'status'> = {
+  error: 'alert',
+  warning: 'status',
+  success: 'status',
+  info: 'status',
+};
+
 /** 提示条。 */
 export function Alert({ variant = 'info', title, description, action, className, children }: AlertProps): React.ReactElement {
   const style = STYLES[variant];
   return (
-    <div className={cn('flex items-start gap-2.5 rounded-lg border p-3', style.wrap, className)}>
+    <div role={LIVE_ROLE[variant]} className={cn('flex items-start gap-2.5 rounded-lg border p-3', style.wrap, className)}>
       <span className="mt-0.5 shrink-0">{style.icon}</span>
       <div className="min-w-0 flex-1 space-y-1">
         <p className="text-[13px] font-medium">{title}</p>
