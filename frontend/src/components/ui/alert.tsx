@@ -84,6 +84,24 @@ export interface ErrorStateProps {
 
 /**
  * 接口失败占位：后端未就绪时页面统一渲染它，绝不白屏。
+ *
+ * `role="alert"`（隐含 `aria-live="assertive"`）：**加在最外层 div**，与 `Alert`
+ * 的 `error` variant 同级——都是「用户必须立刻知道」的错误。
+ *
+ * 关键前提（曾被我误判为「静态占位、加了没用」）：它**不是**页面加载就存在的，
+ * 而是在请求失败之后才插入 DOM 的。典型形态（全站 17 处一致）：
+ * ```
+ * {loading && !data ? <Skeleton/> : error && !data ? <ErrorState/> : ...}
+ * ```
+ * 加载中显示骨架屏，骨架消失、错误提示出现——这正是 live region 必须覆盖的瞬间。
+ * 没有播报的话，读屏用户只看到骨架消失，会以为页面是空的。
+ *
+ * 为什么不加 `aria-label`：`role="alert"` 是 name-from-author-only，可访问名称
+ * 为空是**正常**的；播报依据是子树内容，所以 title/description 必须留在本区域内。
+ *
+ * 兄弟组件 `EmptyState` 刻意**不加** role：它表达「暂无数据」这一正常业务态
+ * （49 处「暂无课程/暂无题目」），是用户主动查询后的预期结果之一，不是异常，
+ * 用 `role="status"` 都属过重。
  */
 export function ErrorState({
   title = '数据暂时加载失败',
@@ -93,6 +111,7 @@ export function ErrorState({
 }: ErrorStateProps): React.ReactElement {
   return (
     <div
+      role="alert"
       className={cn(
         'flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border bg-muted/25 px-6 py-10 text-center',
         className,

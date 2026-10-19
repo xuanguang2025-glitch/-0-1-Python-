@@ -16,9 +16,9 @@
  * 而不是「DOM 上有没有这个属性」，所以 role 挂错位置、写错值都会红。
  */
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 
-import { Alert } from '@/components/ui/alert';
+import { Alert, EmptyState, ErrorState } from '@/components/ui/alert';
 
 describe('Alert · 实时播报分级（安全红线）', () => {
   it('★ error → role="alert"（assertive，立即打断）', () => {
@@ -125,5 +125,78 @@ describe('Alert · 实时播报分级（安全红线）', () => {
     expect(status.textContent).toContain('描述');
     expect(status.textContent).toContain('children 节点');
     expect(screen.getByRole('button', { name: '知道了' })).toBeTruthy();
+  });
+});
+
+describe('ErrorState · 接口失败必须立刻播报（安全红线）', () => {
+  it('★ getByRole("alert") 能取到 ErrorState', () => {
+    render(<ErrorState title="课程列表加载失败" description="后端返回 500。" onRetry={() => {}} />);
+    expect(screen.getByRole('alert')).toBeTruthy();
+  });
+
+  it('★ role 落在最外层 DIV，且内部无嵌套 role', () => {
+    render(<ErrorState title="题目加载失败" description="网络异常" onRetry={() => {}} />);
+    const el = screen.getByRole('alert');
+    expect(el.tagName).toBe('DIV');
+    expect(el.querySelector('[role]')).toBeNull();
+    // 播报依据是子树内容：标题与描述必须留在这条 live region 内
+    expect(el.textContent).toContain('题目加载失败');
+    expect(el.textContent).toContain('网络异常');
+  });
+
+  it('★ 不用 toHaveAccessibleName：role=alert 是 name-from-author-only，名称为空属正常', () => {
+    render(<ErrorState title="课时加载失败" description="稍后重试" />);
+    const el = screen.getByRole('alert');
+    // 刻意不加 aria-label —— 加了反而偏离 live region 的播报机制
+    expect(el.getAttribute('aria-label')).toBeNull();
+    expect(el.getAttribute('aria-labelledby')).toBeNull();
+    expect(el.getAttribute('aria-live')).toBeNull();
+    expect(el.textContent).toContain('课时加载失败');
+  });
+
+  it('★ 真实调用形态：骨架屏 → 失败，错误提示插入后仍带 alert 语义', () => {
+    // 复刻 admin/courses 的 `{loading && !data ? <Skeleton/> : error && !data ? <ErrorState/> : ...}`
+    const { rerender } = render(<div data-testid="slot" aria-busy="true" />);
+    expect(screen.queryByRole('alert')).toBeNull();
+
+    rerender(
+      <div>
+        <ErrorState title="课程列表加载失败" description="后端健康检查接口暂不可用。" onRetry={() => {}} />
+      </div>,
+    );
+    const el = screen.getByRole('alert');
+    expect(el).toBeTruthy();
+    expect(el.textContent).toContain('课程列表加载失败');
+  });
+
+  it('原有能力不受影响：默认文案 + onRetry 按钮仍可用', () => {
+    let clicked = 0;
+    render(<ErrorState onRetry={() => { clicked += 1; }} />);
+    const el = screen.getByRole('alert');
+    expect(el.textContent).toContain('数据暂时加载失败');
+    fireEvent.click(screen.getByRole('button', { name: /重新加载/ }));
+    expect(clicked).toBe(1);
+  });
+
+  it('★ EmptyState 刻意不加 live region role（空态是正常业务态，不是异常）', () => {
+    render(<EmptyState title="暂无课程" description="点击「新建课程」创建第一个阶段。" />);
+    // 「没有数据」是用户主动查询后的预期结果之一，不该被当异常打断播报
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.queryByRole('status')).toBeNull();
+    // 但内容必须照常渲染、可被读屏读到
+    expect(screen.getByText('暂无课程')).toBeTruthy();
+  });
+
+  it('★ ErrorState 与 EmptyState 同页共存时不串台', () => {
+    render(
+      <div>
+        <ErrorState title="用户列表加载失败" description="接口异常" />
+        <EmptyState title="暂无题目" />
+      </div>,
+    );
+    const alerts = screen.getAllByRole('alert');
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0].textContent).toContain('用户列表加载失败');
+    expect(screen.getByText('暂无题目')).toBeTruthy();
   });
 });
