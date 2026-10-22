@@ -14,7 +14,7 @@
  * - `formatPercent(0.5, 0)` 返回 `'50%'`（不是 `'50.0%'`）
  * - `apiGet` 的 query 序列化会**丢弃** undefined / null / 空字符串（`lib/api.ts:78`），
  *   所以「状态=all」时请求里不应出现 status 参数
- * - 页面被 `AuthGate` 包着，未登录看不到列表（需先置为已登录）
+ * - 题库列表已对未登录用户公开：登录态只影响「做题状态筛选」等个人能力（不再整页门禁）
  * - `setup.ts` 只 fake 了 Date/performance，`setTimeout` 是真实的，
  *   所以防抖测试用真实等待而非 `advanceTimersByTime`
  */
@@ -424,17 +424,56 @@ describe('problems · 随机挑题', () => {
   });
 });
 
-describe('problems · 未登录门禁', () => {
-  it('未登录时不渲染题库列表，改为登录引导', async () => {
+describe('problems · 公开列表（未登录）', () => {
+  it('★ 未登录仍能看到题目列表，登录引导降级为页内提示条', async () => {
     useAuthStore.setState({ hydrated: true, accessToken: null, refreshToken: null, user: null, loading: false, error: null });
-    mockFetchByPath({
+    const fetchMock = mockFetchByPath({
       '/problems/filters': () => ok(FILTERS),
-      '/problems': () => ok({ items: [], total: 0, page: 1, pages: 1 } as ListQuery),
+      '/problems': () => ok({ items: [makeProblem('p-1', '两数之和')], total: 1, page: 1, pages: 1 } as ListQuery),
     });
 
     render(<ProblemsPage />);
 
-    expect(await screen.findByText('登录后开始刷题')).toBeTruthy();
-    expect(screen.queryByText('两数之和')).toBeNull();
+    // 核心行为锁：列表本体对未登录用户可见（不再被 AuthGate 整页替换）
+    expect(await screen.findByText('两数之和')).toBeTruthy();
+    // 原 AuthGate 的文案与按钮迁到页内提示条
+    expect(screen.getByText('题目列表公开可见，登录后可以记录做题状态、提交判题并保存错题。')).toBeTruthy();
+    expect(screen.getByRole('link', { name: '登录' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: '注册新账号' })).toBeTruthy();
+    expect(fetchMock.countOf('/problems/filters')).toBe(1);
+  });
+
+  it('未登录时不渲染「做题状态」筛选（个人能力），其余筛选与做题入口保留', async () => {
+    useAuthStore.setState({ hydrated: true, accessToken: null, refreshToken: null, user: null, loading: false, error: null });
+    mockFetchByPath({
+      '/problems/filters': () => ok(FILTERS),
+      '/problems': () => ok({ items: [makeProblem('p-1', '两数之和')], total: 1, page: 1, pages: 1 } as ListQuery),
+    });
+
+    render(<ProblemsPage />);
+    await screen.findByText('两数之和');
+
+    // 已登录是 5 个（难度/分类/题型/状态/排序），未登录去掉「状态」后剩 4 个
+    expect(screen.getAllByRole('combobox')).toHaveLength(4);
+    // 关键词与「去做题」入口仍可用
+    expect(screen.getByPlaceholderText('搜索题目名称或关键词')).toBeTruthy();
+    expect(screen.getAllByRole('link', { name: '去做题' }).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('未登录时状态参数不可能被发出（无入口），默认请求不含 status', async () => {
+    useAuthStore.setState({ hydrated: true, accessToken: null, refreshToken: null, user: null, loading: false, error: null });
+    const fetchMock = mockFetchByPath({
+      '/problems/filters': () => ok(FILTERS),
+      '/problems': () => ok({ items: [makeProblem('p-1', '两数之和')], total: 1, page: 1, pages: 1 } as ListQuery),
+    });
+
+    render(<ProblemsPage />);
+    await screen.findByText('两数之和');
+
+    const url = new URL(
+      fetchMock.calls.filter((c) => c.url.includes('/problems') && !c.url.includes('/filters')).pop()!.url,
+      BASE_URL,
+    );
+    expect(url.searchParams.get('status')).toBeNull();
   });
 });

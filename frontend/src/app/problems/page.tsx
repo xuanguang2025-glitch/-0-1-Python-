@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import {
   CheckCircle2,
@@ -18,7 +19,7 @@ import { cn, formatPercent } from '@/lib/utils';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useFetch } from '@/hooks/useFetch';
 import { useToaster } from '@/hooks/useToast';
-import { AuthGate } from '@/components/common/auth-gate';
+import { useAuth } from '@/hooks/useAuth';
 import { PageContainer } from '@/components/layout/page-container';
 import { EmptyState, ErrorState } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -46,6 +47,8 @@ const SORT_OPTIONS = [
 /** 题库列表：多维筛选 + 随机挑题 + 推荐。 */
 function ProblemsContent(): React.ReactElement {
   const toaster = useToaster();
+  const auth = useAuth();
+  const pathname = usePathname();
   const [keyword, setKeyword] = useState('');
   const [difficulty, setDifficulty] = useState('');
   const [category, setCategory] = useState('');
@@ -136,6 +139,23 @@ function ProblemsContent(): React.ReactElement {
       }
     >
       <div className="space-y-5">
+        {/* 未登录提示：列表本身公开，仅做题状态等个人能力需要登录 */}
+        {auth.hydrated && !auth.isAuthenticated ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 px-4 py-3">
+            <p className="text-[12.5px] text-muted-foreground">
+              题目列表公开可见，登录后可以记录做题状态、提交判题并保存错题。
+            </p>
+            <div className="flex gap-2">
+              <Button size="sm" asChild>
+                <Link href={`/login?redirect=${encodeURIComponent(pathname)}`}>登录</Link>
+              </Button>
+              <Button size="sm" variant="outline" asChild>
+                <Link href={`/register?redirect=${encodeURIComponent(pathname)}`}>注册新账号</Link>
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
         {/* 筛选区 */}
         <Card>
           <CardContent className="space-y-3 pt-5">
@@ -160,9 +180,12 @@ function ProblemsContent(): React.ReactElement {
               <div className="w-32">
                 <Select value={type} options={typeOptions} onChange={(e) => { setType(e.target.value); setPage(1); }} />
               </div>
-              <div className="w-32">
-                <Select value={status} options={STATUS_OPTIONS} onChange={(e) => { setStatus(e.target.value); setPage(1); }} />
-              </div>
+              {/* 做题状态是个人数据：未登录不渲染，避免展示一个必然为空的筛选器 */}
+              {auth.isAuthenticated ? (
+                <div className="w-32">
+                  <Select value={status} options={STATUS_OPTIONS} onChange={(e) => { setStatus(e.target.value); setPage(1); }} />
+                </div>
+              ) : null}
               <div className="w-40">
                 <Select value={sort} options={SORT_OPTIONS} onChange={(e) => { setSort(e.target.value); setPage(1); }} />
               </div>
@@ -323,9 +346,7 @@ function ProblemsContent(): React.ReactElement {
 }
 
 export default function ProblemsPage(): React.ReactElement {
-  return (
-    <AuthGate title="登录后开始刷题" description="题目列表公开可见，登录后可以记录做题状态、提交判题并保存错题。">
-      <ProblemsContent />
-    </AuthGate>
-  );
+  // 题库列表对未登录用户公开（后端 list_problems 为 OptionalUser）；
+  // 做题状态等个人能力在页内按登录态条件渲染，因此不再使用整页 AuthGate。
+  return <ProblemsContent />;
 }

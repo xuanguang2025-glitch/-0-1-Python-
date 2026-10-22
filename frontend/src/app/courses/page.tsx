@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { BookOpen, ChevronLeft, ChevronRight, Clock, Filter, GraduationCap, Search } from 'lucide-react';
 import { courseApi } from '@/lib/api';
@@ -8,7 +9,7 @@ import { STAGE_GROUP_LABEL } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useFetch } from '@/hooks/useFetch';
-import { AuthGate } from '@/components/common/auth-gate';
+import { useAuth } from '@/hooks/useAuth';
 import { PageContainer } from '@/components/layout/page-container';
 import { EmptyState, ErrorState } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -37,6 +38,8 @@ const PAGE_SIZE = 12;
 
 /** 课程列表：难度筛选 + 关键词 + 分页。 */
 function CoursesContent(): React.ReactElement {
+  const auth = useAuth();
+  const pathname = usePathname();
   const [level, setLevel] = useState('');
   const [keyword, setKeyword] = useState('');
   const [page, setPage] = useState(1);
@@ -73,6 +76,23 @@ function CoursesContent(): React.ReactElement {
       }
     >
       <div className="space-y-5">
+        {/* 未登录提示：课程列表公开，仅进度数据需要登录 */}
+        {auth.hydrated && !auth.isAuthenticated ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 px-4 py-3">
+            <p className="text-[12.5px] text-muted-foreground">
+              课程列表对所有人开放，登录后还能看到每个阶段的完成度。
+            </p>
+            <div className="flex gap-2">
+              <Button size="sm" asChild>
+                <Link href={`/login?redirect=${encodeURIComponent(pathname)}`}>登录</Link>
+              </Button>
+              <Button size="sm" variant="outline" asChild>
+                <Link href={`/register?redirect=${encodeURIComponent(pathname)}`}>注册新账号</Link>
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
         <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card p-3">
           <div className="w-48">
             <Input
@@ -175,8 +195,11 @@ function CoursesContent(): React.ReactElement {
                       </span>
                     </div>
 
-                    {typeof course.progress_percent === 'number' ? (
+                    {auth.isAuthenticated && typeof course.progress_percent === 'number' ? (
                       <Progress value={course.progress_percent} size="sm" showValue />
+                    ) : !auth.isAuthenticated ? (
+                      /* 进度是个人数据：未登录显示引导而非死进度条 */
+                      <p className="text-[11.5px] text-muted-foreground">登录后记录进度</p>
                     ) : null}
 
                     <Button variant="outline" size="sm" className="w-full" asChild>
@@ -215,10 +238,7 @@ function CoursesContent(): React.ReactElement {
 }
 
 export default function CoursesPage(): React.ReactElement {
-  // 未登录也可浏览课程，仅进度信息需要登录
-  return (
-    <AuthGate title="登录后查看学习进度" description="课程列表对所有人开放，登录后还能看到每个阶段的完成度。">
-      <CoursesContent />
-    </AuthGate>
-  );
+  // 课程列表对未登录用户公开（后端 list_courses 为 OptionalUser）；
+  // 仅各阶段完成度需要登录，在卡片内按登录态条件渲染，因此不再使用整页 AuthGate。
+  return <CoursesContent />;
 }
