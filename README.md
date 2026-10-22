@@ -10,9 +10,10 @@
 
 [![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)](https://www.python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
-[![Next.js](https://img.shields.io/badge/Next.js-15-000000?logo=next.js&logoColor=white)](https://nextjs.org)
+[![Next.js](https://img.shields.io/badge/Next.js-15-000000?logo=next.js&logoColor=black)](https://nextjs.org)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev)
 [![Tests](https://img.shields.io/badge/tests-700%20passed-brightgreen)](#-测试与安全)
+[![Lint](https://img.shields.io/badge/lint-ruff%20%2B%20black%20clean-brightgreen)](#-测试与安全)
 [![License](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
 
 </div>
@@ -22,6 +23,7 @@
 | | 模块 | 说明 |
 |---|---|---|
 | 📚 | **系统课程** | 18 阶段 · 54 章节 · 162 课时：从变量到 AI Agent，每课时含理论 / 代码 / 示例 / 练习 / 常见错误 |
+| 🔓 | **免登录逛站** | 课程列表 / 题库 / 筛选 / 详情对游客开放，做题进度与判题提交等账号能力登录后解锁 |
 | ⌨️ | **在线编程** | Monaco 编辑器 + 多文件项目，`Ctrl+Enter` 直接运行，浏览器里写真的 Python |
 | ⚖️ | **自动判题** | 38 道题 · 7 种题型 · 4 档难度；独立沙箱执行，逐测试点反馈 AC / WA / RE / TLE / MLE |
 | 🤖 | **AI 导师** | 五级提示递进（提示→思路→局部→错误分析→详解）；练习模式服务端强制不给完整答案；无 Key 自动降级为离线规则导师 |
@@ -38,7 +40,7 @@
 
 ## 🚀 快速开始
 
-> 环境要求：Python 3.12+ 和 Node.js 18+（二选一路径均可）
+> 环境要求：Python 3.12+ 和 Node.js 18+
 
 **方式 A · Docker 一键启动（推荐服务器）**
 
@@ -68,20 +70,23 @@ npm run dev
 
 **默认管理员**：`admin@pythonlab.dev` / `Admin@12345`（由 `ADMIN_*` 环境变量控制，请在生产环境修改）
 
-**运行测试**
+**运行测试与 Lint**
 
 ```bash
-# 后端（统一夹具：内存 SQLite + 会话级 App 复用，约 30~60s）
+# 后端测试（统一夹具：内存 SQLite + 会话级 App 复用，约 55s）
 cd backend && .venv/Scripts/python.exe -m pytest tests/ -q
 
-# 前端（vitest + Testing Library，约 20s）
+# 后端 lint（ruff + black，配置见 backend/ruff.toml）
+cd backend && ruff check . && black --line-length 120 --check app tests scripts alembic
+
+# 前端（vitest + Testing Library，约 30s）
 cd frontend && npx vitest run && npx tsc --noEmit
 ```
 
 ## 🏗️ 架构一览
 
 ```text
-浏览器 (Next.js 15 + Monaco Editor)
+浏览器 (Next.js 15 + Monaco Editor · 31 个页面)
         │ REST / JWT (access + refresh)
         ▼
 FastAPI 后端 ──► SQLite（默认） / PostgreSQL
@@ -99,7 +104,8 @@ FastAPI 后端 ──► SQLite（默认） / PostgreSQL
 | --- | --- |
 | 后端测试（API / 判题 / AI / 权限 / 管理端 53 op 越权矩阵） | **337 passed / 0 failed**（约 55s，`pytest --junitxml`） |
 | 前端测试（纯函数 / Hook / store / 组件 / 页面级竞态 / a11y） | **363 passed / 0 failed**（29 个文件，Vitest + RTL），页面级覆盖 8 页 + 6 个 view 组件 |
-| 测试门禁 | **GitHub Actions**（`.github/workflows/ci.yml`）：后端 ubuntu pytest · 前端 Node 22 typecheck → vitest |
+| **Lint 门禁** | **ruff + black 全绿**（存量 400+ 违规已清零；规则集精选 + SQLAlchemy/FastAPI 误报豁免，见 `backend/ruff.toml`） |
+| 测试门禁 | **GitHub Actions**（`.github/workflows/ci.yml`）：后端 ubuntu pytest + lint · 前端 Node 22 typecheck → vitest |
 | 沙箱安全用例（死循环 / 命令执行 / 敏感路径 / 输出爆炸 / 保留名绕过） | **6/6 拦截 + 12 项单测**，另有 47 种绕过 + 45 条误杀回归脚本 |
 | 安全红线探测（密码哈希 / 越权 / 泄露 / SQL 注入） | **9/9 通过**（`backend/scripts/security_probe.py` 可复跑） |
 | 安全深测第二轮（XSS / CORS / CSRF / 安全响应头） | **11/11 通过**（`backend/scripts/security_probe_round2.py` 可复跑） |
@@ -116,7 +122,7 @@ FastAPI 后端 ──► SQLite（默认） / PostgreSQL
 | [docs/AI.md](docs/AI.md) | AI Provider 接入（DeepSeek / 通义 / 智谱 / OpenAI / Claude / Gemini） |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | 部署手册（开发 / Docker / 生产） |
 | [docs/SECURITY.md](docs/SECURITY.md) | 安全基线：两轮探测结论、AST 白名单规则、上线前核对清单 |
-| [docs/TESTING.md](docs/TESTING.md) | 测试分层策略（L1 纯函数 → L5 页面级）、夹具约定、红线清单 |
+| [docs/TESTING.md](docs/TESTING.md) | 测试分层策略（L1 纯函数 → L5 页面级）、夹具约定、红线清单、CI 与 lint 门禁配置 |
 
 ## 🗺️ Roadmap
 
