@@ -52,12 +52,12 @@ class Project(Base, UUIDPkMixin, TimestampMixin):
     is_published: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     order_index: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
-    files: Mapped[list["ProjectFile"]] = relationship(
+    files: Mapped[list[ProjectFile]] = relationship(
         back_populates="project",
         cascade="all, delete-orphan",
         order_by="ProjectFile.order_index",
     )
-    user_projects: Mapped[list["UserProject"]] = relationship(
+    user_projects: Mapped[list[UserProject]] = relationship(
         back_populates="project",
         cascade="all, delete-orphan",
     )
@@ -68,7 +68,7 @@ class Project(Base, UUIDPkMixin, TimestampMixin):
         return list(self.steps_json or [])
 
     @property
-    def entry_file(self) -> "ProjectFile | None":
+    def entry_file(self) -> ProjectFile | None:
         """入口文件（无显式入口时回退到第一个文件）。"""
         for item in self.files or []:
             if item.is_entry:
@@ -89,9 +89,7 @@ class ProjectFile(Base, UUIDPkMixin):
         Index("ix_pf_project_id", "project_id"),
     )
 
-    project_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
-    )
+    project_id: Mapped[str] = mapped_column(String(36), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
     path: Mapped[str] = mapped_column(String(512), nullable=False, doc="如 main.py")
     content: Mapped[str] = mapped_column(Text, default="", nullable=False, doc="初始模板内容")
     language: Mapped[str] = mapped_column(String(20), default="python", nullable=False)
@@ -100,7 +98,7 @@ class ProjectFile(Base, UUIDPkMixin):
     description: Mapped[str | None] = mapped_column(String(300), nullable=True)
     order_index: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
-    project: Mapped["Project"] = relationship(back_populates="files")
+    project: Mapped[Project] = relationship(back_populates="files")
 
 
 class UserProject(Base, UUIDPkMixin):
@@ -113,12 +111,8 @@ class UserProject(Base, UUIDPkMixin):
         Index("ix_up_status", "status"),
     )
 
-    user_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
-    project_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
-    )
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    project_id: Mapped[str] = mapped_column(String(36), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
     status: Mapped[str] = mapped_column(String(20), default=UserProjectStatus.NOT_STARTED.value, nullable=False)
     progress_percent: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     current_step: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
@@ -131,8 +125,8 @@ class UserProject(Base, UUIDPkMixin):
         DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False
     )
 
-    user: Mapped["User"] = relationship()
-    project: Mapped["Project"] = relationship(back_populates="user_projects")
+    user: Mapped[User] = relationship()
+    project: Mapped[Project] = relationship(back_populates="user_projects")
 
     @property
     def files(self) -> dict[str, str]:

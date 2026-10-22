@@ -60,9 +60,7 @@ def create_problem(db: Session, actor: User, payload: dict[str, Any], meta: dict
     return problem
 
 
-def update_problem(
-    db: Session, actor: User, problem_id: str, payload: dict[str, Any], meta: dict[str, Any]
-) -> Problem:
+def update_problem(db: Session, actor: User, problem_id: str, payload: dict[str, Any], meta: dict[str, Any]) -> Problem:
     """更新题目。"""
     test_cases = payload.pop("test_cases", None)
     tags = payload.pop("tags", None)
@@ -110,9 +108,7 @@ def sync_problem_tags(db: Session, problem: Problem, tag_slugs: list[str]) -> No
             db.add(ProblemTag(problem_id=problem.id, tag_id=tags[slug]))
 
 
-def import_problems(
-    db: Session, actor: User, items: list[dict[str, Any]], meta: dict[str, Any]
-) -> dict[str, Any]:
+def import_problems(db: Session, actor: User, items: list[dict[str, Any]], meta: dict[str, Any]) -> dict[str, Any]:
     """批量导入题目，返回 `{created, updated, failed}`。"""
     created = updated = 0
     failed: list[dict[str, Any]] = []
@@ -125,8 +121,18 @@ def import_problems(
             payload = {
                 k: v
                 for k, v in raw.items()
-                if k in ("title", "statement_md", "problem_type", "difficulty",
-                         "category", "answer_json", "options_json", "score", "xp_reward")
+                if k
+                in (
+                    "title",
+                    "statement_md",
+                    "problem_type",
+                    "difficulty",
+                    "category",
+                    "answer_json",
+                    "options_json",
+                    "score",
+                    "xp_reward",
+                )
             }
             # title 既要做显式参数（提供 slug 兜底），就不能再留在 payload 里展开，否则重复传参
             title = str(payload.pop("title", None) or raw.get("title") or slug)
@@ -141,11 +147,16 @@ def import_problems(
                 updated += 1
             if raw.get("test_cases"):
                 replace_test_cases(db, problem, raw["test_cases"])
-        except Exception as exc:  # noqa: BLE001 - 单条失败不影响整体
+        except Exception as exc:
             failed.append({"index": index, "error": str(exc)})
     audit(
-        db, actor, "admin.problem.import", "problem", None,
-        after={"created": created, "updated": updated}, meta=meta,
+        db,
+        actor,
+        "admin.problem.import",
+        "problem",
+        None,
+        after={"created": created, "updated": updated},
+        meta=meta,
     )
     db.commit()
     return {"created": created, "updated": updated, "failed": failed}
@@ -164,9 +175,7 @@ def create_test_case(db: Session, actor: User, payload: dict[str, Any], meta: di
     return case
 
 
-def update_test_case(
-    db: Session, actor: User, case_id: str, payload: dict[str, Any], meta: dict[str, Any]
-) -> TestCase:
+def update_test_case(db: Session, actor: User, case_id: str, payload: dict[str, Any], meta: dict[str, Any]) -> TestCase:
     """更新测试用例。"""
     case = get_or_404(db, TestCase, case_id, ErrorCode.NOT_FOUND, "测试用例不存在")
     apply_fields(case, payload)

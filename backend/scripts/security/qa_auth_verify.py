@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-import os
+from pathlib import Path
 import sqlite3
 import sys
 import tempfile
-from pathlib import Path
 
 BACKEND = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(BACKEND))
@@ -23,19 +22,26 @@ def c1_secret_policy() -> None:
     cases = [
         ("production + 默认 change-me", {"app_env": "production"}),
         ("production + 空密钥", {"app_env": "production", "jwt_secret_key": "", "secret_key": ""}),
-        ("production + 短密钥(<32)", {"app_env": "production", "jwt_secret_key": "short-key-abc", "secret_key": "short-key-abc"}),
-        ("production + 占位符 your-jwt-secret", {"app_env": "production", "jwt_secret_key": "your-jwt-secret-here-xxxxx", "secret_key": "your-jwt-secret-here-xxxxx"}),
+        (
+            "production + 短密钥(<32)",
+            {"app_env": "production", "jwt_secret_key": "short-key-abc", "secret_key": "short-key-abc"},
+        ),
+        (
+            "production + 占位符 your-jwt-secret",
+            {
+                "app_env": "production",
+                "jwt_secret_key": "your-jwt-secret-here-xxxxx",
+                "secret_key": "your-jwt-secret-here-xxxxx",
+            },
+        ),
         ("production + 正常强密钥", {"app_env": "production", "jwt_secret_key": "K" * 48, "secret_key": "S" * 48}),
         ("development + 默认 change-me", {"app_env": "development"}),
         ("testing + 默认 change-me", {"app_env": "testing"}),
     ]
     for label, kw in cases:
         s = Settings(_env_file=None, **kw)  # type: ignore[call-arg]
-        before = (s.jwt_secret_key, s.secret_key)
         try:
             replaced = enforce_secret_policy(s)
-            after = (s.jwt_secret_key, s.secret_key)
-            changed = before != after
             strong = not is_weak_secret(s.jwt_secret_key)
             print(f"[启动成功] {label:34s} 自动替换={replaced or '无'} 替换后强度足够={strong}")
             if s.app_env == "production":
@@ -158,7 +164,7 @@ def c3_readonly_real_db() -> None:
             copy_real_db(target)
             n = sqlite3.connect(str(target)).execute("select count(*) from courses").fetchone()[0]
             print(f"  [PASS] copy_real_db 备份成功，courses={n}（内容域测试仍可用真实种子数据）")
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             print(f"  **FAIL** copy_real_db 失败：{type(exc).__name__}: {exc}")
     print()
 

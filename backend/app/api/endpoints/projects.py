@@ -73,9 +73,7 @@ def update_project_files(
 
 
 @router.post("/{project_id}/run", response_model=ResponseModel[RunResponse], summary="运行项目")
-def run_project(
-    project_id: str, payload: ProjectRunRequest, current_user: CurrentUser, db: DbSession
-) -> dict:
+def run_project(project_id: str, payload: ProjectRunRequest, current_user: CurrentUser, db: DbSession) -> dict:
     """运行我的项目（多文件 + 入口）。"""
     project = project_service.get_project_or_404(db, project_id)
     result = project_service.run_project(db, current_user, project, entry=payload.entry, stdin=payload.stdin)
@@ -83,9 +81,7 @@ def run_project(
 
 
 @router.post("/{project_id}/submit", response_model=ResponseModel[ProjectSubmitOut], summary="提交项目")
-def submit_project(
-    project_id: str, payload: ProjectSubmitRequest, current_user: CurrentUser, db: DbSession
-) -> dict:
+def submit_project(project_id: str, payload: ProjectSubmitRequest, current_user: CurrentUser, db: DbSession) -> dict:
     """提交项目：校验入口可运行 + 步骤完整性，写入进度与 XP。"""
     project = project_service.get_project_or_404(db, project_id)
     result = project_service.submit_project(db, current_user, project, notes_md=payload.notes_md)

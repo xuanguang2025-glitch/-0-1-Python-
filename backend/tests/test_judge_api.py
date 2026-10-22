@@ -11,13 +11,13 @@ from __future__ import annotations
 
 import time
 
-import pytest
 from fastapi.testclient import TestClient
+import pytest
 from sqlalchemy import select
 
-import app.models  # noqa: F401 - 触发全部模型注册
 from app.api.endpoints import bookmarks, code_history, editor, mistakes, problems, projects, submissions
 from app.core.security import create_access_token
+import app.models  # noqa: F401 - 触发全部模型注册
 from app.models.course import Topic
 from app.models.enums import (
     ComparisonMode,
@@ -224,9 +224,7 @@ def test_coding_ac_and_side_effects(harness) -> None:
     try:
         user = db.get(User, ids["user_id"])
         assert int(user.xp) >= 30
-        mastery = db.scalars(
-            select(KnowledgeMastery).where(KnowledgeMastery.user_id == ids["user_id"])
-        ).one()
+        mastery = db.scalars(select(KnowledgeMastery).where(KnowledgeMastery.user_id == ids["user_id"])).one()
         assert mastery.mastery_level == "mastered"
         mistakes = db.scalars(select(Mistake)).all()
         assert mistakes == []

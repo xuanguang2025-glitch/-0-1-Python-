@@ -17,9 +17,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
 from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
+import pytest
 
 from app.api.deps import client_ip
 from app.api.endpoints import auth as auth_ep
@@ -56,10 +56,7 @@ def trusted_proxy(monkeypatch: pytest.MonkeyPatch):
 def test_forged_xff_ignored_by_default(ip_app: TestClient, trusted_proxy) -> None:
     """默认（无可信代理）时 XFF 完全不可信 —— 伪造值不得影响限流键。"""
     trusted_proxy("")
-    seen = {
-        ip_app.get("/ip", headers={"X-Forwarded-For": ip}).json()["ip"]
-        for ip in ("1.1.1.1", "2.2.2.2", "3.3.3.3")
-    }
+    seen = {ip_app.get("/ip", headers={"X-Forwarded-For": ip}).json()["ip"] for ip in ("1.1.1.1", "2.2.2.2", "3.3.3.3")}
     assert len(seen) == 1, f"伪造 XFF 影响了客户端 IP：{seen}"
 
 
@@ -94,9 +91,7 @@ def test_login_rate_limit_not_bypassed_by_rotating_xff(client_factory, db) -> No
     """QA 复现：轮换 XFF 登录 15 次，限流必须照样触发（修复前是 0 次 429）。"""
     client = client_factory(AUTH_ROUTERS)
     codes = [
-        client.post(
-            "/api/auth/login", json=LOGIN_BODY, headers={"X-Forwarded-For": f"198.51.100.{i}"}
-        ).status_code
+        client.post("/api/auth/login", json=LOGIN_BODY, headers={"X-Forwarded-For": f"198.51.100.{i}"}).status_code
         for i in range(1, 16)
     ]
     assert codes.count(429) >= 1, f"限流仍可被轮换 XFF 绕过: {codes}"
@@ -106,10 +101,7 @@ def test_login_rate_limit_still_applies_with_fixed_xff(client_factory, db) -> No
     """固定伪造 XFF 仍然被限流（原行为不变）。"""
     client = client_factory(AUTH_ROUTERS)
     headers = {"X-Forwarded-For": "203.0.113.7"}
-    codes = [
-        client.post("/api/auth/login", json=LOGIN_BODY, headers=headers).status_code
-        for _ in range(15)
-    ]
+    codes = [client.post("/api/auth/login", json=LOGIN_BODY, headers=headers).status_code for _ in range(15)]
     assert codes.count(429) >= 1, codes
 
 

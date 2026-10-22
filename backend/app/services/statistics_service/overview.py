@@ -22,18 +22,13 @@ def overview(db: Session, user: User) -> StatisticsOverviewOut:
 
     run_count = int(
         db.scalar(
-            select(func.coalesce(func.sum(LearningSession.actions_count), 0)).where(
-                LearningSession.user_id == user.id
-            )
+            select(func.coalesce(func.sum(LearningSession.actions_count), 0)).where(LearningSession.user_id == user.id)
         )
         or 0
     )
-    projects = int(
-        db.scalar(select(func.count()).select_from(UserProject).where(UserProject.user_id == user.id)) or 0
-    )
+    projects = int(db.scalar(select(func.count()).select_from(UserProject).where(UserProject.user_id == user.id)) or 0)
     courses = int(
-        db.scalar(select(func.count()).select_from(CourseEnrollment).where(CourseEnrollment.user_id == user.id))
-        or 0
+        db.scalar(select(func.count()).select_from(CourseEnrollment).where(CourseEnrollment.user_id == user.id)) or 0
     )
     strongest = mastery_topics(db, user.id, ascending=False)
     weakest = mastery_topics(db, user.id, ascending=True)

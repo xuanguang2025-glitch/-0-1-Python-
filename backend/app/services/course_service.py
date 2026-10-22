@@ -6,8 +6,8 @@
 
 from __future__ import annotations
 
-import logging
 from collections.abc import Sequence
+import logging
 
 from sqlalchemy import Select, func, or_, select
 from sqlalchemy.orm import Session, selectinload
@@ -181,9 +181,7 @@ def list_courses(
         stmt = stmt.where(Course.stage_no == stage_no)
     if keyword and keyword.strip():
         like = f"%{keyword.strip()}%"
-        stmt = stmt.where(
-            or_(Course.title.ilike(like), Course.subtitle.ilike(like), Course.slug.ilike(like))
-        )
+        stmt = stmt.where(or_(Course.title.ilike(like), Course.subtitle.ilike(like), Course.slug.ilike(like)))
     stmt = _apply_course_sort(stmt, params.sort)
 
     total = int(db.scalar(select(func.count()).select_from(stmt.subquery())) or 0)
@@ -195,9 +193,7 @@ def list_courses(
 
 def list_stages(db: Session, user: User | None = None) -> list[StageOut]:
     """18 阶段概览（含我的进度与当前阶段标记）。"""
-    courses = db.scalars(
-        select(Course).where(Course.is_published.is_(True)).order_by(Course.stage_no.asc())
-    ).all()
+    courses = db.scalars(select(Course).where(Course.is_published.is_(True)).order_by(Course.stage_no.asc())).all()
     progress = _progress_map(db, user, [course.id for course in courses])
     current_stage = current_stage_no(db, user)
     return [
@@ -233,9 +229,7 @@ def current_stage_no(db: Session, user: User | None) -> int | None:
 
 def get_course_by_slug(db: Session, slug: str) -> Course:
     """按 slug 取课程（预加载章节树），不存在抛 `COURSE_NOT_FOUND`。"""
-    course = db.scalars(
-        select(Course).where(Course.slug == slug).options(*_course_loader())
-    ).one_or_none()
+    course = db.scalars(select(Course).where(Course.slug == slug).options(*_course_loader())).one_or_none()
     if course is None:
         raise AppError(code=ErrorCode.COURSE_NOT_FOUND, message="课程不存在", status_code=404, details=f"slug={slug}")
     return course
@@ -243,11 +237,11 @@ def get_course_by_slug(db: Session, slug: str) -> Course:
 
 def get_course_by_id(db: Session, course_id: str) -> Course:
     """按 id 取课程（预加载章节树），不存在抛 `COURSE_NOT_FOUND`。"""
-    course = db.scalars(
-        select(Course).where(Course.id == course_id).options(*_course_loader())
-    ).one_or_none()
+    course = db.scalars(select(Course).where(Course.id == course_id).options(*_course_loader())).one_or_none()
     if course is None:
-        raise AppError(code=ErrorCode.COURSE_NOT_FOUND, message="课程不存在", status_code=404, details=f"id={course_id}")
+        raise AppError(
+            code=ErrorCode.COURSE_NOT_FOUND, message="课程不存在", status_code=404, details=f"id={course_id}"
+        )
     return course
 
 
@@ -282,12 +276,10 @@ def _build_course_progress(db: Session, course: Course, user: User) -> CoursePro
             or 0
         )
     enrollment = db.scalars(
-        select(CourseEnrollment).where(
-            CourseEnrollment.user_id == user.id, CourseEnrollment.course_id == course.id
-        )
+        select(CourseEnrollment).where(CourseEnrollment.user_id == user.id, CourseEnrollment.course_id == course.id)
     ).one_or_none()
     total = len(lesson_ids)
-    percent = int(round(completed / total * 100)) if total else 0
+    percent = round(completed / total * 100) if total else 0
     return CourseProgressOut(
         course_id=course.id,
         percent=enrollment.progress_percent if enrollment else percent,
@@ -313,9 +305,7 @@ def enroll(db: Session, user: User, course_id: str) -> CourseEnrollmentOut:
     """报名课程；已报名抛 `ALREADY_ENROLLED`（409）。"""
     course = get_course_by_id(db, course_id)
     existing = db.scalars(
-        select(CourseEnrollment).where(
-            CourseEnrollment.user_id == user.id, CourseEnrollment.course_id == course.id
-        )
+        select(CourseEnrollment).where(CourseEnrollment.user_id == user.id, CourseEnrollment.course_id == course.id)
     ).one_or_none()
     if existing is not None:
         raise AppError(code=ErrorCode.ALREADY_ENROLLED, message="你已报名该课程", status_code=409)
@@ -330,12 +320,12 @@ def enroll(db: Session, user: User, course_id: str) -> CourseEnrollmentOut:
 def cancel_enroll(db: Session, user: User, course_id: str) -> None:
     """取消报名；未报名抛 404。"""
     enrollment = db.scalars(
-        select(CourseEnrollment).where(
-            CourseEnrollment.user_id == user.id, CourseEnrollment.course_id == course_id
-        )
+        select(CourseEnrollment).where(CourseEnrollment.user_id == user.id, CourseEnrollment.course_id == course_id)
     ).one_or_none()
     if enrollment is None:
-        raise AppError(code=ErrorCode.NOT_FOUND, message="未报名该课程", status_code=404, details=f"course_id={course_id}")
+        raise AppError(
+            code=ErrorCode.NOT_FOUND, message="未报名该课程", status_code=404, details=f"course_id={course_id}"
+        )
     db.delete(enrollment)
     db.commit()
     logger.info("用户取消报名 user_id=%s course_id=%s", user.id, course_id)
@@ -349,8 +339,6 @@ def my_courses(db: Session, user: User, params: PageParams) -> PageModel[CourseB
         .where(CourseEnrollment.user_id == user.id, Course.is_published.is_(True))
     )
     total = int(db.scalar(select(func.count()).select_from(base.subquery())) or 0)
-    rows = db.execute(
-        base.order_by(CourseEnrollment.updated_at.desc()).offset(params.offset).limit(params.limit)
-    ).all()
+    rows = db.execute(base.order_by(CourseEnrollment.updated_at.desc()).offset(params.offset).limit(params.limit)).all()
     items = [course_to_brief(course, percent) for course, percent in rows]
     return build_page(items, total, params)

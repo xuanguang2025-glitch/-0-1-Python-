@@ -60,7 +60,11 @@ def seed_all(
     own_session = session is None
     db = session or SessionLocal()
     stats = SeedStats()
-    groups = set(only) if only else {"topics", "courses", "problems", "projects", "achievements", "daily_tasks", "challenges", "exams"}
+    groups = (
+        set(only)
+        if only
+        else {"topics", "courses", "problems", "projects", "achievements", "daily_tasks", "challenges", "exams"}
+    )
 
     try:
         topics = seed_topics(db, stats) if {"topics", "courses"} & groups else {}
@@ -68,10 +72,7 @@ def seed_all(
 
         if "courses" in groups:
             seed_courses(db, stats, topics)
-        if "problems" in groups:
-            problem_ids = seed_problems(db, stats, tags)
-        else:
-            problem_ids = _existing_problem_ids(db)
+        problem_ids = seed_problems(db, stats, tags) if "problems" in groups else _existing_problem_ids(db)
         if "projects" in groups:
             seed_projects(db, stats)
         if "achievements" in groups:

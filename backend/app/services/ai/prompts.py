@@ -12,7 +12,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 # ---------------------------------------------------------------------------
 # 枚举常量
@@ -65,19 +66,16 @@ PRACTICE_RULE: str = (
 )
 
 FULL_ANSWER_RULE: str = (
-    "【完整解答许可】用户已显式请求完整解释：可以给出完整代码与逐行说明，"
-    "但仍需解释关键点，帮助其理解而非替代思考。"
+    "【完整解答许可】用户已显式请求完整解释：可以给出完整代码与逐行说明，" "但仍需解释关键点，帮助其理解而非替代思考。"
 )
 
 MODE_PROMPTS: dict[str, str] = {
     "beginner": (
-        "【初学者模式】用生活类比解释概念，一步一动，避免术语堆砌；"
-        "每段只讲一个点，必要时用「先……再……」拆解步骤。"
+        "【初学者模式】用生活类比解释概念，一步一动，避免术语堆砌；" "每段只讲一个点，必要时用「先……再……」拆解步骤。"
     ),
     "standard": "【标准模式】概念 + 关键代码 + 一个可练习的小例子，兼顾理解与动手。",
     "advanced": (
-        "【进阶模式】突出 Pythonic 惯用法、时间复杂度/空间复杂度、边界条件与性能权衡，"
-        "可讨论多种实现方案。"
+        "【进阶模式】突出 Pythonic 惯用法、时间复杂度/空间复杂度、边界条件与性能权衡，" "可讨论多种实现方案。"
     ),
 }
 
@@ -90,9 +88,7 @@ LEVEL_PROMPTS: dict[str, str] = {
 }
 
 REVIEW_SYSTEM: str = (
-    "你是资深 Python 代码评审专家。请从九个维度评审代码："
-    + "、".join(REVIEW_DIMENSIONS)
-    + "。\n"
+    "你是资深 Python 代码评审专家。请从九个维度评审代码：" + "、".join(REVIEW_DIMENSIONS) + "。\n"
     "必须**只输出一个 JSON 对象**（不要 Markdown 围栏、不要多余文字），结构如下：\n"
     '{"score": <0-100 整数>, "summary_md": "<总体分析 Markdown>",'
     ' "issues": [{"severity": "error|warning|info", "line": <行号或 null>,'
@@ -203,7 +199,10 @@ def build_chat_messages(
         `[{"role": ..., "content": ...}, ...]`。
     """
     messages: list[dict[str, str]] = [
-        {"role": "system", "content": build_system_prompt(mode, practice_mode=practice_mode, allow_full_answer=allow_full_answer)}
+        {
+            "role": "system",
+            "content": build_system_prompt(mode, practice_mode=practice_mode, allow_full_answer=allow_full_answer),
+        }
     ]
     if extra_system:
         messages.append({"role": "system", "content": extra_system})
@@ -221,10 +220,7 @@ def build_chat_messages(
 def build_review_user_prompt(code: str, *, focus: str | None = None, language: str = "python") -> str:
     """构造 Code Review 的用户提示。"""
     focus_line = f"\n重点关注：{focus}" if focus else ""
-    return (
-        f"请评审以下 {language} 代码（九个维度）。{focus_line}\n"
-        "```" + language + "\n" + (code or "") + "\n```"
-    )
+    return f"请评审以下 {language} 代码（九个维度）。{focus_line}\n" "```" + language + "\n" + (code or "") + "\n```"
 
 
 def build_error_user_prompt(code: str, error_message: str, traceback_text: str | None = None) -> str:

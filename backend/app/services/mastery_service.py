@@ -7,8 +7,8 @@
 
 from __future__ import annotations
 
-import logging
 from collections.abc import Sequence
+import logging
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -31,9 +31,7 @@ WEAK_SCORE_THRESHOLD: float = 50.0
 def get_or_create_mastery(db: Session, user_id: str, topic_id: str) -> KnowledgeMastery:
     """取用户对某知识点的掌握度记录，缺失时创建（不提交事务）。"""
     record = db.scalars(
-        select(KnowledgeMastery).where(
-            KnowledgeMastery.user_id == user_id, KnowledgeMastery.topic_id == topic_id
-        )
+        select(KnowledgeMastery).where(KnowledgeMastery.user_id == user_id, KnowledgeMastery.topic_id == topic_id)
     ).one_or_none()
     if record is None:
         record = KnowledgeMastery(user_id=user_id, topic_id=topic_id)
@@ -46,7 +44,9 @@ def apply_practice(db: Session, user: User, topic_id: str, correct: bool) -> Kno
     """应用一次答题结果并落库，返回最新掌握度。"""
     topic = db.get(Topic, topic_id)
     if topic is None:
-        raise AppError(code=ErrorCode.NOT_FOUND, message="知识点不存在", status_code=404, details=f"topic_id={topic_id}")
+        raise AppError(
+            code=ErrorCode.NOT_FOUND, message="知识点不存在", status_code=404, details=f"topic_id={topic_id}"
+        )
     record = get_or_create_mastery(db, user.id, topic_id)
     record.apply_result(correct)
     db.commit()
@@ -58,11 +58,11 @@ def get_topic_mastery(db: Session, user: User, topic_id: str) -> KnowledgeMaster
     """读取单个知识点掌握度（无记录时返回零值，并附带知识点名称）。"""
     topic = db.get(Topic, topic_id)
     if topic is None:
-        raise AppError(code=ErrorCode.NOT_FOUND, message="知识点不存在", status_code=404, details=f"topic_id={topic_id}")
-    record = db.scalars(
-        select(KnowledgeMastery).where(
-            KnowledgeMastery.user_id == user.id, KnowledgeMastery.topic_id == topic_id
+        raise AppError(
+            code=ErrorCode.NOT_FOUND, message="知识点不存在", status_code=404, details=f"topic_id={topic_id}"
         )
+    record = db.scalars(
+        select(KnowledgeMastery).where(KnowledgeMastery.user_id == user.id, KnowledgeMastery.topic_id == topic_id)
     ).one_or_none()
     if record is None:
         return KnowledgeMasteryOut(topic_id=topic_id, name=topic.name)

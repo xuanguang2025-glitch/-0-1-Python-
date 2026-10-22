@@ -18,8 +18,8 @@
 from __future__ import annotations
 
 import ast
-import re
 from dataclasses import dataclass, field
+import re
 from typing import Any
 
 _MAX_LINE_LENGTH: int = 100
@@ -162,7 +162,7 @@ def _check_str_concat(lines: list[str]) -> list[Issue]:
                     severity="info",
                     line=idx,
                     title="循环内字符串拼接",
-                    suggestion="累积到 list 后 `\"\".join(parts)`，避免 O(n²) 的重复拷贝。",
+                    suggestion='累积到 list 后 `"".join(parts)`，避免 O(n²) 的重复拷贝。',
                     dimension="复杂度",
                 )
             )
@@ -223,16 +223,20 @@ def _check_naming(lines: list[str]) -> list[Issue]:
             )
         cls = _CLASS_DEF_RE.match(raw)
         if cls and not re.fullmatch(r"[A-Z][A-Za-z0-9_]*", cls.group(1)):
-            issues.append(
-                Issue("info", idx, f"类命名不规范：{cls.group(1)}", "类名使用大驼峰（PascalCase）。", "命名")
-            )
+            issues.append(Issue("info", idx, f"类命名不规范：{cls.group(1)}", "类名使用大驼峰（PascalCase）。", "命名"))
     return issues
 
 
 def _check_long_lines(lines: list[str]) -> list[Issue]:
     """检查超长行（PEP 8 建议 ≤79/本项目 ≤100）。"""
     return [
-        Issue("info", idx, "行长度超限", f"第 {idx} 行长度 {len(raw)}，建议 ≤{_MAX_LINE_LENGTH}，可拆分或换行。", "Python 风格(PEP 8)")
+        Issue(
+            "info",
+            idx,
+            "行长度超限",
+            f"第 {idx} 行长度 {len(raw)}，建议 ≤{_MAX_LINE_LENGTH}，可拆分或换行。",
+            "Python 风格(PEP 8)",
+        )
         for idx, raw in enumerate(lines, start=1)
         if len(raw) > _MAX_LINE_LENGTH
     ]
@@ -356,7 +360,9 @@ def _syntax_check(source: str) -> Issue | None:
     try:
         ast.parse(source)
     except SyntaxError as exc:
-        return Issue("error", exc.lineno, f"语法错误：{exc.msg}", "按报错提示修正语法（括号/引号/冒号/缩进）。", "正确性")
+        return Issue(
+            "error", exc.lineno, f"语法错误：{exc.msg}", "按报错提示修正语法（括号/引号/冒号/缩进）。", "正确性"
+        )
     return None
 
 

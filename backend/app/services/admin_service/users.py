@@ -12,7 +12,7 @@ from app.core.pagination import PageParams
 from app.core.security import hash_password, validate_password_strength, validate_username
 from app.models.user import Profile, User
 
-from .common import audit, get_or_404, apply_fields, snapshot
+from .common import apply_fields, audit, get_or_404, snapshot
 
 
 def list_users(
@@ -35,11 +35,7 @@ def list_users(
     total = int(db.scalar(select(func.count()).select_from(User).where(*conditions)) or 0)
     rows = list(
         db.scalars(
-            select(User)
-            .where(*conditions)
-            .order_by(User.created_at.desc())
-            .offset(params.offset)
-            .limit(params.limit)
+            select(User).where(*conditions).order_by(User.created_at.desc()).offset(params.offset).limit(params.limit)
         ).all()
     )
     return rows, total
@@ -68,9 +64,7 @@ def create_user(db: Session, actor: User, payload: dict[str, Any], meta: dict[st
     return user
 
 
-def update_user(
-    db: Session, actor: User, user_id: str, payload: dict[str, Any], meta: dict[str, Any]
-) -> User:
+def update_user(db: Session, actor: User, user_id: str, payload: dict[str, Any], meta: dict[str, Any]) -> User:
     """更新用户角色 / 状态 / 资料。"""
     user = get_or_404(db, User, user_id, ErrorCode.USER_NOT_FOUND, "用户不存在")
     before = snapshot(user, ["role", "status", "is_verified"])
@@ -83,8 +77,14 @@ def update_user(
             db.add(profile)
         profile.display_name = display_name
     audit(
-        db, actor, "admin.user.update", "user", user.id,
-        before=before, after=snapshot(user, ["role", "status", "is_verified"]), meta=meta,
+        db,
+        actor,
+        "admin.user.update",
+        "user",
+        user.id,
+        before=before,
+        after=snapshot(user, ["role", "status", "is_verified"]),
+        meta=meta,
     )
     db.commit()
     db.refresh(user)
@@ -97,15 +97,19 @@ def delete_user(db: Session, actor: User, user_id: str, meta: dict[str, Any]) ->
     user.soft_delete()
     user.status = "deleted"
     audit(
-        db, actor, "admin.user.delete", "user", user.id,
-        before={"status": "active"}, after={"status": "deleted"}, meta=meta,
+        db,
+        actor,
+        "admin.user.delete",
+        "user",
+        user.id,
+        before={"status": "active"},
+        after={"status": "deleted"},
+        meta=meta,
     )
     db.commit()
 
 
-def reset_password(
-    db: Session, actor: User, user_id: str, new_password: str, meta: dict[str, Any]
-) -> None:
+def reset_password(db: Session, actor: User, user_id: str, new_password: str, meta: dict[str, Any]) -> None:
     """重置用户密码。"""
     validate_password_strength(new_password)
     user = get_or_404(db, User, user_id, ErrorCode.USER_NOT_FOUND, "用户不存在")

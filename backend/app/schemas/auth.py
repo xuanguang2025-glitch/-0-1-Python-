@@ -83,7 +83,7 @@ class UserBrief(ORMModel):
     xp: int = 0
 
     @classmethod
-    def from_user(cls, user: "User") -> "UserBrief":
+    def from_user(cls, user: User) -> UserBrief:
         """由 ORM 用户对象构造摘要（display_name 缺省回退用户名）。"""
         return cls(
             id=user.id,

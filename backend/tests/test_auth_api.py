@@ -16,8 +16,8 @@ import io
 import json
 from typing import Any
 
-import pytest
 from fastapi.testclient import TestClient
+import pytest
 
 from app.api.endpoints import auth as auth_ep
 from app.api.endpoints import users as users_ep
@@ -213,7 +213,12 @@ def test_me_returns_profile_brief_without_password(client: TestClient, user_head
     assert data["profile"]["display_name"] == "测试用户"
     assert "hashed_password" not in resp.text
     assert set(data["profile"]) == {
-        "display_name", "avatar_url", "bio", "theme_preference", "ai_mode", "learning_mode",
+        "display_name",
+        "avatar_url",
+        "bio",
+        "theme_preference",
+        "ai_mode",
+        "learning_mode",
     }
 
 
@@ -309,9 +314,7 @@ def test_profile_read_and_update(client: TestClient, user_headers: dict[str, str
     assert data["timezone"] == "Asia/Shanghai"
 
     # display_name 长度超限 → 422
-    too_long = client.patch(
-        "/api/users/me/profile", json={"display_name": "x" * 51}, headers=user_headers
-    )
+    too_long = client.patch("/api/users/me/profile", json={"display_name": "x" * 51}, headers=user_headers)
     assert too_long.status_code == 422
     assert too_long.json()["error"]["code"] == "VALIDATION_ERROR"
 
@@ -384,8 +387,14 @@ def test_overview_returns_expected_shape(client: TestClient, user_headers: dict[
     assert resp.status_code == 200, resp.text
     data: dict[str, Any] = resp.json()["data"]
     assert set(data) == {
-        "xp", "level", "next_level_xp", "streak_days",
-        "completed_lessons", "solved_problems", "today_minutes", "daily_tasks_done",
+        "xp",
+        "level",
+        "next_level_xp",
+        "streak_days",
+        "completed_lessons",
+        "solved_problems",
+        "today_minutes",
+        "daily_tasks_done",
     }
     assert data["level"] >= 1 and data["next_level_xp"] >= 0
 

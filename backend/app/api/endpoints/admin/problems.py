@@ -68,9 +68,7 @@ async def import_problems(
     try:
         payload = json.loads(raw.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise AppError(
-            code=ErrorCode.BAD_REQUEST, message="导入文件不是合法 JSON", status_code=400
-        ) from exc
+        raise AppError(code=ErrorCode.BAD_REQUEST, message="导入文件不是合法 JSON", status_code=400) from exc
     items = payload.get("items") if isinstance(payload, dict) else payload
     if not isinstance(items, list):
         raise AppError(

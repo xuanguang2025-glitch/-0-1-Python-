@@ -13,9 +13,7 @@ from app.models.enums import AIMode, LearningMode, ThemePreference, UserRole, Us
 from app.utils.time import to_utc
 
 if TYPE_CHECKING:  # 仅用于类型检查，避免运行期循环导入
-    from app.models.ai import AIConversation
-    from app.models.gamification import UserAchievement, XPTransaction
-    from app.models.learning import Bookmark, CodeHistory, KnowledgeMastery, LearningProgress, LearningSession, Mistake
+    pass
 
 
 class User(Base, UUIDPkMixin, TimestampMixin, SoftDeleteMixin):
@@ -34,7 +32,9 @@ class User(Base, UUIDPkMixin, TimestampMixin, SoftDeleteMixin):
     email: Mapped[str] = mapped_column(String(255), nullable=False, doc="登录邮箱（小写存储）")
     username: Mapped[str] = mapped_column(String(50), nullable=False, doc="3-20 位字母数字下划线")
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False, doc="密码哈希，禁止外泄")
-    role: Mapped[str] = mapped_column(String(20), default=UserRole.USER.value, nullable=False, doc="user/admin/superadmin")
+    role: Mapped[str] = mapped_column(
+        String(20), default=UserRole.USER.value, nullable=False, doc="user/admin/superadmin"
+    )
     status: Mapped[str] = mapped_column(String(20), default=UserStatus.ACTIVE.value, nullable=False)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, doc="邮箱验证（本机默认 true）")
     xp: Mapped[int] = mapped_column(Integer, default=0, nullable=False, doc="累计经验值")
@@ -46,13 +46,13 @@ class User(Base, UUIDPkMixin, TimestampMixin, SoftDeleteMixin):
     login_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     locale: Mapped[str] = mapped_column(String(10), default="zh-CN", nullable=False)
 
-    profile: Mapped["Profile | None"] = relationship(
+    profile: Mapped[Profile | None] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
         uselist=False,
         lazy="selectin",
     )
-    refresh_tokens: Mapped[list["RefreshToken"]] = relationship(
+    refresh_tokens: Mapped[list[RefreshToken]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
         foreign_keys="RefreshToken.user_id",
@@ -92,22 +92,18 @@ class Profile(Base, UUIDPkMixin, TimestampMixin):
         Index("ix_profiles_display_name", "display_name"),
     )
 
-    user_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     display_name: Mapped[str] = mapped_column(String(50), default="", nullable=False, doc="昵称，排行榜唯一展示名")
     avatar_url: Mapped[str | None] = mapped_column(String(512), nullable=True, doc="本地 /uploads/... 或外链")
     bio: Mapped[str | None] = mapped_column(String(500), nullable=True)
     timezone: Mapped[str] = mapped_column(String(50), default="UTC", nullable=False)
-    theme_preference: Mapped[str] = mapped_column(
-        String(10), default=ThemePreference.SYSTEM.value, nullable=False
-    )
+    theme_preference: Mapped[str] = mapped_column(String(10), default=ThemePreference.SYSTEM.value, nullable=False)
     ai_mode: Mapped[str] = mapped_column(String(20), default=AIMode.STANDARD.value, nullable=False)
     learning_mode: Mapped[str] = mapped_column(String(20), default=LearningMode.SYSTEM.value, nullable=False)
     public_profile: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     weekly_goal_minutes: Mapped[int] = mapped_column(Integer, default=300, nullable=False)
 
-    user: Mapped["User"] = relationship(back_populates="profile")
+    user: Mapped[User] = relationship(back_populates="profile")
 
     @property
     def leaderboard_name(self) -> str:
@@ -127,9 +123,7 @@ class RefreshToken(Base, UUIDPkMixin):
         Index("ix_rt_created_at", "created_at"),
     )
 
-    user_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     jti: Mapped[str] = mapped_column(String(36), nullable=False, doc="JWT ID，用于吊销")
     token_hash: Mapped[str] = mapped_column(String(64), nullable=False, doc="sha256(token)")
     user_agent: Mapped[str | None] = mapped_column(String(255), nullable=True)
@@ -139,7 +133,7 @@ class RefreshToken(Base, UUIDPkMixin):
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
-    user: Mapped["User"] = relationship(back_populates="refresh_tokens", foreign_keys=[user_id])
+    user: Mapped[User] = relationship(back_populates="refresh_tokens", foreign_keys=[user_id])
 
     @property
     def is_valid(self) -> bool:

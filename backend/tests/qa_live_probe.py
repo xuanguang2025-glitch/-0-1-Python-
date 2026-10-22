@@ -67,23 +67,33 @@ def reg(c: httpx.Client, tag: str) -> dict:
 
 # ============================================================ A1 认证与密码
 def sec_auth(c: httpx.Client, u: dict) -> None:
-    log("INFO", "A1.me", f"GET /auth/me status={c.get(f'{API}/auth/me', headers={'Authorization': f'Bearer {u['access_token']}'}).status_code}")
+    log(
+        "INFO",
+        "A1.me",
+        f"GET /auth/me status={c.get(f'{API}/auth/me', headers={'Authorization': f'Bearer {u['access_token']}'}).status_code}",
+    )
 
     # 错误密码 vs 不存在用户 —— 响应应一致（不泄露账号是否存在）
     r1 = c.post(f"{API}/auth/login", json={"account": u["_email"], "password": "WrongPass999"})
     r2 = c.post(f"{API}/auth/login", json={"account": "nobody_xyz@pythonlab.dev", "password": "WrongPass999"})
     b1, b2 = r1.json(), r2.json()
     same = (r1.status_code == r2.status_code) and (b1.get("error", {}).get("code") == b2.get("error", {}).get("code"))
-    log("PASS" if same else "FAIL", "A1.user_enum",
-        f"wrong_pwd={r1.status_code}/{b1.get('error',{}).get('code')} unknown_user={r2.status_code}/{b2.get('error',{}).get('code')} identical={same}")
+    log(
+        "PASS" if same else "FAIL",
+        "A1.user_enum",
+        f"wrong_pwd={r1.status_code}/{b1.get('error',{}).get('code')} unknown_user={r2.status_code}/{b2.get('error',{}).get('code')} identical={same}",
+    )
 
     # JWT 篡改
     tok = u["access_token"]
     parts = tok.split(".")
     forged = parts[0] + "." + parts[1] + "." + ("A" * len(parts[2]))
     r = c.get(f"{API}/auth/me", headers={"Authorization": f"Bearer {forged}"})
-    log("PASS" if r.status_code == 401 else "FAIL", "A1.jwt_tamper",
-        f"status={r.status_code} code={r.json().get('error',{}).get('code')}")
+    log(
+        "PASS" if r.status_code == 401 else "FAIL",
+        "A1.jwt_tamper",
+        f"status={r.status_code} code={r.json().get('error',{}).get('code')}",
+    )
 
     # alg:none 混淆
     import base64
@@ -92,19 +102,27 @@ def sec_auth(c: httpx.Client, u: dict) -> None:
         return base64.urlsafe_b64encode(d).rstrip(b"=").decode()
 
     header = b64(json.dumps({"alg": "none", "typ": "JWT"}).encode())
-    payload = b64(json.dumps({"sub": u["user"]["id"], "typ": "access", "role": "admin", "exp": int(time.time()) + 3600}).encode())
+    payload = b64(
+        json.dumps({"sub": u["user"]["id"], "typ": "access", "role": "admin", "exp": int(time.time()) + 3600}).encode()
+    )
     none_tok = f"{header}.{payload}."
     r = c.get(f"{API}/auth/me", headers={"Authorization": f"Bearer {none_tok}"})
-    log("PASS" if r.status_code == 401 else "FAIL", "A1.alg_none",
-        f"status={r.status_code} code={r.json().get('error',{}).get('code')}")
+    log(
+        "PASS" if r.status_code == 401 else "FAIL",
+        "A1.alg_none",
+        f"status={r.status_code} code={r.json().get('error',{}).get('code')}",
+    )
 
     # refresh 重放：刷新一次，再用旧 refresh 刷新应失败
     old_refresh = u["refresh_token"]
     r = c.post(f"{API}/auth/refresh", json={"refresh_token": old_refresh})
     ok_first = r.status_code == 200
     r2 = c.post(f"{API}/auth/refresh", json={"refresh_token": old_refresh})
-    log("PASS" if (ok_first and r2.status_code == 401) else "FAIL", "A1.refresh_replay",
-        f"first={r.status_code} replay={r2.status_code} replay_code={r2.json().get('error',{}).get('code')}")
+    log(
+        "PASS" if (ok_first and r2.status_code == 401) else "FAIL",
+        "A1.refresh_replay",
+        f"first={r.status_code} replay={r2.status_code} replay_code={r2.json().get('error',{}).get('code')}",
+    )
 
     # 登出后旧 access 应 401（黑名单）
     uu = reg(c, "logout")
@@ -112,8 +130,11 @@ def sec_auth(c: httpx.Client, u: dict) -> None:
     rt = uu["refresh_token"]
     c.post(f"{API}/auth/logout", json={"refresh_token": rt}, headers={"Authorization": f"Bearer {at}"})
     r = c.get(f"{API}/auth/me", headers={"Authorization": f"Bearer {at}"})
-    log("PASS" if r.status_code == 401 else "FAIL", "A1.logout_blacklist",
-        f"after_logout_status={r.status_code} code={r.json().get('error',{}).get('code')}")
+    log(
+        "PASS" if r.status_code == 401 else "FAIL",
+        "A1.logout_blacklist",
+        f"after_logout_status={r.status_code} code={r.json().get('error',{}).get('code')}",
+    )
 
     # 无 token
     r = c.get(f"{API}/auth/me")
@@ -124,16 +145,29 @@ def sec_auth(c: httpx.Client, u: dict) -> None:
         from jose import jwt as jjwt
 
         forged_user = jjwt.encode(
-            {"sub": u["user"]["id"], "typ": "access", "role": "superadmin", "usr": "x", "ver": 1,
-             "iat": int(time.time()), "exp": int(time.time()) + 3600, "jti": "forged-1"},
-            "change-me", algorithm="HS256",
+            {
+                "sub": u["user"]["id"],
+                "typ": "access",
+                "role": "superadmin",
+                "usr": "x",
+                "ver": 1,
+                "iat": int(time.time()),
+                "exp": int(time.time()) + 3600,
+                "jti": "forged-1",
+            },
+            "change-me",
+            algorithm="HS256",
         )
         r = c.get(f"{API}/auth/me", headers={"Authorization": f"Bearer {forged_user}"})
         if r.status_code == 200:
-            log("FAIL", "A1.default_secret", f"用默认密钥 'change-me' 伪造的 token 被接受! status=200 user={r.json().get('data',{}).get('username')}")
+            log(
+                "FAIL",
+                "A1.default_secret",
+                f"用默认密钥 'change-me' 伪造的 token 被接受! status=200 user={r.json().get('data',{}).get('username')}",
+            )
         else:
             log("PASS", "A1.default_secret", f"默认密钥伪造被拒 status={r.status_code}")
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         log("INFO", "A1.default_secret", f"跳过：{exc}")
 
 
@@ -156,14 +190,16 @@ def sec_idor(c: httpx.Client) -> None:
         lessons = c.get(f"{API}/courses/{course_slug}/lessons").json().get("data") or []
         if lessons:
             lesson_id = lessons[0].get("id") or lessons[0].get("lesson_id")
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         log("INFO", "A2.setup", f"取课时失败 {exc}")
     if lesson_id:
         rc = c.post(f"{API}/lessons/{lesson_id}/complete", headers=hb)
         log("INFO", "A2.complete", f"B 完成课时 status={rc.status_code}")
 
     # b 建 bookmark / mistake（若路由可用）
-    b_bookmark = c.post(f"{API}/bookmarks", json={"target_type": "lesson", "target_id": lesson_id or "x"}, headers=hb).json()
+    b_bookmark = c.post(
+        f"{API}/bookmarks", json={"target_type": "lesson", "target_id": lesson_id or "x"}, headers=hb
+    ).json()
     b_mistake_id = None
     try:
         r = c.get(f"{API}/mistakes", headers=hb).json()
@@ -183,22 +219,26 @@ def sec_idor(c: httpx.Client) -> None:
     probs = c.get(f"{API}/problems?page_size=1").json()
     if probs.get("success") and probs["data"]["items"]:
         pid = probs["data"]["items"][0]["id"]
-        sub = c.post(f"{API}/submissions", json={"problem_id": pid, "code": "print(1)", "language": "python"}, headers=hb).json()
+        sub = c.post(
+            f"{API}/submissions", json={"problem_id": pid, "code": "print(1)", "language": "python"}, headers=hb
+        ).json()
         if sub.get("success"):
             b_sub_id = sub["data"]["id"]
     if b_sub_id:
         r = c.get(f"{API}/submissions/{b_sub_id}", headers=ha)
         ok = r.status_code in (403, 404)
-        log("PASS" if ok else "FAIL", "A2.idor_submission",
-            f"A读B提交 status={r.status_code} body_ok={r.json().get('success')}")
+        log(
+            "PASS" if ok else "FAIL",
+            "A2.idor_submission",
+            f"A读B提交 status={r.status_code} body_ok={r.json().get('success')}",
+        )
 
     # 2) bookmark 越权删除
     if b_bookmark.get("success"):
         bid = b_bookmark["data"].get("id")
         r = c.delete(f"{API}/bookmarks/{bid}", headers=ha)
         ok = r.status_code in (403, 404)
-        log("PASS" if ok else "FAIL", "A2.idor_bookmark",
-            f"A删B收藏 status={r.status_code} body={jd(r.json())[:200]}")
+        log("PASS" if ok else "FAIL", "A2.idor_bookmark", f"A删B收藏 status={r.status_code} body={jd(r.json())[:200]}")
 
     # 3) mistake 越权
     if b_mistake_id:
@@ -207,7 +247,11 @@ def sec_idor(c: httpx.Client) -> None:
         log("PASS" if ok else "FAIL", "A2.idor_mistake", f"A删B错题 status={r.status_code}")
 
     # 4) code-history 越权
-    snap = c.post(f"{API}/editor/save-snapshot", json={"context_type": "playground", "file_path": "main.py", "code": "print(1)"}, headers=hb).json()
+    snap = c.post(
+        f"{API}/editor/save-snapshot",
+        json={"context_type": "playground", "file_path": "main.py", "code": "print(1)"},
+        headers=hb,
+    ).json()
     if snap.get("success"):
         hid = snap["data"].get("id")
         r = c.get(f"{API}/editor/history/{hid}", headers=ha)
@@ -217,7 +261,11 @@ def sec_idor(c: httpx.Client) -> None:
     # 5) 普通用户访问 admin
     r = c.get(f"{API}/admin/users", headers=ha)
     ok = r.status_code == 403
-    log("PASS" if ok else "FAIL", "A2.admin_forbidden", f"普通用户访问/api/admin/users status={r.status_code} code={r.json().get('error',{}).get('code')}")
+    log(
+        "PASS" if ok else "FAIL",
+        "A2.admin_forbidden",
+        f"普通用户访问/api/admin/users status={r.status_code} code={r.json().get('error',{}).get('code')}",
+    )
 
 
 # ============================================================ A3 敏感数据泄露
@@ -227,7 +275,7 @@ def sec_leak(c: httpx.Client, admin_h: dict) -> None:
         if r.status_code != 200:
             continue
         txt = r.text.lower()
-        bad = [k for k in ["hashed_password", "password_hash", "\"password\"", "secret_key"] if k in txt]
+        bad = [k for k in ["hashed_password", "password_hash", '"password"', "secret_key"] if k in txt]
         log("PASS" if not bad else "FAIL", "A3.no_secret_field", f"{path} 泄露字段={bad}")
 
     # 排行榜隐私
@@ -239,8 +287,11 @@ def sec_leak(c: httpx.Client, admin_h: dict) -> None:
         txt = r.text
         low = txt.lower()
         leaks = [k for k in ["@", "email", "user_id"] if k in low]
-        log("PASS" if not leaks else "WARN", "A3.leaderboard_privacy",
-            f"status={r.status_code} 可疑字段={leaks} sample={jd(r.json())[:400]}")
+        log(
+            "PASS" if not leaks else "WARN",
+            "A3.leaderboard_privacy",
+            f"status={r.status_code} 可疑字段={leaks} sample={jd(r.json())[:400]}",
+        )
 
     # AI 配置脱敏
     r = c.get(f"{API}/admin/ai-config", headers=admin_h)
@@ -259,8 +310,9 @@ def sec_injection(c: httpx.Client, h: dict) -> None:
     payloads = ["' OR 1=1--", "1; DROP TABLE users--", "1' UNION SELECT 1,2,3--"]
     for p in payloads:
         r = c.get(f"{API}/problems", params={"keyword": p}, headers=h)
-        log("PASS" if r.status_code in (200, 422) else "FAIL", "A4.sql_keyword",
-            f"keyword={p!r} status={r.status_code}")
+        log(
+            "PASS" if r.status_code in (200, 422) else "FAIL", "A4.sql_keyword", f"keyword={p!r} status={r.status_code}"
+        )
 
     # 排序参数注入 / 白名单
     for p in ["id; DELETE FROM users", "id desc; DROP TABLE users", "1 OR 1=1"]:
@@ -274,9 +326,15 @@ def sec_injection(c: httpx.Client, h: dict) -> None:
 
     # XSS：用户名 / 题解是否转义
     name = f"qa_xss_{uuid.uuid4().hex[:6]}"
-    r = c.post(f"{API}/auth/register",
-               json={"email": f"{name}@pythonlab.dev", "username": name, "password": "QaPass12345",
-                     "display_name": "<script>alert(1)</script>"})
+    r = c.post(
+        f"{API}/auth/register",
+        json={
+            "email": f"{name}@pythonlab.dev",
+            "username": name,
+            "password": "QaPass12345",
+            "display_name": "<script>alert(1)</script>",
+        },
+    )
     body = r.json()
     stored = ""
     if body.get("success"):
@@ -297,8 +355,7 @@ def sec_path(c: httpx.Client, h: dict) -> None:
     for p in attempts:
         r = c.get(f"{BASE}{p}")
         leaked = "root:" in r.text or "[extensions]" in r.text or "for 16-bit app" in r.text
-        log("PASS" if not leaked else "FAIL", "A5.path_traversal",
-            f"{p} status={r.status_code} leaked={leaked}")
+        log("PASS" if not leaked else "FAIL", "A5.path_traversal", f"{p} status={r.status_code} leaked={leaked}")
 
 
 # ============================================================ A6 沙箱逃逸
@@ -309,7 +366,7 @@ def sec_sandbox(c: httpx.Client, h: dict) -> None:
         "win_ini_read": "print(open('C:/Windows/win.ini').read()[:80])",
         "etc_passwd_read": "print(open('/etc/passwd').read()[:80])",
         "dunder_import_single": "__import__('os').system('dir')",
-        "dunder_import_double": "__import__(\"os\").system(\"echo pwned2\")",
+        "dunder_import_double": '__import__("os").system("echo pwned2")',
         "getattr_os_system": "import os\ngetattr(os, 'system')('echo pwned3')",
         "os_environ_dump": "import os\nprint('KEYS=', sorted(os.environ.keys()))\nprint('AI=', os.environ.get('AI_API_KEY'))\nprint('JWT=', os.environ.get('JWT_SECRET_KEY'))\nprint('SECRET=', os.environ.get('SECRET_KEY'))",
         "eval_compile": "eval(compile('print(1337)', '<s>', 'exec'))",
@@ -318,7 +375,9 @@ def sec_sandbox(c: httpx.Client, h: dict) -> None:
     }
     for name, code in cases.items():
         t0 = time.time()
-        r = c.post(f"{API}/python/run", json={"files": [{"path": "main.py", "content": code}], "entry": "main.py"}, headers=h)
+        r = c.post(
+            f"{API}/python/run", json={"files": [{"path": "main.py", "content": code}], "entry": "main.py"}, headers=h
+        )
         dt = time.time() - t0
         try:
             d = r.json().get("data") or {}
@@ -329,9 +388,13 @@ def sec_sandbox(c: httpx.Client, h: dict) -> None:
         err = (d.get("error") or "")[:120]
         detail = f"{name}: http={r.status_code} status={status} stdout={out!r} err={err!r} {dt:.1f}s"
         # 判定：能否读到敏感文件 / 环境变量 / 执行系统命令
-        if name in ("win_ini_read", "etc_passwd_read") and ("for 16-bit app" in (d.get("stdout") or "") or "root:" in (d.get("stdout") or "")):
+        if name in ("win_ini_read", "etc_passwd_read") and (
+            "for 16-bit app" in (d.get("stdout") or "") or "root:" in (d.get("stdout") or "")
+        ):
             log("FAIL", "A6.sandbox_escape", f"文件读取成功! {detail}")
-        elif name == "os_environ_dump" and ("AI_API_KEY" in (d.get("stdout") or "") or "JWT_SECRET" in (d.get("stdout") or "")):
+        elif name == "os_environ_dump" and (
+            "AI_API_KEY" in (d.get("stdout") or "") or "JWT_SECRET" in (d.get("stdout") or "")
+        ):
             log("FAIL", "A6.env_leak", f"环境变量泄露! {detail}")
         elif name == "dunder_import_double" and "pwned2" in (d.get("stdout") or ""):
             log("FAIL", "A6.blacklist_bypass", f"双引号绕过黑名单并执行命令! {detail}")
@@ -342,32 +405,55 @@ def sec_sandbox(c: httpx.Client, h: dict) -> None:
 
     # TLE
     t0 = time.time()
-    r = c.post(f"{API}/python/run", json={"files": [{"path": "main.py", "content": "while True:\n    pass\n"}], "entry": "main.py", "timeout_ms": 2000}, headers=h)
+    r = c.post(
+        f"{API}/python/run",
+        json={
+            "files": [{"path": "main.py", "content": "while True:\n    pass\n"}],
+            "entry": "main.py",
+            "timeout_ms": 2000,
+        },
+        headers=h,
+    )
     dt = time.time() - t0
     d = r.json().get("data") or {}
-    log("PASS" if d.get("status") == "timeout" else "FAIL", "A6.tle",
-        f"status={d.get('status')} time_ms={d.get('time_ms')} wall={dt:.1f}s")
+    log(
+        "PASS" if d.get("status") == "timeout" else "FAIL",
+        "A6.tle",
+        f"status={d.get('status')} time_ms={d.get('time_ms')} wall={dt:.1f}s",
+    )
 
     # 输出爆炸
-    r = c.post(f"{API}/python/run", json={"files": [{"path": "main.py", "content": "print('A'*10**8)"}], "entry": "main.py"}, headers=h)
+    r = c.post(
+        f"{API}/python/run",
+        json={"files": [{"path": "main.py", "content": "print('A'*10**8)"}], "entry": "main.py"},
+        headers=h,
+    )
     d = r.json().get("data") or {}
     stdout_len = len(d.get("stdout") or "")
-    log("PASS" if d.get("truncated") and stdout_len <= 70000 else "INFO", "A6.output_bomb",
-        f"truncated={d.get('truncated')} stdout_len={stdout_len} status={d.get('status')}")
+    log(
+        "PASS" if d.get("truncated") and stdout_len <= 70000 else "INFO",
+        "A6.output_bomb",
+        f"truncated={d.get('truncated')} stdout_len={stdout_len} status={d.get('status')}",
+    )
 
 
 # ============================================================ A7 资源限制 / 体积
 def sec_limits(c: httpx.Client) -> None:
     # 未登录运行代码
     r = c.post(f"{API}/python/run", json={"files": [{"path": "main.py", "content": "print(1)"}], "entry": "main.py"})
-    log("PASS" if r.status_code == 401 else "FAIL", "A7.anon_run",
-        f"匿名运行 status={r.status_code} code={r.json().get('error',{}).get('code')}")
+    log(
+        "PASS" if r.status_code == 401 else "FAIL",
+        "A7.anon_run",
+        f"匿名运行 status={r.status_code} code={r.json().get('error',{}).get('code')}",
+    )
 
     # 10MB 代码
     big = "x = 1\n" * 2_000_000
     u = reg(c, "bigbody")
     h = {"Authorization": f"Bearer {u['access_token']}"}
-    r = c.post(f"{API}/python/run", json={"files": [{"path": "main.py", "content": big}], "entry": "main.py"}, headers=h)
+    r = c.post(
+        f"{API}/python/run", json={"files": [{"path": "main.py", "content": big}], "entry": "main.py"}, headers=h
+    )
     log("INFO", "A7.body_limit", f"10MB代码 status={r.status_code} body={jd(r.json())[:200]}")
 
 
@@ -376,15 +462,21 @@ def sec_cors(c: httpx.Client) -> None:
     r = c.get(f"{API}/courses", headers={"Origin": "http://evil.example.com"})
     acao = r.headers.get("access-control-allow-origin")
     acac = r.headers.get("access-control-allow-credentials")
-    log("PASS" if acao != "*" or acac != "true" else "FAIL", "A8.cors",
-        f"evil origin -> ACAO={acao!r} ACAC={acac!r}")
+    log("PASS" if acao != "*" or acac != "true" else "FAIL", "A8.cors", f"evil origin -> ACAO={acao!r} ACAC={acac!r}")
 
-    r = c.options(f"{API}/courses", headers={
-        "Origin": "http://evil.example.com",
-        "Access-Control-Request-Method": "POST",
-        "Access-Control-Request-Headers": "authorization",
-    })
-    log("INFO", "A8.cors_preflight", f"status={r.status_code} ACAO={r.headers.get('access-control-allow-origin')!r} ACAC={r.headers.get('access-control-allow-credentials')!r}")
+    r = c.options(
+        f"{API}/courses",
+        headers={
+            "Origin": "http://evil.example.com",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "authorization",
+        },
+    )
+    log(
+        "INFO",
+        "A8.cors_preflight",
+        f"status={r.status_code} ACAO={r.headers.get('access-control-allow-origin')!r} ACAC={r.headers.get('access-control-allow-credentials')!r}",
+    )
 
 
 def sec_rate_limit() -> None:
@@ -399,12 +491,18 @@ def sec_rate_limit() -> None:
         # 轮换 XFF
         codes2 = []
         for i in range(15):
-            r = raw.post(f"{API}/auth/login", json={"account": "nobody@x.dev", "password": "x"},
-                         headers={"X-Forwarded-For": f"198.51.100.{i+1}"})
+            r = raw.post(
+                f"{API}/auth/login",
+                json={"account": "nobody@x.dev", "password": "x"},
+                headers={"X-Forwarded-For": f"198.51.100.{i+1}"},
+            )
             codes2.append(r.status_code)
         limited2 = codes2.count(429)
-        log("WARN" if (limited > 0 and limited2 == 0) else "INFO", "A8.ratelimit_xff",
-            f"固定XFF触发429次数={limited}/15, 轮换XFF触发429次数={limited2}/15")
+        log(
+            "WARN" if (limited > 0 and limited2 == 0) else "INFO",
+            "A8.ratelimit_xff",
+            f"固定XFF触发429次数={limited}/15, 轮换XFF触发429次数={limited2}/15",
+        )
 
 
 def main() -> None:
@@ -432,16 +530,29 @@ def main() -> None:
                 from jose import jwt as jjwt
 
                 forged_admin = jjwt.encode(
-                    {"sub": admin_id, "typ": "access", "role": "superadmin", "usr": "x", "ver": 1,
-                     "iat": int(time.time()), "exp": int(time.time()) + 3600, "jti": "forged-admin"},
-                    "change-me", algorithm="HS256",
+                    {
+                        "sub": admin_id,
+                        "typ": "access",
+                        "role": "superadmin",
+                        "usr": "x",
+                        "ver": 1,
+                        "iat": int(time.time()),
+                        "exp": int(time.time()) + 3600,
+                        "jti": "forged-admin",
+                    },
+                    "change-me",
+                    algorithm="HS256",
                 )
                 r = c.get(f"{API}/admin/users", headers={"Authorization": f"Bearer {forged_admin}"})
                 if r.status_code == 200:
-                    log("FAIL", "A1.forge_admin", f"用默认密钥伪造 admin token 成功访问 /admin/users! status=200 n={len((r.json().get('data') or {}).get('items') or [])}")
+                    log(
+                        "FAIL",
+                        "A1.forge_admin",
+                        f"用默认密钥伪造 admin token 成功访问 /admin/users! status=200 n={len((r.json().get('data') or {}).get('items') or [])}",
+                    )
                 else:
                     log("PASS", "A1.forge_admin", f"伪造 admin 被拒 status={r.status_code}")
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 log("INFO", "A1.forge_admin", f"跳过 {exc}")
 
         u = reg(c, "main")

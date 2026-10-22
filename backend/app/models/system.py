@@ -46,9 +46,7 @@ class SystemSetting(Base, UUIDPkMixin):
     """系统键值配置（值为 JSON，便于扩展）。"""
 
     __tablename__ = "system_settings"
-    __table_args__ = (
-        Index("ix_ss_key", "key", unique=True),
-    )
+    __table_args__ = (Index("ix_ss_key", "key", unique=True),)
 
     key: Mapped[str] = mapped_column(String(80), nullable=False, doc="如 site.announcement")
     value_json: Mapped[Any] = mapped_column(JSON, default=dict, nullable=False)

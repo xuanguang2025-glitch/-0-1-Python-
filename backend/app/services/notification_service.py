@@ -69,7 +69,9 @@ def create(
     return item
 
 
-def create_many(db: Session, user_ids: list[str], ntype: str, title: str, content: str = "", link: str | None = None) -> int:
+def create_many(
+    db: Session, user_ids: list[str], ntype: str, title: str, content: str = "", link: str | None = None
+) -> int:
     """给多个用户批量创建通知（管理端广播用），返回创建条数。"""
     count = 0
     for user_id in user_ids:

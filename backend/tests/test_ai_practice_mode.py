@@ -13,7 +13,6 @@ from app.services.ai.base import ChatMessage
 from app.services.ai.rule_based import RuleBasedProvider
 from app.services.ai.tutor import TutorService, enforce_practice_constraint
 
-
 # ---------------------------------------------------------------------------
 # 纯函数：后置约束
 # ---------------------------------------------------------------------------

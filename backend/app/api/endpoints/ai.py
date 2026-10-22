@@ -16,8 +16,8 @@
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 import json
-from typing import Any, AsyncIterator
 
 from fastapi import APIRouter, Query
 from fastapi.responses import StreamingResponse
@@ -43,8 +43,7 @@ from app.schemas.ai import (
     ReviewOut,
     ReviewRequest,
 )
-from app.services.ai import CodeReviewService, TutorService, analyze_error_report
-from app.services.ai import repository
+from app.services.ai import CodeReviewService, TutorService, analyze_error_report, repository
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 
@@ -74,7 +73,7 @@ async def chat_stream(payload: ChatRequest, current_user: CurrentUser, db: DbSes
         except AppError as exc:
             payload_err = {"type": "error", "error": {"code": exc.code, "message": exc.message}}
             yield f"data: {json.dumps(payload_err, ensure_ascii=False)}\n\n"
-        except Exception:  # noqa: BLE001 - 流式过程中不得抛出未处理异常
+        except Exception:
             payload_err = {"type": "error", "error": {"code": "INTERNAL_ERROR", "message": "服务异常"}}
             yield f"data: {json.dumps(payload_err, ensure_ascii=False)}\n\n"
         finally:

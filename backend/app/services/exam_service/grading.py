@@ -110,7 +110,7 @@ def external_judge(db: Session, problem: Problem, code: str) -> dict[str, Any] |
     """
     try:
         from app.services import judge_service  # type: ignore
-    except Exception:  # noqa: BLE001 - 依赖尚未就绪时回退本地判题
+    except Exception:
         return None
 
     for name in CANDIDATE_JUDGE_ENTRYPOINTS:
@@ -119,24 +119,20 @@ def external_judge(db: Session, problem: Problem, code: str) -> dict[str, Any] |
             continue
         try:
             result = func_obj(db, problem, code)
-        except Exception:  # noqa: BLE001 - 判题异常不得影响接口，回退本地
+        except Exception:
             continue
         if isinstance(result, dict):
             return result
 
     if callable(getattr(judge_service, "judge_submission", None)):
-        logger.debug(
-            "judge_service 仅提供持久化入口 judge_submission，考试/挑战判分改用本机执行器（无副作用）"
-        )
+        logger.debug("judge_service 仅提供持久化入口 judge_submission，考试/挑战判分改用本机执行器（无副作用）")
     return None
 
 
 def local_judge(db: Session, problem: Problem, code: str) -> dict[str, Any]:
     """本地判题兜底：按测试用例在本机执行器上逐例比对（trimmed）。"""
     cases = list(
-        db.scalars(
-            select(TestCase).where(TestCase.problem_id == problem.id).order_by(TestCase.order_index)
-        ).all()
+        db.scalars(select(TestCase).where(TestCase.problem_id == problem.id).order_by(TestCase.order_index)).all()
     )
     if not cases:
         return {"passed_cases": 0, "total_cases": 0, "accepted": False}
@@ -162,7 +158,7 @@ def local_judge(db: Session, problem: Problem, code: str) -> dict[str, Any]:
             ):
                 passed += 1
         return {"passed_cases": passed, "total_cases": len(cases), "accepted": passed == len(cases)}
-    except Exception as exc:  # noqa: BLE001 - 判题异常不得影响接口
+    except Exception as exc:
         logger.warning("本地判题失败 problem_id=%s: %s", problem.id, exc)
         return {"passed_cases": 0, "total_cases": len(cases), "accepted": False}
 

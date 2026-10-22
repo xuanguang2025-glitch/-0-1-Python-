@@ -6,9 +6,8 @@ from app.core.constants import MAX_STDOUT_CHARS
 from app.models.enums import ProblemType
 from app.models.problem import Problem
 from app.models.submission import SubmissionResult
-from app.utils.text import normalize_output, truncate
-
 from app.services.judge_types import ACCEPTED, WRONG_ANSWER, JudgeOutcome
+from app.utils.text import normalize_output, truncate
 
 
 def _judge_objective(problem: Problem, submitted: object) -> JudgeOutcome:

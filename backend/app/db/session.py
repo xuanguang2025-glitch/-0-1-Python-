@@ -63,7 +63,7 @@ def _register_sqlite_listeners(engine: Engine) -> None:
     """注册 SQLite 连接事件：开启外键约束与 WAL 日志模式。"""
 
     @event.listens_for(engine, "connect")
-    def _on_connect(dbapi_connection: Any, _record: Any) -> None:  # noqa: ANN001
+    def _on_connect(dbapi_connection: Any, _record: Any) -> None:
         cursor = dbapi_connection.cursor()
         try:
             cursor.execute("PRAGMA foreign_keys=ON")
@@ -101,7 +101,7 @@ def ping(timeout_seconds: float = 2.0) -> bool:
         with engine.connect() as connection:
             connection.execute(text("SELECT 1"))
         return True
-    except Exception as exc:  # noqa: BLE001 - 健康检查不应抛出
+    except Exception as exc:
         logger.warning("数据库探活失败: %s", exc)
         return False
 

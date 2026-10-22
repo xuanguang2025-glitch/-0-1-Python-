@@ -9,8 +9,8 @@
 
 from __future__ import annotations
 
-import pytest
 from fastapi.testclient import TestClient
+import pytest
 from sqlalchemy import select
 
 from app.api.endpoints import bookmarks as bookmarks_ep
@@ -120,9 +120,7 @@ def test_mistake_crud_lifecycle(client: TestClient, user_headers: dict[str, str]
     assert detail.status_code == 200
     assert detail.json()["data"]["title"] == "列表推导式写错"
 
-    patched = client.patch(
-        f"/api/mistakes/{mistake_id}", json={"note_md": "改：平方用 **"}, headers=user_headers
-    )
+    patched = client.patch(f"/api/mistakes/{mistake_id}", json={"note_md": "改：平方用 **"}, headers=user_headers)
     assert patched.status_code == 200, patched.text
     assert patched.json()["data"]["note_md"] == "改：平方用 **"
 
@@ -145,9 +143,7 @@ def test_mistake_crud_lifecycle(client: TestClient, user_headers: dict[str, str]
 def test_mistake_list_filters(client: TestClient, user_headers: dict[str, str], seeded) -> None:
     """错题列表支持 `error_type` / `resolved` 组合筛选与分页。"""
     for title, error_type in (("语法错", "syntax"), ("逻辑错", "logic"), ("运行错", "runtime")):
-        resp = client.post(
-            "/api/mistakes", json={"title": title, "error_type": error_type}, headers=user_headers
-        )
+        resp = client.post("/api/mistakes", json={"title": title, "error_type": error_type}, headers=user_headers)
         assert resp.status_code == 200, resp.text
 
     logic = client.post("/api/mistakes", json={"title": "待解决逻辑错", "error_type": "logic"}, headers=user_headers)
@@ -268,13 +264,9 @@ def test_bookmark_requires_code_for_snippet(client: TestClient, user_headers: di
     assert ok.json()["data"]["language"] == "python"
 
 
-def test_bookmark_unknown_kind_falls_back_to_problem(
-    client: TestClient, user_headers: dict[str, str], seeded
-) -> None:
+def test_bookmark_unknown_kind_falls_back_to_problem(client: TestClient, user_headers: dict[str, str], seeded) -> None:
     """非法 `kind` 归一化为 `problem`（不抛错，保证前端容错）。"""
-    resp = client.post(
-        "/api/bookmarks", json={"kind": "not-a-kind", "title": "兜底类型"}, headers=user_headers
-    )
+    resp = client.post("/api/bookmarks", json={"kind": "not-a-kind", "title": "兜底类型"}, headers=user_headers)
     assert resp.status_code == 200, resp.text
     assert resp.json()["data"]["kind"] == "problem"
 

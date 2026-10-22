@@ -147,9 +147,7 @@ def _next_version(
         CodeHistory.context_type == context_type,
         CodeHistory.file_path == file_path,
     ]
-    conditions.append(
-        CodeHistory.context_id.is_(None) if context_id is None else CodeHistory.context_id == context_id
-    )
+    conditions.append(CodeHistory.context_id.is_(None) if context_id is None else CodeHistory.context_id == context_id)
     row = db.execute(
         select(CodeHistory.version_no, CodeHistory.id)
         .where(*conditions)
@@ -168,9 +166,7 @@ def _prune(db: Session, user_id: str, context_type: str, context_id: str | None,
         CodeHistory.context_type == context_type,
         CodeHistory.file_path == file_path,
     ]
-    conditions.append(
-        CodeHistory.context_id.is_(None) if context_id is None else CodeHistory.context_id == context_id
-    )
+    conditions.append(CodeHistory.context_id.is_(None) if context_id is None else CodeHistory.context_id == context_id)
     total = int(db.scalar(select(func.count()).select_from(CodeHistory).where(*conditions)) or 0)
     overflow = total - CODE_HISTORY_KEEP
     if overflow <= 0:

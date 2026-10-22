@@ -56,7 +56,7 @@ def get_deps_health() -> DepsHealthOut:
         cache = get_cache_instance()
         cache_backend = cache.backend
         cache_ok = cache.ping()
-    except Exception as exc:  # noqa: BLE001 - 健康检查不得抛错
+    except Exception as exc:
         cache_detail = str(exc)
     if cache_backend != "redis":
         degraded = True
@@ -66,7 +66,7 @@ def get_deps_health() -> DepsHealthOut:
     queue_backend = "unknown"
     try:
         queue_backend = get_queue_instance().backend
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.warning("队列状态探测失败: %s", exc)
     if queue_backend != "rq":
         degraded = True
@@ -97,7 +97,7 @@ def get_deps_health() -> DepsHealthOut:
             ai_model = str(info.get("model") or ai_model)
         elif bool(info.get("degraded")):
             ai_detail = ai_detail or "AI 子系统已降级"
-    except Exception as exc:  # noqa: BLE001 - 健康检查不得抛错
+    except Exception as exc:
         logger.warning("AI 状态探测失败，回退配置值: %s", exc)
 
     ai_status = AIStatus(

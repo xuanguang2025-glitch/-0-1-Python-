@@ -29,9 +29,7 @@ class Notification(Base, UUIDPkMixin):
         Index("ix_nt_type", "type"),
     )
 
-    user_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     type: Mapped[str] = mapped_column(String(20), default=NotificationType.SYSTEM.value, nullable=False)
     title: Mapped[str] = mapped_column(String(200), default="", nullable=False)
     content_md: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -41,7 +39,7 @@ class Notification(Base, UUIDPkMixin):
     read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
-    user: Mapped["User"] = relationship()  # type: ignore[name-defined]
+    user: Mapped[User] = relationship()  # type: ignore[name-defined]
 
     def mark_read(self) -> None:
         """标记为已读并记录时间（幂等）。"""
@@ -71,7 +69,7 @@ class Announcement(Base, UUIDPkMixin, TimestampMixin):
         String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
 
-    creator: Mapped["User | None"] = relationship(foreign_keys=[created_by])  # type: ignore[name-defined]
+    creator: Mapped[User | None] = relationship(foreign_keys=[created_by])  # type: ignore[name-defined]
 
     @property
     def is_visible(self) -> bool:

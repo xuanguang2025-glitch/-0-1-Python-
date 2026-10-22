@@ -6,9 +6,10 @@
 
 from __future__ import annotations
 
-import logging
 from collections import defaultdict
-from typing import Any, Callable
+from collections.abc import Callable
+import logging
+from typing import Any
 
 logger = logging.getLogger("pythonlab.events")
 
@@ -47,7 +48,7 @@ class EventBus:
         for handler in list(self._handlers.get(event, [])):
             try:
                 handler(data)
-            except Exception:  # noqa: BLE001 - 订阅方失败不得影响主流程
+            except Exception:
                 logger.exception("事件处理失败 event=%s handler=%s", event, getattr(handler, "__name__", handler))
 
     def clear(self) -> None:

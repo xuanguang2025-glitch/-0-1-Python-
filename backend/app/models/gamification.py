@@ -40,9 +40,7 @@ class Achievement(Base, UUIDPkMixin):
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     description: Mapped[str | None] = mapped_column(String(300), nullable=True)
     icon: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    category: Mapped[str] = mapped_column(
-        String(20), default=AchievementCategory.LEARNING.value, nullable=False
-    )
+    category: Mapped[str] = mapped_column(String(20), default=AchievementCategory.LEARNING.value, nullable=False)
     condition_json: Mapped[Any] = mapped_column(
         JSON, default=dict, nullable=False, doc='{"metric":"accepted_count","op":">=","value":1}'
     )
@@ -52,7 +50,7 @@ class Achievement(Base, UUIDPkMixin):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     order_index: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
-    user_achievements: Mapped[list["UserAchievement"]] = relationship(
+    user_achievements: Mapped[list[UserAchievement]] = relationship(
         back_populates="achievement",
         cascade="all, delete-orphan",
     )
@@ -107,17 +105,15 @@ class UserAchievement(Base, UUIDPkMixin):
         Index("ix_ua_seen", "seen"),
     )
 
-    user_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     achievement_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("achievements.id", ondelete="CASCADE"), nullable=False
     )
     unlocked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
     seen: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, doc="是否已弹窗提示")
 
-    user: Mapped["User"] = relationship()  # type: ignore[name-defined]
-    achievement: Mapped["Achievement"] = relationship(back_populates="user_achievements")
+    user: Mapped[User] = relationship()  # type: ignore[name-defined]
+    achievement: Mapped[Achievement] = relationship(back_populates="user_achievements")
 
     def mark_seen(self) -> None:
         """标记为已提示（前端弹窗后调用）。"""
@@ -142,7 +138,7 @@ class DailyTask(Base, UUIDPkMixin):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     order_index: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
-    user_tasks: Mapped[list["UserDailyTask"]] = relationship(
+    user_tasks: Mapped[list[UserDailyTask]] = relationship(
         back_populates="daily_task",
         cascade="all, delete-orphan",
     )
@@ -159,9 +155,7 @@ class UserDailyTask(Base, UUIDPkMixin):
         Index("ix_udt_completed", "completed"),
     )
 
-    user_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     daily_task_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("daily_tasks.id", ondelete="CASCADE"), nullable=False
     )
@@ -170,8 +164,8 @@ class UserDailyTask(Base, UUIDPkMixin):
     completed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    user: Mapped["User"] = relationship()  # type: ignore[name-defined]
-    daily_task: Mapped["DailyTask"] = relationship(back_populates="user_tasks")
+    user: Mapped[User] = relationship()  # type: ignore[name-defined]
+    daily_task: Mapped[DailyTask] = relationship(back_populates="user_tasks")
 
     def bump(self, amount: int = 1, *, target: int | None = None) -> bool:
         """推进任务进度，返回本次是否刚好达成（用于发放 XP 且避免重复发放）。"""
@@ -194,9 +188,7 @@ class XPTransaction(Base, UUIDPkMixin):
         Index("ix_xp_created_at", "created_at"),
     )
 
-    user_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     amount: Mapped[int] = mapped_column(Integer, default=0, nullable=False, doc="正负")
     reason: Mapped[str] = mapped_column(String(60), default="", nullable=False)
     ref_type: Mapped[str | None] = mapped_column(String(30), nullable=True)
@@ -204,7 +196,7 @@ class XPTransaction(Base, UUIDPkMixin):
     balance_after: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
-    user: Mapped["User"] = relationship()  # type: ignore[name-defined]
+    user: Mapped[User] = relationship()  # type: ignore[name-defined]
 
 
 # 说明：achievements / daily_tasks / xp_transactions 按 DATABASE.md §7 无 updated_at，

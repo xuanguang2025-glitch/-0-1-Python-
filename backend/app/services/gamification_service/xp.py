@@ -12,9 +12,7 @@ from app.models.user import User
 from .common import count
 
 
-def list_xp_transactions(
-    db: Session, user: User, params: PageParams
-) -> tuple[list[XPTransaction], int]:
+def list_xp_transactions(db: Session, user: User, params: PageParams) -> tuple[list[XPTransaction], int]:
     """分页返回经验流水。"""
     total = count(db, select(func.count()).select_from(XPTransaction).where(XPTransaction.user_id == user.id))
     rows = list(

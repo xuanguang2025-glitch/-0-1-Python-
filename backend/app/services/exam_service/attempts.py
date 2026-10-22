@@ -39,9 +39,7 @@ def list_exams(db: Session, user: User, level: str | None = None) -> list[ExamBr
     result: list[ExamBrief] = []
     for exam in exams:
         attempts = list(
-            db.scalars(
-                select(ExamAttempt).where(ExamAttempt.user_id == user.id, ExamAttempt.exam_id == exam.id)
-            ).all()
+            db.scalars(select(ExamAttempt).where(ExamAttempt.user_id == user.id, ExamAttempt.exam_id == exam.id)).all()
         )
         best = max((int(a.score or 0) for a in attempts), default=None)
         passed = any(bool(a.passed) for a in attempts)
@@ -187,8 +185,7 @@ def submit_exam(db: Session, user: User, exam_id: str, payload: dict[str, Any]) 
 
     passed = earned >= int(exam.pass_score or 60)
     weak_topics = [
-        {"category": key, "wrong": value}
-        for key, value in sorted(wrong_categories.items(), key=lambda kv: -kv[1])
+        {"category": key, "wrong": value} for key, value in sorted(wrong_categories.items(), key=lambda kv: -kv[1])
     ]
     report = {
         "score": earned,

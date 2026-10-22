@@ -25,9 +25,7 @@ def rank_stats(db: Session, user: User) -> tuple[int | None, int, float]:
     total = int(db.scalar(select(func.count()).select_from(User).where(*base)) or 0)
     if total == 0:
         return None, 0, 0.0
-    higher = int(
-        db.scalar(select(func.count()).select_from(User).where(*base, User.xp > int(user.xp or 0))) or 0
-    )
+    higher = int(db.scalar(select(func.count()).select_from(User).where(*base, User.xp > int(user.xp or 0))) or 0)
     rank = higher + 1
     percentile = round((1 - (rank - 1) / total) * 100, 1) if total else 0.0
     return rank, total, percentile
@@ -57,9 +55,7 @@ def total_seconds(db: Session, user_id: str) -> int:
 
 def submit_stats(db: Session, user_id: str) -> tuple[int, int]:
     """返回 `(提交总数, 通过数)`。"""
-    total = int(
-        db.scalar(select(func.count()).select_from(Submission).where(Submission.user_id == user_id)) or 0
-    )
+    total = int(db.scalar(select(func.count()).select_from(Submission).where(Submission.user_id == user_id)) or 0)
     accepted = int(
         db.scalar(
             select(func.count())
@@ -85,9 +81,7 @@ def solved_count(db: Session, user_id: str) -> int:
     )
 
 
-def mastery_topics(
-    db: Session, user_id: str, *, ascending: bool, limit: int = 1
-) -> list[WeakTopicItem]:
+def mastery_topics(db: Session, user_id: str, *, ascending: bool, limit: int = 1) -> list[WeakTopicItem]:
     """按掌握度排序取知识点（`ascending=True` 取最薄弱）。"""
     order = KnowledgeMastery.mastery_score.asc() if ascending else KnowledgeMastery.mastery_score.desc()
     rows = db.execute(

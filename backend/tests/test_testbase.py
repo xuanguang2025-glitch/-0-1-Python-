@@ -56,10 +56,7 @@ def test_client_factory_reuses_app_within_session(client_factory) -> None:
 def test_seeded_users_have_expected_roles(seeded_users, db) -> None:
     """基座必须同时产出普通用户与超级管理员，且角色 / Profile 正确。"""
     assert seeded_users.user_id != seeded_users.admin_id
-    roles = {
-        user.id: user.role
-        for user in (db.get(User, seeded_users.user_id), db.get(User, seeded_users.admin_id))
-    }
+    roles = {user.id: user.role for user in (db.get(User, seeded_users.user_id), db.get(User, seeded_users.admin_id))}
     assert roles[seeded_users.user_id] == "user"
     assert roles[seeded_users.admin_id] == "superadmin"
     profiles = db.scalars(

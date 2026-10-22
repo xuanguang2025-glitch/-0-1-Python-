@@ -19,7 +19,7 @@ from app.core.pagination import PageParams
 from app.db.base import utc_now
 from app.models.enums import UserProjectStatus
 from app.models.gamification import XPTransaction
-from app.models.project import Project, ProjectFile, UserProject
+from app.models.project import Project, UserProject
 from app.models.user import User
 from app.schemas.project import (
     ProjectBrief,
@@ -105,8 +105,7 @@ def get_project_or_404(db: Session, project_id: str) -> Project:
 def build_detail(db: Session, project: Project, user: User | None) -> ProjectDetail:
     """构造项目详情（含模板文件、步骤、我的进度）。"""
     files = [
-        ProjectFileOut.model_validate(item)
-        for item in sorted(project.files or [], key=lambda row: row.order_index)
+        ProjectFileOut.model_validate(item) for item in sorted(project.files or [], key=lambda row: row.order_index)
     ]
     steps = [
         ProjectStepOut(

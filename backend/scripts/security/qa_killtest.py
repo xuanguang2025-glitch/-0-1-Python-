@@ -40,7 +40,7 @@ def main() -> None:
             "BREAK2 内存库 -> 磁盘库",
             ["tests/test_testbase.py"],
             r'"sqlite://",',
-            'f"sqlite:///{Path(\'data\') / \'qa_break2.db\'}",',
+            "f\"sqlite:///{Path('data') / 'qa_break2.db'}\",",
         ),
         (
             "BREAK3 移除每用例 MemoryCache 注入（限流隔离）",

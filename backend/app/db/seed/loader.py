@@ -15,12 +15,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
+from dataclasses import dataclass, field
 import json
 import logging
-import re
-from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Iterable, TypeVar
+import re
+from typing import Any, TypeVar
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -131,7 +132,7 @@ def load_stage_markdown(stage_no: int) -> dict[str, str]:
     return split_lessons(path.read_text(encoding="utf-8"))
 
 
-def upsert(
+def upsert[T](
     db: Session,
     model: type[T],
     lookup: dict[str, Any],
@@ -174,7 +175,7 @@ def flush(db: Session) -> None:
     db.flush()
 
 
-def chunked(items: Iterable[T], size: int) -> Iterable[list[T]]:
+def chunked[T](items: Iterable[T], size: int) -> Iterable[list[T]]:
     """把可迭代对象按 `size` 分批（大表批量写入用）。"""
     batch: list[T] = []
     for item in items:

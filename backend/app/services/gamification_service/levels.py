@@ -29,7 +29,7 @@ def level_info(xp: int) -> dict[str, Any]:
     current = thresholds[level - 1] if level - 1 < len(thresholds) else thresholds[-1]
     nxt = next_level_xp(int(xp or 0), thresholds)
     span = max(1, nxt - current)
-    percent = 100 if int(xp or 0) >= thresholds[-1] else int(round((int(xp or 0) - current) / span * 100))
+    percent = 100 if int(xp or 0) >= thresholds[-1] else round((int(xp or 0) - current) / span * 100)
     return {
         "level": level,
         "level_name": level_name(level),

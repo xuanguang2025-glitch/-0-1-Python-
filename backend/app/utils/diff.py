@@ -74,14 +74,16 @@ def build_hunks(left: str, right: str, *, context: int = 3) -> list[dict[str, An
 
 def similarity_ratio(left: str, right: str) -> float:
     """计算两段文本的相似度（0.0 - 1.0），用于模糊对比或抄袭初筛。"""
-    return difflib.SequenceMatcher(a=normalize_newlines(left or ""), b=normalize_newlines(right or ""), autojunk=False).ratio()
+    return difflib.SequenceMatcher(
+        a=normalize_newlines(left or ""), b=normalize_newlines(right or ""), autojunk=False
+    ).ratio()
 
 
 def first_difference_line(left: str, right: str) -> int | None:
     """返回首个不同行的行号（1 起）；完全一致时返回 None。"""
     left_lines = normalize_newlines(left or "").splitlines()
     right_lines = normalize_newlines(right or "").splitlines()
-    for index, (a, b) in enumerate(zip(left_lines, right_lines), start=1):
+    for index, (a, b) in enumerate(zip(left_lines, right_lines, strict=False), start=1):
         if a != b:
             return index
     if len(left_lines) != len(right_lines):

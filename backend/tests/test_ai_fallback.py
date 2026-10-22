@@ -112,9 +112,7 @@ def test_fallback_on_http_500() -> None:
     transport = httpx.MockTransport(lambda request: httpx.Response(500, json={"error": "boom"}))
     resilient = ResilientProvider(_primary_with(transport), RuleBasedProvider())
 
-    response = asyncio.run(
-        resilient.chat([ChatMessage(role="user", content="这段代码为什么报错")], task="qa")
-    )
+    response = asyncio.run(resilient.chat([ChatMessage(role="user", content="这段代码为什么报错")], task="qa"))
     assert response.degraded is True
     assert response.provider == "rule_based"
     assert response.content.strip() != ""
@@ -169,9 +167,7 @@ def test_fallback_on_all_http_error_status(status_code: int) -> None:
 def test_fallback_on_malformed_json() -> None:
     """200 但响应不是合法 JSON → 回落。"""
     transport = httpx.MockTransport(
-        lambda request: httpx.Response(
-            200, content=b"not-a-json", headers={"content-type": "application/json"}
-        )
+        lambda request: httpx.Response(200, content=b"not-a-json", headers={"content-type": "application/json"})
     )
     resilient = ResilientProvider(_primary_with(transport), RuleBasedProvider())
     response = asyncio.run(resilient.chat([ChatMessage(role="user", content="hi")], task="qa"))

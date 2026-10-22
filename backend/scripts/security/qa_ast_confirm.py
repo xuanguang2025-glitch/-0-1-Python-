@@ -6,10 +6,9 @@
 
 from __future__ import annotations
 
-import os
+from pathlib import Path
 import sys
 import tempfile
-from pathlib import Path
 
 BACKEND = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(BACKEND))
@@ -119,9 +118,7 @@ print()
 print("=" * 78)
 print("复核 5：os.makedirs 是否可任意建目录")
 print("=" * 78)
-r = run_local(
-    {"main.py": "import os\nos.makedirs('../qa_escape_dir', exist_ok=True)\nprint('MKDIR_OK')"}, "main.py"
-)
+r = run_local({"main.py": "import os\nos.makedirs('../qa_escape_dir', exist_ok=True)\nprint('MKDIR_OK')"}, "main.py")
 show("os.makedirs", r)
 d = PARENT / "qa_escape_dir"
 print(f"  [{'**FAIL**' if d.exists() else 'PASS'}] 目录是否被创建：{d.exists()}")

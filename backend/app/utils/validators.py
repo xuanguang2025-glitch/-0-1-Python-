@@ -25,9 +25,7 @@ _WINDOWS_DRIVE_RE = r"^[A-Za-z]:"
 _ABSOLUTE_PREFIXES = ("/", "\\")
 
 
-def validate_relative_path(
-    path: str, *, allow_hidden: bool = False, allow_reserved: bool = False
-) -> str:
+def validate_relative_path(path: str, *, allow_hidden: bool = False, allow_reserved: bool = False) -> str:
     """校验并返回安全的相对路径（禁止绝对路径、盘符、`..` 与隐藏目录）。
 
     安全相关：沙箱保留名（`_plab_guard.py` / `__plab_boot__.py`）同样在此拒绝 ——

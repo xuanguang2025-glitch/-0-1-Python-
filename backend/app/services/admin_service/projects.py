@@ -19,9 +19,7 @@ def list_projects(db: Session, params: PageParams) -> tuple[list[Project], int]:
     """项目列表。"""
     total = int(db.scalar(select(func.count()).select_from(Project)) or 0)
     rows = list(
-        db.scalars(
-            select(Project).order_by(Project.order_index.asc()).offset(params.offset).limit(params.limit)
-        ).all()
+        db.scalars(select(Project).order_by(Project.order_index.asc()).offset(params.offset).limit(params.limit)).all()
     )
     return rows, total
 
@@ -37,9 +35,7 @@ def create_project(db: Session, actor: User, payload: dict[str, Any], meta: dict
     return project
 
 
-def update_project(
-    db: Session, actor: User, project_id: str, payload: dict[str, Any], meta: dict[str, Any]
-) -> Project:
+def update_project(db: Session, actor: User, project_id: str, payload: dict[str, Any], meta: dict[str, Any]) -> Project:
     """更新项目。"""
     project = get_or_404(db, Project, project_id, ErrorCode.PROJECT_NOT_FOUND, "项目不存在")
     apply_fields(project, payload)
@@ -57,9 +53,7 @@ def delete_project(db: Session, actor: User, project_id: str, meta: dict[str, An
     db.commit()
 
 
-def create_project_file(
-    db: Session, actor: User, payload: dict[str, Any], meta: dict[str, Any]
-) -> ProjectFile:
+def create_project_file(db: Session, actor: User, payload: dict[str, Any], meta: dict[str, Any]) -> ProjectFile:
     """新建项目文件。"""
     item = ProjectFile(**payload)
     db.add(item)

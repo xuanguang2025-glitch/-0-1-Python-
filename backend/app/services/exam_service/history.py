@@ -17,9 +17,7 @@ from .attempts import get_attempt
 
 def list_attempts(db: Session, user: User, params: PageParams) -> tuple[list[ExamAttemptBrief], int]:
     """`GET /exams/attempts`：作答历史分页。"""
-    total = int(
-        db.scalar(select(func.count()).select_from(ExamAttempt).where(ExamAttempt.user_id == user.id)) or 0
-    )
+    total = int(db.scalar(select(func.count()).select_from(ExamAttempt).where(ExamAttempt.user_id == user.id)) or 0)
     rows = list(
         db.scalars(
             select(ExamAttempt)

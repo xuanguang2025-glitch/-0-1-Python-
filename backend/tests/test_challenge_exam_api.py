@@ -10,8 +10,8 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-import pytest
 from fastapi.testclient import TestClient
+import pytest
 
 from app.api.endpoints import challenges as challenges_ep
 from app.api.endpoints import exams as exams_ep
@@ -344,8 +344,7 @@ def test_exam_start_save_and_submit(client: TestClient, user_headers: dict[str, 
 
     # 列表与历史回填最好成绩
     brief = next(
-        item for item in client.get("/api/exams", headers=user_headers).json()["data"]
-        if item["id"] == exam_id
+        item for item in client.get("/api/exams", headers=user_headers).json()["data"] if item["id"] == exam_id
     )
     assert brief["my_best_score"] == 20 and brief["my_passed"] is True
 
@@ -398,9 +397,7 @@ def test_exam_unknown_returns_404(client: TestClient, user_headers: dict[str, st
 # ---------------------------------------------------------------------------
 
 
-def test_notification_unread_read_all_and_delete(
-    client: TestClient, user_headers: dict[str, str], db, seeded
-) -> None:
+def test_notification_unread_read_all_and_delete(client: TestClient, user_headers: dict[str, str], db, seeded) -> None:
     """通知：未读数 → 标记单条已读 → 全部已读 → 删除。"""
     me = db.query(User).filter(User.email == "tester@pythonlab.dev").one()
     for index in range(3):
@@ -433,9 +430,7 @@ def test_notification_unread_read_all_and_delete(
     assert client.get("/api/notifications", headers=user_headers).json()["data"]["total"] == 3
 
 
-def test_notification_read_all_filtered_by_type(
-    client: TestClient, user_headers: dict[str, str], db, seeded
-) -> None:
+def test_notification_read_all_filtered_by_type(client: TestClient, user_headers: dict[str, str], db, seeded) -> None:
     """read-all 支持按类型批量，只影响该类型。"""
     me = db.query(User).filter(User.email == "tester@pythonlab.dev").one()
     db.add_all(

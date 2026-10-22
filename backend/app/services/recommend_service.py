@@ -86,9 +86,7 @@ def recommend_review(db: Session, user: User, limit: int = 10) -> list[Recommend
     if topic_ids:
         name_map = {
             str(topic_id): name
-            for topic_id, name in db.execute(
-                select(Topic.id, Topic.name).where(Topic.id.in_(topic_ids))
-            ).all()
+            for topic_id, name in db.execute(select(Topic.id, Topic.name).where(Topic.id.in_(topic_ids))).all()
         }
     for record, _ in due_rows:
         items.append(
@@ -147,7 +145,9 @@ def recommend_advice(db: Session, user: User) -> list[RecommendationItem]:
 
     if int(user.streak_days or 0) == 0:
         advice.append(
-            RecommendationItem(type="habit", id=None, title="今天还没有学习记录", reason="先完成任意一节课程即可续上连续天数")
+            RecommendationItem(
+                type="habit", id=None, title="今天还没有学习记录", reason="先完成任意一节课程即可续上连续天数"
+            )
         )
 
     weak = mastery_service.weak_topics(db, user, 3)
@@ -163,9 +163,7 @@ def recommend_advice(db: Session, user: User) -> list[RecommendationItem]:
 
     pending_mistakes = int(
         db.scalar(
-            select(func.count())
-            .select_from(Mistake)
-            .where(Mistake.user_id == user.id, Mistake.resolved.is_(False))
+            select(func.count()).select_from(Mistake).where(Mistake.user_id == user.id, Mistake.resolved.is_(False))
         )
         or 0
     )
@@ -208,9 +206,7 @@ def _problem_brief(db: Session, problem: Problem) -> ProblemBrief:
     """ORM 题目 → `ProblemBrief`（附带标签名）。"""
     tag_names = list(
         db.scalars(
-            select(Tag.name)
-            .join(ProblemTag, ProblemTag.tag_id == Tag.id)
-            .where(ProblemTag.problem_id == problem.id)
+            select(Tag.name).join(ProblemTag, ProblemTag.tag_id == Tag.id).where(ProblemTag.problem_id == problem.id)
         ).all()
     )
     return ProblemBrief(

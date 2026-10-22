@@ -8,9 +8,9 @@
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
 from datetime import datetime
+import logging
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -32,11 +32,11 @@ from app.models.user import Profile, RefreshToken, User
 from app.schemas.auth import (
     ChangePasswordRequest,
     LoginRequest,
+    ProfileBrief,
     RegisterRequest,
     TokenPair,
     UserBrief,
     UserMe,
-    ProfileBrief,
 )
 from app.utils.time import is_expired
 

@@ -13,7 +13,7 @@ from app.services.ai.rule_based import RuleBasedProvider
 TRACEBACK_CASES: list[tuple[str, str, int, str]] = [
     (
         "SyntaxError",
-        '  File "main.py", line 1\n    print(\'hello\'\n         ^\nSyntaxError: \'(\' was never closed',
+        "  File \"main.py\", line 1\n    print('hello'\n         ^\nSyntaxError: '(' was never closed",
         1,
         "SyntaxError: '(' was never closed",
     ),
@@ -25,7 +25,7 @@ TRACEBACK_CASES: list[tuple[str, str, int, str]] = [
     ),
     (
         "NameError",
-        'Traceback (most recent call last):\n  File "main.py", line 3, in <module>\n    print(total)\nNameError: name \'total\' is not defined',
+        "Traceback (most recent call last):\n  File \"main.py\", line 3, in <module>\n    print(total)\nNameError: name 'total' is not defined",
         3,
         "NameError: name 'total' is not defined",
     ),
@@ -55,7 +55,7 @@ TRACEBACK_CASES: list[tuple[str, str, int, str]] = [
     ),
     (
         "AttributeError",
-        'Traceback (most recent call last):\n  File "main.py", line 4, in <module>\n    s.upper()\nAttributeError: \'NoneType\' object has no attribute \'upper\'',
+        "Traceback (most recent call last):\n  File \"main.py\", line 4, in <module>\n    s.upper()\nAttributeError: 'NoneType' object has no attribute 'upper'",
         4,
         "AttributeError: 'NoneType' object has no attribute 'upper'",
     ),
@@ -73,7 +73,7 @@ TRACEBACK_CASES: list[tuple[str, str, int, str]] = [
     ),
     (
         "ImportError",  # ModuleNotFoundError 归一化为 ImportError
-        'Traceback (most recent call last):\n  File "main.py", line 1, in <module>\n    import pandas\nModuleNotFoundError: No module named \'pandas\'',
+        "Traceback (most recent call last):\n  File \"main.py\", line 1, in <module>\n    import pandas\nModuleNotFoundError: No module named 'pandas'",
         1,
         "ModuleNotFoundError: No module named 'pandas'",
     ),

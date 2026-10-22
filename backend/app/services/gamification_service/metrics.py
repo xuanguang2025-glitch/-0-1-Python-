@@ -143,9 +143,9 @@ def build_metrics(db: Session, user: User, event: dict[str, Any] | None = None) 
     hours = {
         moment.hour
         for moment in db.scalars(
-            select(LearningSession.started_at).where(
-                LearningSession.user_id == uid, LearningSession.started_at >= since
-            ).limit(1000)
+            select(LearningSession.started_at)
+            .where(LearningSession.user_id == uid, LearningSession.started_at >= since)
+            .limit(1000)
         ).all()
         if moment is not None
     }

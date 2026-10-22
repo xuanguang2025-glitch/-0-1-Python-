@@ -173,9 +173,7 @@ def _get_owned(db: Session, submission_id: str, user: User, *, allow_admin: bool
     raise forbidden("无权访问该提交")
 
 
-def _build_out(
-    db: Session, submission: Submission, user: User, *, include_results: bool
-) -> SubmissionOut:
+def _build_out(db: Session, submission: Submission, user: User, *, include_results: bool) -> SubmissionOut:
     """构造提交详情，对隐藏用例的期望/实际输出脱敏。"""
     results: list[SubmissionResultOut] = []
     if include_results:

@@ -6,9 +6,6 @@ from app.core.constants import MAX_STDOUT_CHARS
 from app.db.base import utc_now
 from app.models.problem import Problem
 from app.models.submission import SubmissionResult
-from app.services.sandbox_client import ExecutionResult, compare_output, get_sandbox_client
-from app.utils.text import truncate
-
 from app.services.judge_types import (
     ACCEPTED,
     WRONG_ANSWER,
@@ -17,6 +14,8 @@ from app.services.judge_types import (
     _map_status,
     _status_label,
 )
+from app.services.sandbox_client import ExecutionResult, compare_output, get_sandbox_client
+from app.utils.text import truncate
 
 
 def _judge_coding(problem: Problem, code: str) -> JudgeOutcome:
@@ -120,7 +119,7 @@ def _outcome_from_cases(problem: Problem, cases: list[dict[str, object]], result
     if status == ACCEPTED:
         score = int(problem.score or 0)
     elif total_weight:
-        score = int(round(int(problem.score or 0) * passed_weight / total_weight))
+        score = round(int(problem.score or 0) * passed_weight / total_weight)
     else:
         score = 0
     return JudgeOutcome(

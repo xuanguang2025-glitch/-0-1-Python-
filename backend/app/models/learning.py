@@ -26,8 +26,8 @@ from app.models.enums import (
     CodeContextType,
     CodeSource,
     LearningMode,
-    MistakeErrorType,
     MasteryLevel,
+    MistakeErrorType,
     ProgressStatus,
     SessionType,
 )
@@ -50,12 +50,8 @@ class LearningProgress(Base, UUIDPkMixin):
         Index("ix_lp_completed_at", "completed_at"),
     )
 
-    user_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
-    lesson_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("lessons.id", ondelete="CASCADE"), nullable=False
-    )
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    lesson_id: Mapped[str] = mapped_column(String(36), ForeignKey("lessons.id", ondelete="CASCADE"), nullable=False)
     status: Mapped[str] = mapped_column(String(20), default=ProgressStatus.NOT_STARTED.value, nullable=False)
     progress_percent: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     time_spent_seconds: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
@@ -67,8 +63,8 @@ class LearningProgress(Base, UUIDPkMixin):
         DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False
     )
 
-    user: Mapped["User"] = relationship()
-    lesson: Mapped["Lesson"] = relationship(back_populates="progresses")
+    user: Mapped[User] = relationship()
+    lesson: Mapped[Lesson] = relationship(back_populates="progresses")
 
     @property
     def is_completed(self) -> bool:
@@ -102,12 +98,8 @@ class KnowledgeMastery(Base, UUIDPkMixin):
         Index("ix_km_next_review", "next_review_at"),
     )
 
-    user_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
-    topic_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("topics.id", ondelete="CASCADE"), nullable=False
-    )
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    topic_id: Mapped[str] = mapped_column(String(36), ForeignKey("topics.id", ondelete="CASCADE"), nullable=False)
     mastery_score: Mapped[float] = mapped_column(Float, default=0.0, nullable=False, doc="0-100")
     mastery_level: Mapped[str] = mapped_column(String(20), default=MasteryLevel.NONE.value, nullable=False)
     practiced_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
@@ -119,8 +111,8 @@ class KnowledgeMastery(Base, UUIDPkMixin):
         DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False
     )
 
-    user: Mapped["User"] = relationship()
-    topic: Mapped["Topic"] = relationship()
+    user: Mapped[User] = relationship()
+    topic: Mapped[Topic] = relationship()
 
     def apply_result(self, correct: bool) -> float:
         """应用一次答题结果，更新分数 / 级别 / 复习时间，返回最新分数。
@@ -166,9 +158,7 @@ class Mistake(Base, UUIDPkMixin, TimestampMixin):
         Index("ix_mk_created_at", "created_at"),
     )
 
-    user_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     problem_id: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("problems.id", ondelete="SET NULL"), nullable=True
     )
@@ -183,9 +173,7 @@ class Mistake(Base, UUIDPkMixin, TimestampMixin):
     question_snapshot_md: Mapped[str | None] = mapped_column(Text, nullable=True, doc="题干快照（题目可改）")
     user_answer: Mapped[str | None] = mapped_column(Text, nullable=True, doc="用户答案/代码")
     correct_answer: Mapped[str | None] = mapped_column(Text, nullable=True)
-    error_type: Mapped[str] = mapped_column(
-        String(30), default=MistakeErrorType.LOGIC.value, nullable=False
-    )
+    error_type: Mapped[str] = mapped_column(String(30), default=MistakeErrorType.LOGIC.value, nullable=False)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     note_md: Mapped[str | None] = mapped_column(Text, nullable=True, doc="用户笔记")
     resolved: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
@@ -193,7 +181,7 @@ class Mistake(Base, UUIDPkMixin, TimestampMixin):
     review_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     next_review_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    user: Mapped["User"] = relationship()
+    user: Mapped[User] = relationship()
 
     def resolve(self, resolved: bool = True) -> None:
         """标记已掌握 / 取消掌握。"""
@@ -218,9 +206,7 @@ class Bookmark(Base, UUIDPkMixin):
         Index("ix_bm_created_at", "created_at"),
     )
 
-    user_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     kind: Mapped[str] = mapped_column(String(20), default=BookmarkKind.PROBLEM.value, nullable=False)
     ref_id: Mapped[str | None] = mapped_column(String(36), nullable=True, doc="被收藏对象 id")
     title: Mapped[str] = mapped_column(String(200), default="", nullable=False)
@@ -231,7 +217,7 @@ class Bookmark(Base, UUIDPkMixin):
     tags_json: Mapped[Any | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
-    user: Mapped["User"] = relationship()
+    user: Mapped[User] = relationship()
 
     @property
     def tags(self) -> list[str]:
@@ -249,12 +235,8 @@ class CodeHistory(Base, UUIDPkMixin):
         Index("ix_ch_created_at", "created_at"),
     )
 
-    user_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
-    context_type: Mapped[str] = mapped_column(
-        String(20), default=CodeContextType.PLAYGROUND.value, nullable=False
-    )
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    context_type: Mapped[str] = mapped_column(String(20), default=CodeContextType.PLAYGROUND.value, nullable=False)
     context_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
     file_path: Mapped[str] = mapped_column(String(255), default="main.py", nullable=False)
     code: Mapped[str] = mapped_column(Text, default="", nullable=False)
@@ -267,7 +249,7 @@ class CodeHistory(Base, UUIDPkMixin):
     size_bytes: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
-    user: Mapped["User"] = relationship()
+    user: Mapped[User] = relationship()
 
     @property
     def line_count(self) -> int:
@@ -286,9 +268,7 @@ class LearningSession(Base, UUIDPkMixin):
         Index("ix_ls_type", "session_type"),
     )
 
-    user_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     session_type: Mapped[str] = mapped_column(String(20), default=SessionType.LESSON.value, nullable=False)
     learning_mode: Mapped[str] = mapped_column(String(20), default=LearningMode.SYSTEM.value, nullable=False)
     ref_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
@@ -298,7 +278,7 @@ class LearningSession(Base, UUIDPkMixin):
     xp_earned: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     actions_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False, doc="提交 / 运行次数")
 
-    user: Mapped["User"] = relationship()
+    user: Mapped[User] = relationship()
 
     def close(self, *, duration_seconds: int | None = None) -> int:
         """结束会话并返回本次时长（秒）。"""

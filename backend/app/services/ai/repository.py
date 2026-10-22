@@ -76,11 +76,7 @@ def list_conversations(
 
 def get_messages(db: Session, conversation_id: str) -> list[AIMessage]:
     """取会话内全部消息（按创建时间升序）。"""
-    stmt = (
-        select(AIMessage)
-        .where(AIMessage.conversation_id == conversation_id)
-        .order_by(AIMessage.created_at.asc())
-    )
+    stmt = select(AIMessage).where(AIMessage.conversation_id == conversation_id).order_by(AIMessage.created_at.asc())
     return list(db.scalars(stmt).all())
 
 

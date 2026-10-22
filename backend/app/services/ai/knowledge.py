@@ -99,8 +99,7 @@ QA_TEMPLATES: list[tuple[tuple[str, ...], str]] = [
     ),
     (
         ("虚拟环境", "venv", "pip"),
-        "用 `python -m venv .venv` 创建隔离环境，激活后 `pip install` 的包只装在该环境。\n"
-        "避免污染全局 Python。",
+        "用 `python -m venv .venv` 创建隔离环境，激活后 `pip install` 的包只装在该环境。\n" "避免污染全局 Python。",
     ),
 ]
 
@@ -176,9 +175,9 @@ def generate_plan(goal: str = "系统掌握 Python", days: int = 7) -> str:
     for day in range(1, total + 1):
         focus = phases[(day - 1) % len(phases)]
         lines.append(f"**第 {day} 天 · {focus}**")
-        lines.append(f"- 学习：完成对应课时与示例代码（约 40 分钟）")
-        lines.append(f"- 练习：完成 2~3 道相关题目（约 40 分钟）")
-        lines.append(f"- 复盘：整理错题与知识点笔记（约 10 分钟）")
+        lines.append("- 学习：完成对应课时与示例代码（约 40 分钟）")
+        lines.append("- 练习：完成 2~3 道相关题目（约 40 分钟）")
+        lines.append("- 复盘：整理错题与知识点笔记（约 10 分钟）")
         lines.append("")
     lines.append("> 每天建议 90 分钟，坚持比时长更重要。")
     return "\n".join(lines)
@@ -206,9 +205,9 @@ def generate_tests(code: str) -> str:
         arg_names = [p.split("=")[0].strip() for p in params.split(",") if p.strip()]
         args_repr = ", ".join("0" for _ in arg_names)
         lines.append(f"def test_{name}_basic():")
-        lines.append(f"    # TODO: 用真实输入替换占位参数")
+        lines.append("    # TODO: 用真实输入替换占位参数")
         lines.append(f"    result = {name}({args_repr})")
-        lines.append(f"    assert result is not None")
+        lines.append("    assert result is not None")
         lines.append("")
     lines.append("# 建议再补充边界与异常用例：")
     lines.append("def test_edge_case():")

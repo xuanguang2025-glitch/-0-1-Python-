@@ -25,8 +25,8 @@ from __future__ import annotations
 import sys
 from typing import Any
 
-import pytest
 from fastapi.testclient import TestClient
+import pytest
 
 from app.api.endpoints import editor
 from app.core.errors import AppError, ErrorCode
@@ -168,8 +168,7 @@ def test_local_runner_scans_reserved_names(name: str) -> None:
     assert "PWNED_VIA_RESERVED_NAME" not in (response.stdout or "")
     # 载荷故意含多种违规（chdir / 绝对路径读），命中任意一条即算拦截成功
     assert response.error and any(
-        rule in response.error
-        for rule in ("dangerous_attribute", "dangerous_module_attribute", "open_absolute_path")
+        rule in response.error for rule in ("dangerous_attribute", "dangerous_module_attribute", "open_absolute_path")
     ), response.error
 
 

@@ -5,8 +5,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 import re
-from typing import Iterable
 
 _EMAIL_RE: re.Pattern[str] = re.compile(r"([A-Za-z0-9._%+-]+)@([A-Za-z0-9.-]+\.[A-Za-z]{2,})")
 _MULTI_BLANK_RE: re.Pattern[str] = re.compile(r"\n{3,}")
@@ -45,12 +45,10 @@ def truncate_bytes(text: str, limit_bytes: int) -> str:
 
 def mask_email(email: str) -> str:
     """脱敏邮箱：`zhangsan@example.com` → `z***n@example.com`。"""
+
     def _replace(match: re.Match[str]) -> str:
         name, domain = match.group(1), match.group(2)
-        if len(name) <= 2:
-            masked = name[0] + "***"
-        else:
-            masked = f"{name[0]}***{name[-1]}"
+        masked = name[0] + "***" if len(name) <= 2 else f"{name[0]}***{name[-1]}"
         return f"{masked}@{domain}"
 
     return _EMAIL_RE.sub(_replace, email or "")

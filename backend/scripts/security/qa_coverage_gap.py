@@ -7,13 +7,13 @@ from __future__ import annotations
 
 import collections
 import glob
+from pathlib import Path
 import re
 import sys
-from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from app.main import app  # noqa: E402
+from app.main import app
 
 METHODS = {"get", "post", "put", "patch", "delete"}
 
@@ -33,7 +33,7 @@ def template_matches(template: str, actual: str) -> bool:
     a = clean(actual).split("/")
     if len(t) != len(a):
         return False
-    for seg_t, seg_a in zip(t, a):
+    for seg_t, seg_a in zip(t, a, strict=False):
         if seg_t.startswith("{") and seg_t.endswith("}"):
             continue
         if seg_t != seg_a:
@@ -47,7 +47,7 @@ def main() -> None:
     for name in sorted(glob.glob("tests/test_*.py")):
         if "qa_" in name:
             continue  # 排除 QA 自己的探测脚本
-        src = open(name, encoding="utf-8").read()
+        src = Path(name).read_text(encoding="utf-8")
         for match in re.finditer(r"""\.(get|post|put|patch|delete)\(\s*f?["']([^"']*)["']""", src):
             called.append((match.group(1), clean(match.group(2))))
 

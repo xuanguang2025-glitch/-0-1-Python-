@@ -6,12 +6,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
+from contextlib import suppress
 import io
+from pathlib import Path
 import shutil
 import tempfile
 import zipfile
-from pathlib import Path
-from typing import Iterable, Mapping
 
 from app.utils.validators import validate_relative_path
 
@@ -23,15 +24,11 @@ def make_temp_dir(prefix: str = "plab_") -> Path:
 
 def cleanup_dir(path: str | Path) -> None:
     """递归删除目录，任何异常都忽略（用于 finally 清理）。"""
-    try:
+    with suppress(Exception):
         shutil.rmtree(path, ignore_errors=True)
-    except Exception:  # noqa: BLE001 - 清理失败不影响主流程
-        pass
 
 
-def write_files(
-    base_dir: str | Path, files: Mapping[str, str], *, allow_reserved: bool = False
-) -> list[Path]:
+def write_files(base_dir: str | Path, files: Mapping[str, str], *, allow_reserved: bool = False) -> list[Path]:
     """把 `{相对路径: 内容}` 落盘到临时目录，返回写入的绝对路径列表。
 
     Args:

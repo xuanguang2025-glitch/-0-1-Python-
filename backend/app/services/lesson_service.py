@@ -6,8 +6,8 @@
 
 from __future__ import annotations
 
-import logging
 from collections.abc import Sequence
+import logging
 from typing import Any
 
 from sqlalchemy import select
@@ -21,12 +21,12 @@ from app.models.enums import ProgressStatus
 from app.models.learning import KnowledgeMastery, LearningProgress
 from app.models.user import User
 from app.schemas.course import (
+    LearningProgressOut,
     LessonBrief,
     LessonCompleteOut,
     LessonDetail,
     LessonNav,
     LessonProgressRequest,
-    LearningProgressOut,
     QuizResultDetail,
     QuizResultOut,
     QuizSubmitRequest,
@@ -51,7 +51,9 @@ def get_lesson(db: Session, lesson_id: str) -> Lesson:
         )
     ).one_or_none()
     if lesson is None:
-        raise AppError(code=ErrorCode.LESSON_NOT_FOUND, message="课时不存在", status_code=404, details=f"id={lesson_id}")
+        raise AppError(
+            code=ErrorCode.LESSON_NOT_FOUND, message="课时不存在", status_code=404, details=f"id={lesson_id}"
+        )
     return lesson
 
 
@@ -66,18 +68,14 @@ def build_lesson_detail(db: Session, lesson: Lesson, user: User | None) -> Lesso
     next_lesson = ordered[lesson_index + 1] if lesson_index + 1 < len(ordered) else None
 
     published_chapters = [item for item in (course.chapters or []) if item.is_published]
-    chapter_index = next(
-        (idx for idx, item in enumerate(published_chapters) if item.id == chapter.id), 0
-    )
+    chapter_index = next((idx for idx, item in enumerate(published_chapters) if item.id == chapter.id), 0)
 
     nav_ids = [item.id for item in (prev_lesson, next_lesson) if item is not None]
-    nav_progress = course_service._lesson_progress_map(db, user, nav_ids)  # noqa: SLF001 - 复用同包进度映射
+    nav_progress = course_service._lesson_progress_map(db, user, nav_ids)
     progress = None
     if user is not None:
         progress = db.scalars(
-            select(LearningProgress).where(
-                LearningProgress.user_id == user.id, LearningProgress.lesson_id == lesson.id
-            )
+            select(LearningProgress).where(LearningProgress.user_id == user.id, LearningProgress.lesson_id == lesson.id)
         ).one_or_none()
 
     return LessonDetail(
@@ -97,8 +95,12 @@ def build_lesson_detail(db: Session, lesson: Lesson, user: User | None) -> Lesso
         solution_code=lesson.solution_code,
         quiz_json=lesson.quiz_json,
         topics=_lesson_topics(db, lesson, user),
-        prev=course_service.lesson_to_brief(prev_lesson, nav_progress.get(str(prev_lesson.id))) if prev_lesson else None,
-        next=course_service.lesson_to_brief(next_lesson, nav_progress.get(str(next_lesson.id))) if next_lesson else None,
+        prev=(
+            course_service.lesson_to_brief(prev_lesson, nav_progress.get(str(prev_lesson.id))) if prev_lesson else None
+        ),
+        next=(
+            course_service.lesson_to_brief(next_lesson, nav_progress.get(str(next_lesson.id))) if next_lesson else None
+        ),
         progress=_progress_out(progress) if progress else None,
         course_id=course.id,
         course_title=course.title,
@@ -107,8 +109,12 @@ def build_lesson_detail(db: Session, lesson: Lesson, user: User | None) -> Lesso
         chapter_index=chapter_index,
         lesson_index=lesson_index,
         total_lessons=len(ordered),
-        prev_lesson=LessonNav(id=prev_lesson.id, title=prev_lesson.title, slug=prev_lesson.slug) if prev_lesson else None,
-        next_lesson=LessonNav(id=next_lesson.id, title=next_lesson.title, slug=next_lesson.slug) if next_lesson else None,
+        prev_lesson=(
+            LessonNav(id=prev_lesson.id, title=prev_lesson.title, slug=prev_lesson.slug) if prev_lesson else None
+        ),
+        next_lesson=(
+            LessonNav(id=next_lesson.id, title=next_lesson.title, slug=next_lesson.slug) if next_lesson else None
+        ),
         course_outline=course_service.build_chapter_tree(db, course, user),
     )
 
@@ -128,7 +134,7 @@ def get_next_lesson(db: Session, lesson: Lesson, user: User | None = None) -> Le
     if index is None or index + 1 >= len(ordered):
         return None
     nxt = ordered[index + 1]
-    progress_map = course_service._lesson_progress_map(db, user, [nxt.id])  # noqa: SLF001
+    progress_map = course_service._lesson_progress_map(db, user, [nxt.id])
     return course_service.lesson_to_brief(nxt, progress_map.get(str(nxt.id)))
 
 
@@ -163,9 +169,7 @@ def complete_lesson(
     )
 
     # 触发主知识点掌握度（完成即视为正向练习）
-    primary_topic_ids = [
-        link.topic_id for link in (lesson.lesson_topics or []) if link.is_primary
-    ]
+    primary_topic_ids = [link.topic_id for link in (lesson.lesson_topics or []) if link.is_primary]
     if primary_topic_ids:
         mastery_service.touch_topics(db, user, primary_topic_ids, correct=True)
 
@@ -245,7 +249,9 @@ def _lesson_topics(db: Session, lesson: Lesson, user: User | None) -> list[Topic
             description=link.topic.description,
             order_index=link.topic.order_index,
             is_primary=bool(link.is_primary),
-            mastery_score=float(mastery_map[str(link.topic_id)].mastery_score) if str(link.topic_id) in mastery_map else None,
+            mastery_score=(
+                float(mastery_map[str(link.topic_id)].mastery_score) if str(link.topic_id) in mastery_map else None
+            ),
             mastery_level=mastery_map[str(link.topic_id)].mastery_level if str(link.topic_id) in mastery_map else None,
         )
         for link in links
@@ -256,9 +262,7 @@ def _lesson_topics(db: Session, lesson: Lesson, user: User | None) -> list[Topic
 def _get_or_create_progress(db: Session, user: User, lesson: Lesson) -> LearningProgress:
     """取用户对某课时的进度记录，缺失时创建并 flush。"""
     record = db.scalars(
-        select(LearningProgress).where(
-            LearningProgress.user_id == user.id, LearningProgress.lesson_id == lesson.id
-        )
+        select(LearningProgress).where(LearningProgress.user_id == user.id, LearningProgress.lesson_id == lesson.id)
     ).one_or_none()
     if record is None:
         record = LearningProgress(
@@ -314,12 +318,12 @@ def _normalize(value: Any) -> Any:
 def _unlock_achievements(db: Session, user: User) -> list[str]:
     """尝试调用游戏化服务解锁成就；该模块不可用时不阻断主流程。"""
     try:
-        from app.services import gamification_service  # noqa: PLC0415 - 惰性导入避免跨域强耦合
+        from app.services import gamification_service
 
         checker = getattr(gamification_service, "check_achievements", None)
         if callable(checker):
             result = checker(db, user)
             return [str(item) for item in (result or [])]
-    except Exception as exc:  # noqa: BLE001 - 成就解锁失败不应影响完成打卡
+    except Exception as exc:
         logger.debug("成就解锁跳过：%s", exc)
     return []

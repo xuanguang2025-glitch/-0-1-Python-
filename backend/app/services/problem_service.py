@@ -6,8 +6,8 @@
 
 from __future__ import annotations
 
-import logging
 from collections import defaultdict
+import logging
 from typing import Any
 
 from sqlalchemy import func, or_, select
@@ -15,10 +15,10 @@ from sqlalchemy.orm import Session
 
 from app.core.errors import AppError, ErrorCode
 from app.core.pagination import PageParams
+from app.models.course import Topic
 from app.models.enums import MasteryLevel, ProblemType, SubmissionStatus
 from app.models.learning import KnowledgeMastery
-from app.models.problem import Problem, ProblemTag, Tag, TestCase
-from app.models.course import Topic
+from app.models.problem import Problem, ProblemTag, Tag
 from app.models.submission import Submission
 from app.models.user import User
 from app.schemas.problem import (
@@ -78,9 +78,7 @@ def list_problems(
         stmt = stmt.where(or_(Problem.title.ilike(like), Problem.statement_md.ilike(like)))
     if tag:
         stmt = stmt.where(
-            Problem.id.in_(
-                select(ProblemTag.problem_id).join(Tag, Tag.id == ProblemTag.tag_id).where(Tag.slug == tag)
-            )
+            Problem.id.in_(select(ProblemTag.problem_id).join(Tag, Tag.id == ProblemTag.tag_id).where(Tag.slug == tag))
         )
     if status in ("solved", "unsolved") and user is not None:
         solved = select(Submission.problem_id).where(
@@ -268,9 +266,7 @@ def recommend_problems(db: Session, user: User, *, limit: int = 10) -> list[Prob
         filler_stmt = select(Problem).where(*conditions)
         if exclude_ids:
             filler_stmt = filler_stmt.where(Problem.id.notin_(exclude_ids))
-        picked.extend(
-            db.scalars(filler_stmt.order_by(func.random()).limit(limit - len(picked))).all()
-        )
+        picked.extend(db.scalars(filler_stmt.order_by(func.random()).limit(limit - len(picked))).all())
     return picked
 
 

@@ -14,8 +14,8 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 import logging
-from datetime import datetime, timezone
 from typing import Any
 
 from sqlalchemy.orm import Session
@@ -82,7 +82,7 @@ class TutorService:
 
     def quota_key(self, user_id: str) -> str:
         """当前小时的配额缓存键。"""
-        bucket = datetime.now(timezone.utc).strftime("%Y%m%d%H")
+        bucket = datetime.now(UTC).strftime("%Y%m%d%H")
         return f"ai:quota:{user_id}:{bucket}"
 
     def consume_quota(self, cache: Any, user_id: str, limit: int) -> int:
@@ -191,8 +191,13 @@ class TutorService:
         messages = [
             ChatMessage(role=item["role"], content=item["content"])
             for item in build_chat_messages(
-                request.message, mode=mode, level=level, practice_mode=practice_mode,
-                allow_full_answer=allow_full, context=context, history=self._safe_history(db, conversation.id),
+                request.message,
+                mode=mode,
+                level=level,
+                practice_mode=practice_mode,
+                allow_full_answer=allow_full,
+                context=context,
+                history=self._safe_history(db, conversation.id),
             )
         ]
 
@@ -228,8 +233,13 @@ class TutorService:
         """执行一次指定任务（无副作用，供内部与其他服务复用）。"""
         opts: dict[str, Any] = {"task": task, "json_mode": json_mode}
         for key, value in (
-            ("topic", topic), ("difficulty", difficulty), ("count", count),
-            ("goal", goal), ("days", days), ("error_message", error_message), ("traceback", traceback_text),
+            ("topic", topic),
+            ("difficulty", difficulty),
+            ("count", count),
+            ("goal", goal),
+            ("days", days),
+            ("error_message", error_message),
+            ("traceback", traceback_text),
         ):
             if value:
                 opts[key] = value
@@ -258,7 +268,9 @@ class TutorService:
 
     async def generate_practice(self, topic: str = "", difficulty: str = "easy", count: int = 3) -> AIResponse:
         """生成练习。"""
-        return await self.complete("practice", message=f"生成{topic or '综合'}练习", topic=topic, difficulty=difficulty, count=count)
+        return await self.complete(
+            "practice", message=f"生成{topic or '综合'}练习", topic=topic, difficulty=difficulty, count=count
+        )
 
     async def generate_plan(self, goal: str = "", days: int = 7) -> AIResponse:
         """生成学习计划。"""
@@ -292,7 +304,7 @@ class TutorService:
         """保存用户消息（失败仅告警）。"""
         try:
             repository.append_message(db, conversation, role=AIMessageRole.USER.value, content_md=message, kind=level)
-        except Exception as exc:  # noqa: BLE001 - 持久化失败不阻断回答
+        except Exception as exc:
             logger.warning("保存用户 AI 消息失败: %s", exc)
 
     def _persist_assistant_message(
@@ -303,7 +315,7 @@ class TutorService:
             return repository.append_message(
                 db, conversation, role=AIMessageRole.ASSISTANT.value, content_md=content, kind=kind, response=response
             )
-        except Exception as exc:  # noqa: BLE001 - 持久化失败不阻断回答
+        except Exception as exc:
             logger.warning("保存助手 AI 消息失败: %s", exc)
             return None
 
@@ -311,11 +323,13 @@ class TutorService:
         """读取历史（失败返回空列表）。"""
         try:
             return [(item.role, item.content) for item in repository.recent_history(db, conversation_id, limit=10)]
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.warning("读取 AI 历史失败: %s", exc)
             return []
 
-    def _log_usage(self, db: Session, user: Any, conversation: AIConversation, response: AIResponse, *, scene: str) -> None:
+    def _log_usage(
+        self, db: Session, user: Any, conversation: AIConversation, response: AIResponse, *, scene: str
+    ) -> None:
         """写用量日志（失败仅告警）。"""
         try:
             repository.write_usage_log(
@@ -330,7 +344,7 @@ class TutorService:
                 success=True,
                 degraded=response.degraded,
             )
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.warning("写 AI 用量日志失败: %s", exc)
 
     @staticmethod

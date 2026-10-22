@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-import uuid
 from datetime import timedelta
 from typing import Any
+import uuid
 
-import pytest
 from fastapi.testclient import TestClient
+import pytest
 from sqlalchemy import select
 
 from app.api.endpoints import achievements, challenges, notifications, statistics
@@ -56,7 +56,9 @@ def _seed(db, password_hash: str) -> dict[str, Any]:
             db.add(Achievement(code=code, name=name, category=cat, condition_json=cond, xp_reward=10))
 
     if db.scalars(select(DailyTask).where(DailyTask.code == "daily_submit")).one_or_none() is None:
-        db.add(DailyTask(code="daily_submit", title="提交 1 次代码", metric="submissions", target_count=1, xp_reward=10))
+        db.add(
+            DailyTask(code="daily_submit", title="提交 1 次代码", metric="submissions", target_count=1, xp_reward=10)
+        )
 
     problem = Problem(
         slug=f"test-choice-{RUN}",
@@ -175,6 +177,7 @@ def test_award_xp_level_up(seeded: dict[str, Any], db) -> None:
     assert info["level"] == 2
     assert info["level_name"] == "Beginner"
 
+
 # ---------------------------------------------------------------------------
 # 成就解锁幂等
 # ---------------------------------------------------------------------------
@@ -195,26 +198,44 @@ def test_check_and_unlock_is_idempotent(seeded: dict[str, Any], db) -> None:
     assert after_second == after_first
 
 
-def test_check_achievements_alias_unlocks_and_is_idempotent(
-    seeded: dict[str, Any], db, password_hash: str
-) -> None:
+def test_check_achievements_alias_unlocks_and_is_idempotent(seeded: dict[str, Any], db, password_hash: str) -> None:
     """内容域/判题域按 `check_achievements` 调用应真实解锁（幂等，含 XP + 通知）。"""
     sfx = uuid.uuid4().hex[:8]
-    user = User(email=f"alias_{sfx}@pythonlab.dev", username=f"alias_{sfx}", role="user",
-                hashed_password=password_hash, is_verified=True, streak_days=0)
+    user = User(
+        email=f"alias_{sfx}@pythonlab.dev",
+        username=f"alias_{sfx}",
+        role="user",
+        hashed_password=password_hash,
+        is_verified=True,
+        streak_days=0,
+    )
     db.add(user)
     db.flush()
     db.add(Profile(user_id=user.id, display_name=f"别名{sfx}"))
-    db.add(Submission(user_id=user.id, problem_id=seeded["problem_id"], status="accepted",
-                      score=10, passed_cases=1, total_cases=1, finished_at=now_utc()))
+    db.add(
+        Submission(
+            user_id=user.id,
+            problem_id=seeded["problem_id"],
+            status="accepted",
+            score=10,
+            passed_cases=1,
+            total_cases=1,
+            finished_at=now_utc(),
+        )
+    )
     db.commit()
 
     def snap() -> tuple[int, int, int]:
         uid = user.id
-        return (len(db.scalars(select(UserAchievement).where(UserAchievement.user_id == uid)).all()),
-                len(db.scalars(select(XPTransaction).where(XPTransaction.user_id == uid)).all()),
-                len(db.scalars(select(Notification).where(
-                    Notification.user_id == uid, Notification.type == "achievement")).all()))
+        return (
+            len(db.scalars(select(UserAchievement).where(UserAchievement.user_id == uid)).all()),
+            len(db.scalars(select(XPTransaction).where(XPTransaction.user_id == uid)).all()),
+            len(
+                db.scalars(
+                    select(Notification).where(Notification.user_id == uid, Notification.type == "achievement")
+                ).all()
+            ),
+        )
 
     assert callable(getattr(gamification_service, "check_achievements", None))  # 别名必须存在
     xp0 = int(user.xp or 0)
@@ -223,17 +244,20 @@ def test_check_achievements_alias_unlocks_and_is_idempotent(
     db.refresh(user)
     ua1, tx1, nt1 = snap()
     assert "first_ac" in first and ua1 == ua0 + len(first)  # 成就行 +1/条
-    assert nt1 == nt0 + len(first) and tx1 > tx0            # 通知 +1/条，XP 流水有新增
-    assert int(user.xp) > xp0                               # XP 实际上涨
+    assert nt1 == nt0 + len(first) and tx1 > tx0  # 通知 +1/条，XP 流水有新增
+    assert int(user.xp) > xp0  # XP 实际上涨
     assert gamification_service.check_achievements(db, user) == []  # 幂等
     assert snap() == (ua1, tx1, nt1)
 
+
 def test_notification_service_create_positional(seeded: dict[str, Any], db) -> None:
     """`notification_service.create` 位置参数调用可用（内容/判题域按此签名调用）。"""
-    note = notification_service.create(db, db.get(User, seeded["user_id"]), "achievement",
-                                       "位置调用标题", "位置调用内容", "/achievements")
+    note = notification_service.create(
+        db, db.get(User, seeded["user_id"]), "achievement", "位置调用标题", "位置调用内容", "/achievements"
+    )
     db.commit()
     assert note.title == "位置调用标题" and note.type == "achievement"
+
 
 # ---------------------------------------------------------------------------
 # 每日任务

@@ -15,8 +15,8 @@
 from __future__ import annotations
 
 import argparse
-import sys
 from pathlib import Path
+import sys
 
 # 保证可以 `import app.*`（scripts/ 的上一级即 backend/）
 BACKEND_DIR = Path(__file__).resolve().parent.parent

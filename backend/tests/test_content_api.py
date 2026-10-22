@@ -11,7 +11,6 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -91,9 +90,9 @@ def test_courses_list_filter_sort_and_stages(env: SimpleNamespace) -> None:
     assert resp.status_code == 200
     assert data["total"] == 18 and len(data["items"]) == 5 and data["pages"] == 4
 
-    items = env.client.get(
-        f"{API}/courses", params={"level": "beginner", "page_size": 100, "sort": "stage_no"}
-    ).json()["data"]["items"]
+    items = env.client.get(f"{API}/courses", params={"level": "beginner", "page_size": 100, "sort": "stage_no"}).json()[
+        "data"
+    ]["items"]
     assert items and all(item["level"] == "beginner" for item in items)
     stages = [item["stage_no"] for item in items]
     assert stages == sorted(stages)
@@ -121,8 +120,17 @@ def test_lesson_detail_position_and_topics(env: SimpleNamespace) -> None:
     lesson_id = _pick_lesson_id(env, 1)
     data = env.client.get(f"{API}/lessons/{lesson_id}").json()["data"]
     for field in (
-        "course_id", "course_title", "course_slug", "chapter_id", "chapter_title",
-        "chapter_index", "lesson_index", "total_lessons", "prev_lesson", "next_lesson", "course_outline",
+        "course_id",
+        "course_title",
+        "course_slug",
+        "chapter_id",
+        "chapter_title",
+        "chapter_index",
+        "lesson_index",
+        "total_lessons",
+        "prev_lesson",
+        "next_lesson",
+        "course_outline",
     ):
         assert field in data, f"课时详情缺失字段：{field}"
     assert data["course_slug"] == "stage-01-python-basics"
@@ -178,9 +186,7 @@ def test_dashboard_and_heatmap(env: SimpleNamespace) -> None:
     """学习看板与热力图可读。"""
     dash = env.client.get(f"{API}/progress/dashboard", headers=_auth(env.token_a)).json()["data"]
     assert dash["total_courses"] == 18 and dash["completed_lessons"] >= 1
-    heat = env.client.get(
-        f"{API}/progress/heatmap", params={"days": 30}, headers=_auth(env.token_a)
-    ).json()["data"]
+    heat = env.client.get(f"{API}/progress/heatmap", params={"days": 30}, headers=_auth(env.token_a)).json()["data"]
     assert len(heat["points"]) == 30
 
 

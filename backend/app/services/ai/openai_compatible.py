@@ -10,8 +10,9 @@
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 import json
-from typing import Any, AsyncIterator
+from typing import Any
 
 import httpx
 

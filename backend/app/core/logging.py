@@ -6,12 +6,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 import json
 import logging
 import sys
 import time
+from typing import Any
 import uuid
-from typing import Any, Awaitable, Callable
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request

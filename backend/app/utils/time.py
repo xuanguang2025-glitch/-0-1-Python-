@@ -5,20 +5,20 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta, timezone
-from typing import Iterable
+from collections.abc import Iterable
+from datetime import UTC, date, datetime, timedelta
 
 
 def now_utc() -> datetime:
     """当前 UTC 时间（带时区）。"""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def to_utc(value: datetime) -> datetime:
     """把时间统一转换为带时区的 UTC 时间（无时区输入按 UTC 处理）。"""
     if value.tzinfo is None:
-        return value.replace(tzinfo=timezone.utc)
-    return value.astimezone(timezone.utc)
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
 
 
 def date_to_str(value: date) -> str:
@@ -33,7 +33,7 @@ def today_utc() -> date:
 
 def day_range(target: date) -> tuple[datetime, datetime]:
     """返回某天的起止时间区间 `[00:00, 次日00:00)`（UTC）。"""
-    start = datetime(target.year, target.month, target.day, tzinfo=timezone.utc)
+    start = datetime(target.year, target.month, target.day, tzinfo=UTC)
     return start, start + timedelta(days=1)
 
 

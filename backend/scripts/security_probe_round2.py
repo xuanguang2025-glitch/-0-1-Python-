@@ -24,11 +24,11 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 import shutil
 import sys
 import tempfile
 import uuid
-from pathlib import Path
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 if str(BACKEND_DIR) not in sys.path:
@@ -46,7 +46,7 @@ def record(no: str, name: str, ok: bool | None, detail: str) -> None:
 
 XSS_PAYLOADS = [
     "<script>alert(1)</script>",
-    '<img src=x onerror=alert(1)>',
+    "<img src=x onerror=alert(1)>",
     '"><svg onload=alert(1)>',
     "javascript:alert(1)",
 ]
@@ -68,7 +68,7 @@ def main() -> int:
 
     from fastapi.testclient import TestClient
 
-    from app.main import app  # noqa: E402 - 必须在设置 DATABASE_URL 之后导入
+    from app.main import app
 
     client = TestClient(app)
 
@@ -89,7 +89,7 @@ def main() -> int:
     headers = {"Authorization": f"Bearer {token}"}
 
     # ---------- X1. 用户可控富文本字段 ----------
-    dn = '<img src=x onerror=alert(1)>'
+    dn = "<img src=x onerror=alert(1)>"
     bio = "<script>alert(1)</script>"
     patch = client.patch(
         "/api/users/me/profile",
@@ -97,7 +97,9 @@ def main() -> int:
         headers=headers,
     )
     if patch.status_code != 200:
-        record("X1", "富文本字段存储与回显", None, f"profile PATCH HTTP {patch.status_code}（校验拦截也算防护，人工复核）")
+        record(
+            "X1", "富文本字段存储与回显", None, f"profile PATCH HTTP {patch.status_code}（校验拦截也算防护，人工复核）"
+        )
     else:
         me = client.get("/api/auth/me", headers=headers)
         pub = client.get(f"/api/users/{user_id}/public")
@@ -132,7 +134,9 @@ def main() -> int:
                 x2_ok = False
                 x2_notes.append(f"{name} 非 JSON 响应")
             else:
-                x2_notes.append(f"{name} JSON 原文回显={XSS_PAYLOADS[0] in resp2.text or XSS_PAYLOADS[2] in resp2.text}")
+                x2_notes.append(
+                    f"{name} JSON 原文回显={XSS_PAYLOADS[0] in resp2.text or XSS_PAYLOADS[2] in resp2.text}"
+                )
         elif resp2.status_code == 422:
             x2_notes.append(f"{name} 输入校验拦截(422)")
         else:
@@ -244,7 +248,7 @@ def main() -> int:
         "H1",
         "安全响应头",
         not missing,
-        f"必需要头齐备（nosniff/DENY/Referrer-Policy）" if not missing else f"缺失={missing}（API-only 不强制 CSP）",
+        "必需要头齐备（nosniff/DENY/Referrer-Policy）" if not missing else f"缺失={missing}（API-only 不强制 CSP）",
     )
 
     return _finish()

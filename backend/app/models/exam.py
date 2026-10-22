@@ -40,7 +40,7 @@ class Exam(Base, UUIDPkMixin, TimestampMixin):
     shuffle: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     is_published: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
-    attempts: Mapped[list["ExamAttempt"]] = relationship(
+    attempts: Mapped[list[ExamAttempt]] = relationship(
         back_populates="exam",
         cascade="all, delete-orphan",
     )
@@ -72,15 +72,9 @@ class ExamAttempt(Base, UUIDPkMixin):
         Index("ix_ea_status", "status"),
     )
 
-    user_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
-    exam_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("exams.id", ondelete="CASCADE"), nullable=False
-    )
-    status: Mapped[str] = mapped_column(
-        String(20), default=ExamAttemptStatus.IN_PROGRESS.value, nullable=False
-    )
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    exam_id: Mapped[str] = mapped_column(String(36), ForeignKey("exams.id", ondelete="CASCADE"), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), default=ExamAttemptStatus.IN_PROGRESS.value, nullable=False)
     answers_json: Mapped[Any] = mapped_column(JSON, default=dict, nullable=False, doc="{problem_id: {answer/code}}")
     report_json: Mapped[Any | None] = mapped_column(JSON, nullable=True, doc="逐题结果 + 知识点分析")
     score: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
@@ -89,8 +83,8 @@ class ExamAttempt(Base, UUIDPkMixin):
     deadline_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, doc="服务端计时")
     submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    user: Mapped["User"] = relationship()  # type: ignore[name-defined]
-    exam: Mapped["Exam"] = relationship(back_populates="attempts")
+    user: Mapped[User] = relationship()  # type: ignore[name-defined]
+    exam: Mapped[Exam] = relationship(back_populates="attempts")
 
     @property
     def is_expired(self) -> bool:

@@ -10,7 +10,7 @@ Windows 无 `rlimit`，本机执行为「超时 kill + 输出截断 + 静态扫�
 
 from __future__ import annotations
 
-from typing import Any, Mapping
+from typing import Any
 
 from app.sandbox.protocol import (
     LOCAL_BOOTSTRAP_NAME,
@@ -75,7 +75,9 @@ def bootstrap_code(entry: str) -> str:
 class LocalBackend:
     """本机执行后端：单文件运行与逐用例判题。"""
 
-    def __init__(self, *, timeout_ms: int, memory_mb: int, max_output_bytes: int, request_id_prefix: str = "run") -> None:
+    def __init__(
+        self, *, timeout_ms: int, memory_mb: int, max_output_bytes: int, request_id_prefix: str = "run"
+    ) -> None:
         """保存默认限额并创建 `LocalRunner`。"""
         self._runner = LocalRunner()
         self._default_timeout_ms = int(timeout_ms)

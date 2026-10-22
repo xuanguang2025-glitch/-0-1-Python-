@@ -13,8 +13,9 @@
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 import os
-from typing import Any, AsyncIterator
+from typing import Any
 
 from app.services.ai.base import (
     AIProvider,
@@ -128,7 +129,7 @@ class ResilientProvider(AIProvider):
             response = await self._primary.chat(messages, **opts)
             self.last_degraded = False
             return response
-        except (AIProviderError, Exception):  # noqa: BLE001 - 任何远程异常都回落，保证不 5xx
+        except (AIProviderError, Exception):
             self.last_degraded = True
             return await self._fallback.chat(messages, **opts)
 
@@ -138,7 +139,7 @@ class ResilientProvider(AIProvider):
             async for chunk in self._primary.chat_stream(messages, **opts):
                 yield chunk
             self.last_degraded = False
-        except Exception:  # noqa: BLE001 - 流式途中失败也回落，保证有输出
+        except Exception:
             self.last_degraded = True
             async for chunk in self._fallback.chat_stream(messages, **opts):
                 yield chunk

@@ -48,9 +48,9 @@ def table_report() -> dict[str, int]:
     with engine.connect() as connection:
         for name in table_names():
             try:
-                count = connection.execute(text(f'SELECT COUNT(*) FROM "{name}"')).scalar()  # noqa: S608 - 表名来自元数据
+                count = connection.execute(text(f'SELECT COUNT(*) FROM "{name}"')).scalar()
                 report[name] = int(count or 0)
-            except Exception:  # noqa: BLE001 - 统计失败不影响主流程
+            except Exception:
                 report[name] = -1
     return report
 

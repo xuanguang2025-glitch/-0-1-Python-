@@ -24,9 +24,6 @@ from app.models.learning import KnowledgeMastery, LearningProgress, Mistake
 from app.models.problem import Problem, ProblemTag, Tag
 from app.models.submission import Submission
 from app.models.user import User
-from app.utils.text import truncate
-from app.utils.time import to_utc
-
 from app.services.judge_types import (
     ACCEPTED,
     COMPILE_ERROR,
@@ -37,6 +34,8 @@ from app.services.judge_types import (
     WRONG_ANSWER,
     JudgeOutcome,
 )
+from app.utils.text import truncate
+from app.utils.time import to_utc
 
 
 def _post_judge_effects(
@@ -122,9 +121,7 @@ def _topics_for(db: Session, problem: Problem, lesson_id: str | None) -> list[tu
 def _update_mastery(db: Session, user: User, topic_id: str, correct: bool) -> None:
     """更新单个知识点掌握度；通过时标记为已掌握。"""
     mastery = db.scalars(
-        select(KnowledgeMastery).where(
-            KnowledgeMastery.user_id == user.id, KnowledgeMastery.topic_id == topic_id
-        )
+        select(KnowledgeMastery).where(KnowledgeMastery.user_id == user.id, KnowledgeMastery.topic_id == topic_id)
     ).one_or_none()
     if mastery is None:
         mastery = KnowledgeMastery(
@@ -157,9 +154,7 @@ def _resolve_mistakes(db: Session, user: User, problem: Problem) -> None:
         db.flush()
 
 
-def _record_mistake(
-    db: Session, user: User, problem: Problem, submission: Submission, topic_id: str | None
-) -> None:
+def _record_mistake(db: Session, user: User, problem: Problem, submission: Submission, topic_id: str | None) -> None:
     """写入 / 更新错题本条目（同一题未掌握时累加错误次数）。"""
     error_type = _mistake_error_type(submission.status)
     existing = db.scalars(

@@ -23,8 +23,8 @@ import os
 import sys
 from typing import Any
 
-import pytest
 from fastapi.testclient import TestClient
+import pytest
 
 from app.api.endpoints import editor
 from app.sandbox.ast_guard import check_files, check_source
@@ -46,7 +46,7 @@ BYPASS_CASES: list[tuple[str, str, str]] = [
     ("os_system_plain", "import os\nos.system('echo PWNED')", "dangerous_attribute"),
     ("os_popen", "import os\nprint(os.popen('echo PWNED').read())", "dangerous_attribute"),
     ("subprocess_import", "import subprocess\nsubprocess.run(['echo', 'PWNED'])", "import_not_allowed"),
-    ("eval_exec", "eval(\"print(1337)\")", "dangerous_call"),
+    ("eval_exec", 'eval("print(1337)")', "dangerous_call"),
     ("dunder_escape", "print((1).__class__.__mro__)", "dunder_attribute"),
     ("dynamic_open", "name = 'a.txt'\nopen(name).read()", "open_dynamic_path"),
     # 间接引用：字符串常量本身不再全局触发 path_literal（那会误杀 print('/usr')），

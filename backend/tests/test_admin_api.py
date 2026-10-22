@@ -30,8 +30,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
-import pytest
 from fastapi.testclient import TestClient
+import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -153,9 +153,7 @@ def _concrete(url: str) -> str:
 @pytest.fixture()
 def seeded(db, seeded_users) -> dict[str, Any]:
     """用户由基座 `seeded_users` 提供，这里只需清理本用例域内的历史残留。"""
-    for row in db.scalars(
-        select(Course).where((Course.slug == "test-admin-course") | (Course.stage_no == 96))
-    ).all():
+    for row in db.scalars(select(Course).where((Course.slug == "test-admin-course") | (Course.stage_no == 96))).all():
         db.delete(row)
     for model in db.scalars(select(AIModelConfig).where(AIModelConfig.name == "测试模型")).all():
         db.delete(model)
@@ -281,8 +279,17 @@ def test_dashboard_overview(client: TestClient, admin_headers: dict[str, str]) -
     r = client.get("/api/admin/dashboard", headers=admin_headers)
     assert r.status_code == 200, r.text
     data = r.json()["data"]
-    for field in ("users_total", "active_today", "submissions_today", "acceptance_rate",
-                  "error_rate", "ai_calls_today", "runner", "db_flavor", "cache_backend"):
+    for field in (
+        "users_total",
+        "active_today",
+        "submissions_today",
+        "acceptance_rate",
+        "error_rate",
+        "ai_calls_today",
+        "runner",
+        "db_flavor",
+        "cache_backend",
+    ):
         assert field in data, f"仪表盘缺少字段 {field}"
     assert data["users_total"] >= 1
 
@@ -296,8 +303,7 @@ def test_user_create_and_list_with_filters(client: TestClient, admin_headers: di
     """新建用户后可按关键字 / 角色检索，并支持分页。"""
     created = client.post(
         "/api/admin/users",
-        json={"email": "alice@pythonlab.dev", "username": "alice", "password": NEW_PASSWORD,
-              "display_name": "爱丽丝"},
+        json={"email": "alice@pythonlab.dev", "username": "alice", "password": NEW_PASSWORD, "display_name": "爱丽丝"},
         headers=admin_headers,
     )
     assert created.status_code == 200, created.text
@@ -549,8 +555,12 @@ def test_problem_crud_with_nested_test_cases(client: TestClient, admin_headers: 
     created = client.post(
         "/api/admin/problems",
         json={
-            "slug": "adm-prob", "title": "求和", "problem_type": "coding", "difficulty": "easy",
-            "category": "basics", "starter_code": "print(1)",
+            "slug": "adm-prob",
+            "title": "求和",
+            "problem_type": "coding",
+            "difficulty": "easy",
+            "category": "basics",
+            "starter_code": "print(1)",
             "test_cases": [
                 {"name": "t1", "input": "1", "expected_output": "1", "is_sample": True},
                 {"name": "t2", "input": "2", "expected_output": "2", "is_hidden": True},
@@ -609,18 +619,23 @@ def test_test_case_crud_via_problem(client: TestClient, admin_headers: dict[str,
     """测试用例的更新 / 删除（创建走题目嵌套，见 BUG-1）。"""
     created = client.post(
         "/api/admin/problems",
-        json={"slug": "adm-tc", "title": "TC", "problem_type": "coding",
-              "test_cases": [{"name": "c1", "input": "1", "expected_output": "1"},
-                             {"name": "c2", "input": "2", "expected_output": "2"}]},
+        json={
+            "slug": "adm-tc",
+            "title": "TC",
+            "problem_type": "coding",
+            "test_cases": [
+                {"name": "c1", "input": "1", "expected_output": "1"},
+                {"name": "c2", "input": "2", "expected_output": "2"},
+            ],
+        },
         headers=admin_headers,
     )
     pid = created.json()["data"]["id"]
-    case = db.scalars(
-        select(TestCase).where(TestCase.problem_id == pid).order_by(TestCase.order_index)
-    ).first()
+    case = db.scalars(select(TestCase).where(TestCase.problem_id == pid).order_by(TestCase.order_index)).first()
 
     updated = client.patch(
-        f"/api/admin/test-cases/{case.id}", json={"name": "c1-renamed", "is_hidden": False},
+        f"/api/admin/test-cases/{case.id}",
+        json={"name": "c1-renamed", "is_hidden": False},
         headers=admin_headers,
     )
     assert updated.status_code == 200, updated.text
@@ -666,9 +681,7 @@ def test_create_test_case_with_problem_id(client: TestClient, admin_headers: dic
     assert missing.json()["error"]["code"] == "PROBLEM_NOT_FOUND"
 
     # problem_id 为必填字段：缺字段 → 422
-    bad = client.post(
-        "/api/admin/test-cases", json={"input": "1", "expected_output": "1"}, headers=admin_headers
-    )
+    bad = client.post("/api/admin/test-cases", json={"input": "1", "expected_output": "1"}, headers=admin_headers)
     assert bad.status_code == 422
 
 
@@ -829,9 +842,7 @@ def test_project_file_crud(client: TestClient, admin_headers: dict[str, str]) ->
     assert created.status_code == 200, created.text
     fid = created.json()["data"]["id"]
 
-    updated = client.patch(
-        f"/api/admin/project-files/{fid}", json={"content": "print(2)"}, headers=admin_headers
-    )
+    updated = client.patch(f"/api/admin/project-files/{fid}", json={"content": "print(2)"}, headers=admin_headers)
     assert updated.status_code == 200
     assert updated.json()["data"]["id"] == fid
 
@@ -848,7 +859,8 @@ def test_project_file_crud(client: TestClient, admin_headers: dict[str, str]) ->
 def test_tag_crud(client: TestClient, admin_headers: dict[str, str]) -> None:
     """标签 CRUD。"""
     created = client.post(
-        "/api/admin/tags", json={"slug": "adm-tag", "name": "管理标签", "color": "#ff0000"},
+        "/api/admin/tags",
+        json={"slug": "adm-tag", "name": "管理标签", "color": "#ff0000"},
         headers=admin_headers,
     )
     assert created.status_code == 200, created.text
@@ -884,7 +896,8 @@ def test_announcement_crud_and_offline(client: TestClient, admin_headers: dict[s
     assert any(item["title"] == "管理端公告" for item in listed.json()["data"]["items"])
 
     offline = client.patch(
-        f"/api/admin/announcements/{aid}", json={"is_active": False, "is_pinned": True},
+        f"/api/admin/announcements/{aid}",
+        json={"is_active": False, "is_pinned": True},
         headers=admin_headers,
     )
     assert offline.status_code == 200
@@ -908,8 +921,7 @@ def test_ai_config_put_and_key_masked(client: TestClient, admin_headers: dict[st
     """PUT 全局 AI 配置：密钥只写，读取必须脱敏（BUG-4：运行参数不参与断言，见报告）。"""
     r = client.put(
         "/api/admin/ai-config",
-        json={"provider": "deepseek", "api_key": RAW_AI_CONFIG_KEY,
-              "prompt_overrides": {"tutor": "自定义提示"}},
+        json={"provider": "deepseek", "api_key": RAW_AI_CONFIG_KEY, "prompt_overrides": {"tutor": "自定义提示"}},
         headers=admin_headers,
     )
     assert r.status_code == 200, r.text
@@ -996,8 +1008,7 @@ def test_ai_model_crud(client: TestClient, admin_headers: dict[str, str], db) ->
     """模型配置的新建 / 更新 / 删除，且默认标记全局唯一。"""
     first = client.post(
         "/api/admin/models",
-        json={"provider": "deepseek", "name": "模型A", "model": "a", "api_key": RAW_MODEL_KEY,
-              "is_default": True},
+        json={"provider": "deepseek", "name": "模型A", "model": "a", "api_key": RAW_MODEL_KEY, "is_default": True},
         headers=admin_headers,
     )
     assert first.status_code == 200, first.text
@@ -1026,9 +1037,7 @@ def test_ai_model_crud(client: TestClient, admin_headers: dict[str, str], db) ->
 
     from app.models.system import SystemSetting
 
-    leftover = db.scalars(
-        select(SystemSetting).where(SystemSetting.key == f"ai.model.{bid}.api_key")
-    ).first()
+    leftover = db.scalars(select(SystemSetting).where(SystemSetting.key == f"ai.model.{bid}.api_key")).first()
     assert leftover is None, "删除模型应连带清理其密钥设置"
 
 
@@ -1101,9 +1110,7 @@ def test_settings_non_sensitive_roundtrip(client: TestClient, admin_headers: dic
 # ---------------------------------------------------------------------------
 
 
-def test_audit_logs_filter_by_action_and_actor(
-    client: TestClient, admin_headers: dict[str, str], seeded_users
-) -> None:
+def test_audit_logs_filter_by_action_and_actor(client: TestClient, admin_headers: dict[str, str], seeded_users) -> None:
     """审计日志可按 action 与 actor 检索。"""
     _new_course(client, admin_headers, "adm-audit-course", 94)
 
@@ -1161,9 +1168,7 @@ def test_maintenance_rejudge(client: TestClient, admin_headers: dict[str, str], 
     db.add(Submission(user_id=seeded_users.user_id, problem_id=pid, status="wrong_answer", score=0))
     db.commit()
 
-    scoped = client.post(
-        "/api/admin/maintenance/rejudge", json={"problem_id": pid, "limit": 10}, headers=admin_headers
-    )
+    scoped = client.post("/api/admin/maintenance/rejudge", json={"problem_id": pid, "limit": 10}, headers=admin_headers)
     assert scoped.status_code == 200, scoped.text
     assert scoped.json()["data"] == {"queued": 1, "problem_id": pid}
 
@@ -1194,8 +1199,6 @@ def test_admin_writes_are_audited(client: TestClient, admin_headers: dict[str, s
     db.expire_all()
     from app.models.system import AuditLog as _AuditLog
 
-    ai_log = db.scalars(
-        select(_AuditLog).where(_AuditLog.action == "admin.ai_config.update")
-    ).first()
+    ai_log = db.scalars(select(_AuditLog).where(_AuditLog.action == "admin.ai_config.update")).first()
     assert ai_log is not None
     assert RAW_AI_CONFIG_KEY not in json.dumps(ai_log.detail_json, ensure_ascii=False, default=str)

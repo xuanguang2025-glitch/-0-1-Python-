@@ -19,9 +19,7 @@ router = APIRouter()
 
 
 @router.get("/courses", response_model=ResponseModel[PageModel[CourseBrief]], summary="课程列表")
-def list_courses(
-    db: DbSession, admin: AdminUser, pagination: Pagination, q: str | None = Query(default=None)
-) -> dict:
+def list_courses(db: DbSession, admin: AdminUser, pagination: Pagination, q: str | None = Query(default=None)) -> dict:
     """课程列表。"""
     items, total = admin_service.list_courses(db, pagination, q=q)
     return success_response(build_page([CourseBrief.model_validate(c) for c in items], total, pagination))

@@ -7,9 +7,9 @@
 
 from __future__ import annotations
 
-import logging
 from datetime import date as DateType
 from datetime import datetime, timedelta
+import logging
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -98,9 +98,7 @@ def course_lesson_ids(db: Session, course_id: str) -> list[str]:
 def sync_enrollment(db: Session, user: User, course_id: str) -> CourseEnrollment | None:
     """按已发布课时的完成情况重算报名进度（存在报名记录时更新并返回）。不提交事务。"""
     enrollment = db.scalars(
-        select(CourseEnrollment).where(
-            CourseEnrollment.user_id == user.id, CourseEnrollment.course_id == course_id
-        )
+        select(CourseEnrollment).where(CourseEnrollment.user_id == user.id, CourseEnrollment.course_id == course_id)
     ).one_or_none()
     if enrollment is None:
         return None
@@ -121,10 +119,9 @@ def sync_enrollment(db: Session, user: User, course_id: str) -> CourseEnrollment
             or 0
         )
     enrollment.completed_lessons = completed
-    enrollment.progress_percent = int(round(completed / total * 100)) if total else 0
-    if completed >= total and total > 0:
-        if enrollment.completed_at is None:
-            enrollment.completed_at = now_utc()
+    enrollment.progress_percent = round(completed / total * 100) if total else 0
+    if completed >= total > 0 and enrollment.completed_at is None:
+        enrollment.completed_at = now_utc()
     return enrollment
 
 
@@ -135,9 +132,7 @@ def sync_enrollment(db: Session, user: User, course_id: str) -> CourseEnrollment
 
 def get_overview(db: Session, user: User) -> ProgressOverviewOut:
     """进度总览：全部阶段的完成度 + 汇总统计 + 当前阶段。"""
-    courses = db.scalars(
-        select(Course).where(Course.is_published.is_(True)).order_by(Course.stage_no.asc())
-    ).all()
+    courses = db.scalars(select(Course).where(Course.is_published.is_(True)).order_by(Course.stage_no.asc())).all()
     enrollment_rows = db.execute(
         select(CourseEnrollment.course_id, CourseEnrollment.progress_percent, CourseEnrollment.last_lesson_id).where(
             CourseEnrollment.user_id == user.id
@@ -173,7 +168,7 @@ def get_overview(db: Session, user: User) -> ProgressOverviewOut:
     total_lessons = sum(int(course.lesson_count or 0) for course in courses)
     total_lessons = max(total_lessons, len(completed_lesson_ids))
     completed = len(completed_lesson_ids)
-    overall = int(round(completed / total_lessons * 100)) if total_lessons else 0
+    overall = round(completed / total_lessons * 100) if total_lessons else 0
 
     current_stage: int | None = None
     if enrollment_rows:
@@ -199,7 +194,9 @@ def get_course_progress(db: Session, user: User, course_id: str) -> CourseProgre
     """单课程进度明细（完成课时 id 列表 + 百分比 + 继续学习课时）。"""
     course = db.get(Course, course_id)
     if course is None:
-        raise AppError(code=ErrorCode.COURSE_NOT_FOUND, message="课程不存在", status_code=404, details=f"id={course_id}")
+        raise AppError(
+            code=ErrorCode.COURSE_NOT_FOUND, message="课程不存在", status_code=404, details=f"id={course_id}"
+        )
     lesson_ids = course_lesson_ids(db, course_id)
     completed: list[str] = []
     if lesson_ids:
@@ -213,11 +210,13 @@ def get_course_progress(db: Session, user: User, course_id: str) -> CourseProgre
             ).all()
         )
     enrollment = db.scalars(
-        select(CourseEnrollment).where(
-            CourseEnrollment.user_id == user.id, CourseEnrollment.course_id == course_id
-        )
+        select(CourseEnrollment).where(CourseEnrollment.user_id == user.id, CourseEnrollment.course_id == course_id)
     ).one_or_none()
-    percent = enrollment.progress_percent if enrollment else int(round(len(completed) / len(lesson_ids) * 100)) if lesson_ids else 0
+    percent = (
+        enrollment.progress_percent
+        if enrollment
+        else round(len(completed) / len(lesson_ids) * 100) if lesson_ids else 0
+    )
     return CourseProgressOut(
         course_id=course_id,
         percent=int(percent or 0),
@@ -234,14 +233,10 @@ def get_dashboard(db: Session, user: User) -> LearningDashboardOut:
     week_start = day_start - timedelta(days=6)
 
     today_sessions = db.scalars(
-        select(LearningSession).where(
-            LearningSession.user_id == user.id, LearningSession.started_at >= day_start
-        )
+        select(LearningSession).where(LearningSession.user_id == user.id, LearningSession.started_at >= day_start)
     ).all()
     week_sessions = db.scalars(
-        select(LearningSession).where(
-            LearningSession.user_id == user.id, LearningSession.started_at >= week_start
-        )
+        select(LearningSession).where(LearningSession.user_id == user.id, LearningSession.started_at >= week_start)
     ).all()
     today_seconds = sum(session_seconds(item) for item in today_sessions)
     week_seconds = sum(session_seconds(item) for item in week_sessions)
@@ -263,9 +258,9 @@ def get_dashboard(db: Session, user: User) -> LearningDashboardOut:
     total_courses = int(db.scalar(select(func.count()).select_from(Course).where(Course.is_published.is_(True))) or 0)
     completed_courses = int(
         db.scalar(
-            select(func.count()).select_from(CourseEnrollment).where(
-                CourseEnrollment.user_id == user.id, CourseEnrollment.progress_percent >= 100
-            )
+            select(func.count())
+            .select_from(CourseEnrollment)
+            .where(CourseEnrollment.user_id == user.id, CourseEnrollment.progress_percent >= 100)
         )
         or 0
     )
@@ -280,10 +275,14 @@ def get_dashboard(db: Session, user: User) -> LearningDashboardOut:
         or 0
     )
     submissions = int(db.scalar(select(func.count()).select_from(Submission).where(Submission.user_id == user.id)) or 0)
-    projects_total = int(db.scalar(select(func.count()).select_from(Project).where(Project.is_published.is_(True))) or 0)
+    projects_total = int(
+        db.scalar(select(func.count()).select_from(Project).where(Project.is_published.is_(True))) or 0
+    )
     projects_completed = int(
         db.scalar(
-            select(func.count()).select_from(UserProject).where(
+            select(func.count())
+            .select_from(UserProject)
+            .where(
                 UserProject.user_id == user.id,
                 UserProject.status == UserProjectStatus.COMPLETED.value,
             )
@@ -291,7 +290,7 @@ def get_dashboard(db: Session, user: User) -> LearningDashboardOut:
         or 0
     )
 
-    overall = int(round(completed_lessons / total_lessons * 100)) if total_lessons else 0
+    overall = round(completed_lessons / total_lessons * 100) if total_lessons else 0
     return LearningDashboardOut(
         today_minutes=int(today_seconds // 60),
         week_minutes=int(week_seconds // 60),
@@ -319,9 +318,7 @@ def get_heatmap(db: Session, user: User, days: int = 180) -> HeatmapOut:
     window = last_n_days(days)
     start = datetime(window[0].year, window[0].month, window[0].day, tzinfo=now_utc().tzinfo)
     sessions = db.scalars(
-        select(LearningSession).where(
-            LearningSession.user_id == user.id, LearningSession.started_at >= start
-        )
+        select(LearningSession).where(LearningSession.user_id == user.id, LearningSession.started_at >= start)
     ).all()
     count_map: dict[DateType, int] = {}
     minutes_map: dict[DateType, int] = {}
@@ -330,9 +327,7 @@ def get_heatmap(db: Session, user: User, days: int = 180) -> HeatmapOut:
         count_map[key] = count_map.get(key, 0) + 1
         minutes_map[key] = minutes_map.get(key, 0) + int(session_seconds(item) // 60)
 
-    points = [
-        HeatmapPoint(date=day, count=count_map.get(day, 0), minutes=minutes_map.get(day, 0)) for day in window
-    ]
+    points = [HeatmapPoint(date=day, count=count_map.get(day, 0), minutes=minutes_map.get(day, 0)) for day in window]
     active_days = sum(1 for point in points if point.count > 0)
     return HeatmapOut(
         points=points,

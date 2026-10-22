@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -19,29 +18,22 @@ from .common import ACCEPTED, logger
 
 def day_bounds() -> tuple[datetime, datetime]:
     """返回今日起止（UTC，含首不含尾）。"""
-    start = datetime(today_utc().year, today_utc().month, today_utc().day, tzinfo=timezone.utc)
+    start = datetime(today_utc().year, today_utc().month, today_utc().day, tzinfo=UTC)
     return start, start + timedelta(days=1)
 
 
 def dashboard(db: Session) -> DashboardOut:
     """`GET /admin/dashboard`：后台总览。"""
     day_start, _ = day_bounds()
-    users_total = int(
-        db.scalar(select(func.count()).select_from(User).where(User.deleted_at.is_(None))) or 0
-    )
+    users_total = int(db.scalar(select(func.count()).select_from(User).where(User.deleted_at.is_(None))) or 0)
     active_today = int(
         db.scalar(
-            select(func.count())
-            .select_from(User)
-            .where(User.deleted_at.is_(None), User.last_active_at >= day_start)
+            select(func.count()).select_from(User).where(User.deleted_at.is_(None), User.last_active_at >= day_start)
         )
         or 0
     )
     submissions_today = int(
-        db.scalar(
-            select(func.count()).select_from(Submission).where(Submission.created_at >= day_start)
-        )
-        or 0
+        db.scalar(select(func.count()).select_from(Submission).where(Submission.created_at >= day_start)) or 0
     )
     accepted_today = int(
         db.scalar(
@@ -60,10 +52,7 @@ def dashboard(db: Session) -> DashboardOut:
         or 0
     )
     ai_calls_today = int(
-        db.scalar(
-            select(func.count()).select_from(AIUsageLog).where(AIUsageLog.created_at >= day_start)
-        )
-        or 0
+        db.scalar(select(func.count()).select_from(AIUsageLog).where(AIUsageLog.created_at >= day_start)) or 0
     )
 
     runner, db_flavor, cache_backend = "local", "sqlite", "memory"
@@ -72,7 +61,7 @@ def dashboard(db: Session) -> DashboardOut:
 
         deps = health_service.get_deps_health()
         runner, db_flavor, cache_backend = deps.runner.mode, deps.db.flavor, deps.cache.backend
-    except Exception as exc:  # noqa: BLE001 - 健康探测失败不影响仪表盘
+    except Exception as exc:
         logger.warning("依赖健康探测失败: %s", exc)
 
     return DashboardOut(

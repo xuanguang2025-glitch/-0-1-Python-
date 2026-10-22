@@ -26,35 +26,14 @@ from app.models.enums import SubmissionStatus
 from app.models.problem import Problem
 from app.models.submission import Submission
 from app.models.user import User
-from app.utils.text import truncate
-
 from app.services.judge_coding import (
-    _case_message,
     _judge_coding,
-    _load_cases,
-    _outcome_from_cases,
-    _outcome_from_single,
-    _short,
 )
 from app.services.judge_effects import (
-    _award_ac_xp,
-    _mistake_error_type,
     _post_judge_effects,
-    _record_mistake,
-    _resolve_mistakes,
-    _topics_for,
-    _touch_streak,
-    _update_lesson_progress,
-    _update_mastery,
-    _update_problem_stats,
 )
 from app.services.judge_objective import (
-    _as_bool,
-    _as_index,
-    _collapse,
     _judge_objective,
-    _norm,
-    _objective_correct,
 )
 from app.services.judge_types import (
     ACCEPTED,
@@ -67,13 +46,9 @@ from app.services.judge_types import (
     TIME_LIMIT,
     WRONG_ANSWER,
     JudgeOutcome,
-    _STATUS_LABELS,
-    _STATUS_TO_SUBMISSION,
-    _error_type_for,
-    _map_status,
-    _status_label,
     is_objective,
 )
+from app.utils.text import truncate
 
 logger = logging.getLogger("pythonlab.judge")
 

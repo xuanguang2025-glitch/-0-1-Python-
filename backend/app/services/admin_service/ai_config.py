@@ -20,8 +20,8 @@ from .common import (
     AI_PROMPT_OVERRIDES,
     GLOBAL_AI_CONFIG,
     GLOBAL_AI_KEY,
-    audit,
     apply_fields,
+    audit,
     get_or_404,
     mask_secret,
     read_setting,
@@ -64,9 +64,7 @@ def get_ai_config(db: Session) -> dict[str, Any]:
     }
 
 
-def update_ai_config(
-    db: Session, actor: User, payload: dict[str, Any], meta: dict[str, Any]
-) -> dict[str, Any]:
+def update_ai_config(db: Session, actor: User, payload: dict[str, Any], meta: dict[str, Any]) -> dict[str, Any]:
     """`PUT /admin/ai-config`：更新全局 AI 配置（`api_key` 只写）。"""
     api_key = payload.pop("api_key", None)
     if api_key:
@@ -83,8 +81,13 @@ def update_ai_config(
         merged.update(changed)
         write_setting(db, GLOBAL_AI_CONFIG, merged, actor=actor, description="AI 运行参数覆盖")
     audit(
-        db, actor, "admin.ai_config.update", "system_setting", GLOBAL_AI_KEY,
-        after={"changed": list(changed.keys()), "api_key": "***" if api_key else None}, meta=meta,
+        db,
+        actor,
+        "admin.ai_config.update",
+        "system_setting",
+        GLOBAL_AI_KEY,
+        after={"changed": list(changed.keys()), "api_key": "***" if api_key else None},
+        meta=meta,
     )
     db.commit()
     return get_ai_config(db)

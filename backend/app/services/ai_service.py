@@ -4,7 +4,7 @@
 本模块再导出会话编排、评审与报错分析能力。
 """
 
-from app.services.ai.repository import (  # noqa: F401  (re-export)
+from app.services.ai.repository import (
     append_message,
     create_conversation,
     delete_conversation,

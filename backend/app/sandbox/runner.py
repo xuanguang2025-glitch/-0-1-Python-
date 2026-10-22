@@ -8,14 +8,14 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 import logging
 import os
+from pathlib import Path
 import subprocess
 import sys
 import time
 import uuid
-from pathlib import Path
-from typing import Mapping
 
 from app.core.config import get_settings
 from app.sandbox.ast_guard import GuardViolation, check_files
@@ -38,7 +38,9 @@ from app.utils.files import cleanup_dir, make_temp_dir, write_files
 logger = logging.getLogger("pythonlab.runner")
 
 
-def scan_source(files: Mapping[str, str], *, skip_paths: frozenset[str] | set[str] | None = None) -> GuardViolation | None:
+def scan_source(
+    files: Mapping[str, str], *, skip_paths: frozenset[str] | set[str] | None = None
+) -> GuardViolation | None:
     """扫描源码中的危险构造，命中返回 `GuardViolation`，否则返回 None。
 
     主判定是 **AST 白名单**（`app/sandbox/ast_guard.py`）：字符串黑名单在 Python 上
@@ -64,9 +66,7 @@ def scan_source(files: Mapping[str, str], *, skip_paths: frozenset[str] | set[st
             continue
         for pattern in FORBIDDEN_PATTERNS:
             if pattern in (content or ""):
-                return GuardViolation(
-                    "forbidden_pattern", f"源码包含被禁止的内容：{pattern}", 0, str(path)
-                )
+                return GuardViolation("forbidden_pattern", f"源码包含被禁止的内容：{pattern}", 0, str(path))
     return None
 
 
@@ -144,7 +144,7 @@ class LocalRunner:
                     degraded=True,
                 )
             return self._execute(entry, workdir, request)
-        except Exception as exc:  # noqa: BLE001 - 执行器不得把异常抛给调用方
+        except Exception as exc:
             logger.exception("本地执行失败: %s", exc)
             return SandboxResponse(
                 request_id=request.request_id,
@@ -165,7 +165,7 @@ class LocalRunner:
         if os.name == "nt":  # Windows：不弹窗
             creation_flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
-        proc = subprocess.Popen(  # noqa: S603 - 参数为白名单后的固定值
+        proc = subprocess.Popen(
             [self._python, "-I", "-X", "utf8", str(entry)],
             cwd=str(workdir),
             stdin=subprocess.PIPE,
@@ -182,9 +182,7 @@ class LocalRunner:
             stdin_bytes = (request.stdin or "").encode("utf-8")
             # 通过 communicate 一次性写入并在超时后 kill
             try:
-                stdout_bytes, stderr_bytes = proc.communicate(
-                    input=stdin_bytes, timeout=request.timeout_ms / 1000.0
-                )
+                stdout_bytes, stderr_bytes = proc.communicate(input=stdin_bytes, timeout=request.timeout_ms / 1000.0)
             except subprocess.TimeoutExpired:
                 timed_out = True
                 proc.kill()
@@ -266,7 +264,7 @@ class LocalRunner:
             process = psutil.Process(proc.pid)
             memory_info = process.memory_info()
             return int(memory_info.rss // 1024)
-        except Exception:  # noqa: BLE001 - 采样失败不影响判题
+        except Exception:
             return 0
 
 
@@ -302,7 +300,7 @@ class RemoteRunner:
                 runner=self.name,
                 degraded=False,
             )
-        except Exception as exc:  # noqa: BLE001 - 交由上层降级
+        except Exception as exc:
             logger.warning("远程沙箱调用失败: %s", exc)
             return SandboxResponse(
                 request_id=request.request_id,
@@ -321,7 +319,7 @@ class RemoteRunner:
             with httpx.Client(timeout=self._timeout) as client:
                 response = client.get(f"{self._base_url}/health")
             return response.status_code < 400
-        except Exception:  # noqa: BLE001 - 健康检查不抛错
+        except Exception:
             return False
 
 
@@ -368,9 +366,7 @@ class RunnerFacade:
         if violation is not None:
             # 远程沙箱与本机执行器共用同一道门：避免 remote 模式绕过校验
             logger.warning("源码安全校验拒绝 request_id=%s rule=%s", request.request_id, violation.rule)
-            return _guard_response(
-                request, violation, runner_name=self.mode, degraded=self.degraded
-            )
+            return _guard_response(request, violation, runner_name=self.mode, degraded=self.degraded)
 
         if self.mode == "remote" and self._remote is not None:
             result = self._remote.run(request)

@@ -68,12 +68,12 @@ class Problem(Base, UUIDPkMixin, TimestampMixin):
         String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
 
-    test_cases: Mapped[list["TestCase"]] = relationship(
+    test_cases: Mapped[list[TestCase]] = relationship(
         back_populates="problem",
         cascade="all, delete-orphan",
         order_by="TestCase.order_index",
     )
-    problem_tags: Mapped[list["ProblemTag"]] = relationship(
+    problem_tags: Mapped[list[ProblemTag]] = relationship(
         back_populates="problem",
         cascade="all, delete-orphan",
     )
@@ -84,7 +84,7 @@ class Problem(Base, UUIDPkMixin, TimestampMixin):
         return self.problem_type in (ProblemType.CHOICE.value, ProblemType.JUDGE.value, ProblemType.BLANK.value)
 
     @property
-    def sample_cases(self) -> list["TestCase"]:
+    def sample_cases(self) -> list[TestCase]:
         """样例用例（可对前端展示）。"""
         return [case for case in (self.test_cases or []) if case.is_sample]
 
@@ -110,9 +110,7 @@ class TestCase(Base, UUIDPkMixin):
         Index("ix_tc_order", "order_index"),
     )
 
-    problem_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("problems.id", ondelete="CASCADE"), nullable=False
-    )
+    problem_id: Mapped[str] = mapped_column(String(36), ForeignKey("problems.id", ondelete="CASCADE"), nullable=False)
     name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     input: Mapped[str] = mapped_column(Text, default="", nullable=False, doc="标准输入")
     expected_output: Mapped[str] = mapped_column(Text, default="", nullable=False)
@@ -125,7 +123,7 @@ class TestCase(Base, UUIDPkMixin):
     order_index: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
-    problem: Mapped["Problem"] = relationship(back_populates="test_cases")
+    problem: Mapped[Problem] = relationship(back_populates="test_cases")
 
     @property
     def display_name(self) -> str:
@@ -153,7 +151,7 @@ class Tag(Base, UUIDPkMixin):
     order_index: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
-    problem_tags: Mapped[list["ProblemTag"]] = relationship(
+    problem_tags: Mapped[list[ProblemTag]] = relationship(
         back_populates="tag",
         cascade="all, delete-orphan",
     )
@@ -165,13 +163,9 @@ class ProblemTag(Base):
     __tablename__ = "problem_tags"
     __table_args__ = (Index("ix_pt_tag_id", "tag_id"),)
 
-    problem_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("problems.id", ondelete="CASCADE"), primary_key=True
-    )
-    tag_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True
-    )
+    problem_id: Mapped[str] = mapped_column(String(36), ForeignKey("problems.id", ondelete="CASCADE"), primary_key=True)
+    tag_id: Mapped[str] = mapped_column(String(36), ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
-    problem: Mapped["Problem"] = relationship(back_populates="problem_tags")
-    tag: Mapped["Tag"] = relationship(back_populates="problem_tags")
+    problem: Mapped[Problem] = relationship(back_populates="problem_tags")
+    tag: Mapped[Tag] = relationship(back_populates="problem_tags")

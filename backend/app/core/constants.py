@@ -11,9 +11,9 @@ DEFAULT_PAGE_SIZE: int = 20
 MAX_PAGE_SIZE: int = 100
 
 # ---------------- 掌握度（SM-2 简化版，见 docs/DATABASE.md §6.2）----------------
-MASTERY_CORRECT_GAIN: float = 0.2      # 正确：score += (100 - score) * 0.2
-MASTERY_WRONG_DECAY: float = 0.25      # 错误：score -= score * 0.25
-MASTERY_UPGRADE_STREAK: int = 3        # 连续正确 3 次升级别
+MASTERY_CORRECT_GAIN: float = 0.2  # 正确：score += (100 - score) * 0.2
+MASTERY_WRONG_DECAY: float = 0.25  # 错误：score -= score * 0.25
+MASTERY_UPGRADE_STREAK: int = 3  # 连续正确 3 次升级别
 MASTERY_LEVEL_THRESHOLDS: list[tuple[float, str]] = [
     (0.0, "none"),
     (20.0, "weak"),
@@ -48,12 +48,12 @@ RATE_LIMITS: dict[str, tuple[int, int]] = {
 }
 
 # ---------------- 代码历史 ----------------
-CODE_HISTORY_KEEP: int = 30          # 同一上下文保留的最近版本数
-MAX_CODE_BYTES: int = 200_000        # 单次保存代码大小上限
-MAX_SNIPPET_BYTES: int = 100_000     # 收藏代码片段上限
+CODE_HISTORY_KEEP: int = 30  # 同一上下文保留的最近版本数
+MAX_CODE_BYTES: int = 200_000  # 单次保存代码大小上限
+MAX_SNIPPET_BYTES: int = 100_000  # 收藏代码片段上限
 
 # ---------------- 输出与截断 ----------------
-MAX_STDOUT_CHARS: int = 8000         # 入库的输出截断长度
+MAX_STDOUT_CHARS: int = 8000  # 入库的输出截断长度
 MAX_ERROR_MESSAGE_CHARS: int = 2000  # 错误信息截断长度
 DEFAULT_TIMEOUT_MS: int = 5000
 DEFAULT_MEMORY_MB: int = 256
@@ -68,7 +68,7 @@ ALLOWED_FILE_EXTENSIONS: tuple[str, ...] = (".py", ".md", ".json", ".txt", ".csv
 DIFFICULTY_ORDER: dict[str, int] = {"easy": 1, "medium": 2, "hard": 3, "expert": 4}
 
 # ---------------- AI ----------------
-AI_MAX_HISTORY_MESSAGES: int = 10    # 组装提示时携带的最近对话轮数
+AI_MAX_HISTORY_MESSAGES: int = 10  # 组装提示时携带的最近对话轮数
 AI_MODES: tuple[str, ...] = ("beginner", "standard", "advanced")
 AI_HINT_LEVELS: tuple[str, ...] = ("hint", "approach", "partial", "full", "explain")
 

@@ -23,11 +23,7 @@ def list_courses(db: Session, params: PageParams, q: str | None = None) -> tuple
     total = int(db.scalar(select(func.count()).select_from(Course).where(*conditions)) or 0)
     rows = list(
         db.scalars(
-            select(Course)
-            .where(*conditions)
-            .order_by(Course.stage_no.asc())
-            .offset(params.offset)
-            .limit(params.limit)
+            select(Course).where(*conditions).order_by(Course.stage_no.asc()).offset(params.offset).limit(params.limit)
         ).all()
     )
     return rows, total
@@ -45,16 +41,20 @@ def create_course(db: Session, actor: User, payload: dict[str, Any], meta: dict[
     return course
 
 
-def update_course(
-    db: Session, actor: User, course_id: str, payload: dict[str, Any], meta: dict[str, Any]
-) -> Course:
+def update_course(db: Session, actor: User, course_id: str, payload: dict[str, Any], meta: dict[str, Any]) -> Course:
     """更新课程。"""
     course = get_or_404(db, Course, course_id, ErrorCode.COURSE_NOT_FOUND, "课程不存在")
     before = snapshot(course, ["title", "level", "is_published"])
     apply_fields(course, payload)
     audit(
-        db, actor, "admin.course.update", "course", course.id,
-        before=before, after=snapshot(course, ["title", "level", "is_published"]), meta=meta,
+        db,
+        actor,
+        "admin.course.update",
+        "course",
+        course.id,
+        before=before,
+        after=snapshot(course, ["title", "level", "is_published"]),
+        meta=meta,
     )
     db.commit()
     db.refresh(course)
@@ -81,9 +81,7 @@ def create_chapter(db: Session, actor: User, payload: dict[str, Any], meta: dict
     return chapter
 
 
-def update_chapter(
-    db: Session, actor: User, chapter_id: str, payload: dict[str, Any], meta: dict[str, Any]
-) -> Chapter:
+def update_chapter(db: Session, actor: User, chapter_id: str, payload: dict[str, Any], meta: dict[str, Any]) -> Chapter:
     """更新章节。"""
     chapter = get_or_404(db, Chapter, chapter_id, ErrorCode.CHAPTER_NOT_FOUND, "章节不存在")
     apply_fields(chapter, payload)
@@ -114,9 +112,7 @@ def create_lesson(db: Session, actor: User, payload: dict[str, Any], meta: dict[
     return lesson
 
 
-def update_lesson(
-    db: Session, actor: User, lesson_id: str, payload: dict[str, Any], meta: dict[str, Any]
-) -> Lesson:
+def update_lesson(db: Session, actor: User, lesson_id: str, payload: dict[str, Any], meta: dict[str, Any]) -> Lesson:
     """更新课时。"""
     topic_slugs = payload.pop("topic_slugs", None)
     lesson = get_or_404(db, Lesson, lesson_id, ErrorCode.LESSON_NOT_FOUND, "课时不存在")

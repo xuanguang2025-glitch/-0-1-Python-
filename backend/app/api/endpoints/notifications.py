@@ -28,9 +28,7 @@ def list_notifications(
     type: str | None = Query(default=None, pattern="^(system|achievement|daily|challenge|ai|admin)$"),
 ) -> dict:
     """分页返回我的通知（可按已读状态 / 类型筛选）。"""
-    items, total = notification_service.list_notifications(
-        db, current_user, pagination, is_read=is_read, ntype=type
-    )
+    items, total = notification_service.list_notifications(db, current_user, pagination, is_read=is_read, ntype=type)
     page = build_page([NotificationOut.model_validate(item) for item in items], total, pagination)
     return success_response(page)
 

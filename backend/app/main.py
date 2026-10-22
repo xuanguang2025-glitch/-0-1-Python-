@@ -10,9 +10,9 @@
 
 from __future__ import annotations
 
-import logging
 from collections.abc import AsyncIterator, Callable, MutableMapping
 from contextlib import asynccontextmanager
+import logging
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -39,18 +39,26 @@ def _startup_self_check(settings: Settings) -> None:
     from app.sandbox.runner import get_runner
 
     logger.info("=" * 68)
-    logger.info("%s v%s 启动中（env=%s, debug=%s）", settings.app_name, settings.app_version, settings.app_env, settings.debug)
+    logger.info(
+        "%s v%s 启动中（env=%s, debug=%s）", settings.app_name, settings.app_version, settings.app_env, settings.debug
+    )
 
     db_ok = db_ping()
     tables = table_names() if db_ok else []
-    logger.info("数据库: flavor=%s target=%s ok=%s 表数=%d", settings.db_flavor, settings.database_host_hint, db_ok, len(tables))
+    logger.info(
+        "数据库: flavor=%s target=%s ok=%s 表数=%d", settings.db_flavor, settings.database_host_hint, db_ok, len(tables)
+    )
 
     try:
         logger.info("缓存: backend=%s", get_cache_instance().backend)
         logger.info("队列: backend=%s", get_queue_instance().backend)
         logger.info("执行器: mode=%s", get_runner().mode)
-        logger.info("AI: provider=%s degraded=%s", settings.ai_provider if settings.ai_enabled else "rule", not settings.ai_enabled)
-    except Exception as exc:  # noqa: BLE001 - 自检不得阻断启动
+        logger.info(
+            "AI: provider=%s degraded=%s",
+            settings.ai_provider if settings.ai_enabled else "rule",
+            not settings.ai_enabled,
+        )
+    except Exception as exc:
         logger.warning("依赖自检出现异常（不影响启动）: %s", exc)
 
     if db_ok and not tables:
@@ -78,7 +86,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                     stats.get("lessons", 0),
                     stats.get("problems", 0),
                 )
-        except Exception as exc:  # noqa: BLE001 - 种子失败不阻断服务启动
+        except Exception as exc:
             logger.warning("自动种子跳过：%s", exc)
 
     yield
@@ -135,7 +143,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         from fastapi.staticfiles import StaticFiles
 
         app.mount("/uploads", StaticFiles(directory=str(config.upload_dir_path)), name="uploads")
-    except Exception as exc:  # noqa: BLE001 - 上传目录异常不应阻断启动
+    except Exception as exc:
         logger.warning("静态目录挂载失败: %s", exc)
 
     # ---- 路由 ----

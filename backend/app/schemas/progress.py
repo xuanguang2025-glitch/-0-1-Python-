@@ -153,8 +153,12 @@ class LearningSessionOut(ORMModel):
 class LearningSessionStartRequest(StrictModel):
     """开始学习会话请求体。"""
 
-    session_type: str = Field(default=SessionType.LESSON.value, description="lesson/problem/project/exam/playground/challenge/ai")
-    learning_mode: str = Field(default=LearningMode.SYSTEM.value, description="free/system/exam/drill/project/challenge/ai")
+    session_type: str = Field(
+        default=SessionType.LESSON.value, description="lesson/problem/project/exam/playground/challenge/ai"
+    )
+    learning_mode: str = Field(
+        default=LearningMode.SYSTEM.value, description="free/system/exam/drill/project/challenge/ai"
+    )
     ref_id: str | None = Field(default=None, max_length=64)
 
     @field_validator("session_type")

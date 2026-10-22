@@ -1,0 +1,61 @@
+# PYTHON LAB —— 后端 lint 配置（ruff）
+#
+# 设计取舍（与 docs/TESTING.md 的「故意不加 lint 门禁」决策配套，本轮落地）：
+# 1. **规则集精选而非全家桶**：目标是「拦住真 bug 与明显坏味道」，不是风格警察。
+#    不启用 pylint 全家桶（PL）、复杂度（C901）、异常设计（TRY/EM）、安全（S，沙箱项目误报多）。
+# 2. **line-length = 120**：与本项目现有代码风格一致（实测最长行 120）。
+#    black 默认 88 会重排几乎全部文件，diff 噪声淹没真实修改，故统一 120。
+# 3. **误报豁免按文件粒度写死**，并在注释里说明原因，避免后人以为是遗漏：
+#    - `app/models/`：SQLAlchemy 的关系字符串前向引用 `Mapped["User"]`，F821 误报
+#    - `app/api/` / `app/schemas/`：FastAPI 的 `Query()` / `Depends()` / `Body()` 默认值模式，B008 误报
+target-version = "py313"
+line-length = 120
+
+[lint]
+select = [
+    "E4",    # pycodestyle errors：导入相关
+    "E7",    # pycodestyle errors：语句相关
+    "E9",    # pycodestyle errors：语法错误
+    "F",     # pyflakes：未用导入 / 未定义名 / f-string 等真问题
+    "I",     # isort：导入排序
+    "UP",    # pyupgrade：Python 3.13 现代写法
+    "B",     # flake8-bugbear：常见 bug 模式
+    "SIM",   # flake8-simplify：可简化的冗余写法
+    "RUF",   # ruff 自家规则集合（不含全部，见 ignore）
+]
+
+ignore = [
+    "RUF001",  # 全角标点歧义（本项目中文注释/docstring 大量使用，属正常）
+    "RUF002",  # 同 RUF001
+    "RUF003",  # 同 RUF001
+    "RUF012",  # 可变类默认属性需 ClassVar（SQLAlchemy 模型大量触发，属误报）
+    "RUF022",  # __all__ 排序（风格类，非 bug）
+]
+
+[lint.per-file-ignores]
+# SQLAlchemy 关系字符串前向引用：Mapped["User"] / relationship("AIMessage") —— ruff 的
+# 作用域分析不理解 SQLAlchemy 的字符串注解语义，F821 是误报（已有 mypy 的
+# type: ignore[name-defined] 处理，此处对 ruff 同因豁免）。
+"app/models/*.py" = ["F821"]
+# FastAPI 参数默认值：Query()/Depends()/Body()/Header() 在函数签名里的求值是框架约定，B008 误报。
+"app/api/*.py" = ["B008"]
+"app/schemas/*.py" = ["B008"]
+# deps.py 定义依赖注入工厂（get_db 等），Depends() 默认值是 FastAPI 约定，同因豁免。
+"app/core/deps.py" = ["B008"]
+# 自定义 StrEnum 基类：附带 values()/has() 工具方法，40+ 个枚举继承。
+# UP042 建议改用标准库 enum.StrEnum —— 但那会丢失上述工具方法，属规则与设计的冲突，
+# 保留自定义版（其 __str__ 语义与标准库一致，无兼容问题）。
+"app/models/enums.py" = ["UP042"]
+# ResponseModel/PageModel：全站 150 处使用的统一响应外层。UP046 建议改 PEP 695 泛型
+# （class ResponseModel[T](BaseModel)），但 Pydantic v2 对各版本的 PEP 695 支持有差异，
+# 为一条风格规则冒序列化回归的风险不值得 —— 保持 Generic[T] 经典写法。
+"app/core/response.py" = ["UP046"]
+# 域服务门面包：`__init__` 的 import 即「再导出」（对外保持 `admin_service.xxx` 不变），
+# F401 unused-import 是模式必然，非死代码。**新增符号若要对外开放，必须同时进 `__all__`**。
+"app/services/*/__init__.py" = ["F401"]
+# 测试允许更长断言与 fixture 直接调用
+"tests/*.py" = ["B008", "E402"]
+
+[lint.isort]
+known-first-party = ["app"]
+force-sort-within-sections = true

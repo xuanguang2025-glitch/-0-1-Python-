@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -22,7 +22,7 @@ def trend(db: Session, user: User, days: int = 30, metric: str = "submissions") 
     days = max(1, min(365, int(days or 30)))
     metric = metric if metric in TREND_METRICS else "submissions"
     win = last_n_days(days)
-    since = datetime(win[0].year, win[0].month, win[0].day, tzinfo=timezone.utc)
+    since = datetime(win[0].year, win[0].month, win[0].day, tzinfo=UTC)
 
     if metric == "minutes":
         rows = db.execute(
@@ -48,7 +48,7 @@ def heatmap(db: Session, user: User, days: int = 180) -> HeatmapOut:
     """`GET /statistics/heatmap`：按日聚合活跃次数与学习分钟（供热力图）。"""
     days = max(1, min(365, int(days or 180)))
     win = last_n_days(days)
-    since = datetime(win[0].year, win[0].month, win[0].day, tzinfo=timezone.utc)
+    since = datetime(win[0].year, win[0].month, win[0].day, tzinfo=UTC)
 
     sub_rows = db.execute(
         select(func.date(Submission.created_at), func.count())

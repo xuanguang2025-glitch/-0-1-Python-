@@ -23,11 +23,12 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterator, Sequence
 import os
-import sqlite3
 from pathlib import Path
+import sqlite3
 from types import SimpleNamespace
-from typing import Any, Callable, Iterator, Sequence
+from typing import Any
 
 # 必须在导入 app 之前固定测试环境
 # pytest.ini 的 [pytest] env 会设置这些变量；此处 setdefault 作为兜底，保证单独运行也一致。
@@ -39,22 +40,22 @@ os.environ.setdefault("QUEUE_BACKEND", "inline")
 os.environ.setdefault("SANDBOX_MODE", "stub")
 os.environ.setdefault("DATABASE_URL", "sqlite:///./data/pythonlab_test.db")
 
-import pytest  # noqa: E402
-from fastapi import FastAPI  # noqa: E402
-from fastapi.testclient import TestClient  # noqa: E402
-from sqlalchemy import Engine, create_engine  # noqa: E402
-from sqlalchemy.orm import Session, sessionmaker  # noqa: E402
-from sqlalchemy.pool import StaticPool  # noqa: E402
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+import pytest
+from sqlalchemy import Engine, create_engine
+from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
 
-import app.models  # noqa: E402,F401 - 触发全部模型注册
-from app.core.cache import MemoryCache, cache_container  # noqa: E402
-from app.core.config import get_settings  # noqa: E402
-from app.core.deps import get_db  # noqa: E402
-from app.core.errors import register_exception_handlers  # noqa: E402
-from app.core.security import create_access_token, hash_password  # noqa: E402
-from app.db.base import Base  # noqa: E402
-from app.models.user import Profile, User  # noqa: E402
-from app.services.sandbox_client import (  # noqa: E402
+from app.core.cache import MemoryCache, cache_container
+from app.core.config import get_settings
+from app.core.deps import get_db
+from app.core.errors import register_exception_handlers
+from app.core.security import create_access_token, hash_password
+from app.db.base import Base
+import app.models  # noqa: F401 - 触发全部模型注册
+from app.models.user import Profile, User
+from app.services.sandbox_client import (
     SandboxClient,
     reset_sandbox_client,
     set_sandbox_client,
@@ -163,7 +164,7 @@ def _override_get_db() -> Iterator[Session]:
 
 def _router_key(routers: Sequence[Any], prefix: str) -> tuple[int, ...]:
     """用路由对象身份 + 前缀作为缓存键。"""
-    return tuple(id(router) for router in routers) + (hash(prefix),)
+    return (*(id(router) for router in routers), hash(prefix))
 
 
 @pytest.fixture(scope="session")
@@ -289,9 +290,7 @@ def seeded_users(db: Session, password_hash: str) -> SimpleNamespace:
 @pytest.fixture()
 def auth_tokens(seeded_users: SimpleNamespace) -> SimpleNamespace:
     """为普通用户与管理员各生成一个 Access Token。"""
-    user_token, _jti, _exp = create_access_token(
-        seeded_users.user_id, role="user", username=seeded_users.username
-    )
+    user_token, _jti, _exp = create_access_token(seeded_users.user_id, role="user", username=seeded_users.username)
     admin_token, _jti, _exp = create_access_token(
         seeded_users.admin_id, role="superadmin", username=seeded_users.admin_username
     )

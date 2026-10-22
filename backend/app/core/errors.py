@@ -119,7 +119,7 @@ def register_exception_handlers(app: FastAPI) -> None:
     """注册全局异常处理器（顺序：业务异常 → 校验异常 → HTTP 异常 → 兜底）。"""
 
     @app.exception_handler(AppError)
-    async def _handle_app_error(request: Request, exc: AppError) -> JSONResponse:  # noqa: ANN001
+    async def _handle_app_error(request: Request, exc: AppError) -> JSONResponse:
         return _write_error(request, exc.status_code, exc.code, exc.message, exc.details)
 
     @app.exception_handler(RequestValidationError)

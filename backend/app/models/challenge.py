@@ -37,9 +37,7 @@ class Challenge(Base, UUIDPkMixin, TimestampMixin):
     slug: Mapped[str] = mapped_column(String(150), nullable=False)
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     description_md: Mapped[str | None] = mapped_column(Text, nullable=True)
-    challenge_type: Mapped[str] = mapped_column(
-        String(20), default=ChallengeType.DAILY.value, nullable=False
-    )
+    challenge_type: Mapped[str] = mapped_column(String(20), default=ChallengeType.DAILY.value, nullable=False)
     difficulty: Mapped[str] = mapped_column(String(20), default=Difficulty.EASY.value, nullable=False)
     problem_ids_json: Mapped[Any] = mapped_column(JSON, default=list, nullable=False, doc="题目 id 数组")
     rules_md: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -50,7 +48,7 @@ class Challenge(Base, UUIDPkMixin, TimestampMixin):
     participant_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     is_published: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
-    user_challenges: Mapped[list["UserChallenge"]] = relationship(
+    user_challenges: Mapped[list[UserChallenge]] = relationship(
         back_populates="challenge",
         cascade="all, delete-orphan",
     )
@@ -84,9 +82,7 @@ class UserChallenge(Base, UUIDPkMixin):
         Index("ix_uc_rank", "rank"),
     )
 
-    user_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     challenge_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("challenges.id", ondelete="CASCADE"), nullable=False
     )
@@ -98,8 +94,8 @@ class UserChallenge(Base, UUIDPkMixin):
     submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
-    user: Mapped["User"] = relationship()  # type: ignore[name-defined]
-    challenge: Mapped["Challenge"] = relationship(back_populates="user_challenges")
+    user: Mapped[User] = relationship()  # type: ignore[name-defined]
+    challenge: Mapped[Challenge] = relationship(back_populates="user_challenges")
 
     def apply_result(self, score: int, passed_cases: int, total_time_ms: int) -> None:
         """记录一次挑战成绩（保留历史最优）。"""

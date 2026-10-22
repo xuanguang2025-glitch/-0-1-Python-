@@ -77,10 +77,10 @@ def test_openai_compatible_request_and_parse() -> None:
 def test_openai_compatible_stream() -> None:
     """SSE 流式逐块解析。"""
     sse = (
-        'data: {"choices":[{"delta":{"content":"Hello"}}]}\n\n'
-        'data: {"choices":[{"delta":{"content":" world"}}]}\n\n'
-        "data: [DONE]\n\n"
-    ).encode("utf-8")
+        b'data: {"choices":[{"delta":{"content":"Hello"}}]}\n\n'
+        b'data: {"choices":[{"delta":{"content":" world"}}]}\n\n'
+        b"data: [DONE]\n\n"
+    )
 
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, content=sse, headers={"content-type": "text/event-stream"})
@@ -181,9 +181,7 @@ def test_gemini_request_and_parse() -> None:
         return httpx.Response(
             200,
             json={
-                "candidates": [
-                    {"content": {"parts": [{"text": "Gemini 回答"}]}, "finishReason": "STOP"}
-                ],
+                "candidates": [{"content": {"parts": [{"text": "Gemini 回答"}]}, "finishReason": "STOP"}],
                 "usageMetadata": {"promptTokenCount": 9, "candidatesTokenCount": 4},
             },
         )

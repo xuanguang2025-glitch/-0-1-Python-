@@ -8,7 +8,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Annotated, Any, Generic, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -81,9 +81,8 @@ def ensure_utc(value: datetime | None) -> datetime | None:
     if value is None:
         return None
     if value.tzinfo is None:
-        from datetime import timezone
 
-        return value.replace(tzinfo=timezone.utc)
+        return value.replace(tzinfo=UTC)
     return value
 
 

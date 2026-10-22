@@ -9,12 +9,13 @@
 from __future__ import annotations
 
 import logging
-import sys
 from logging.config import fileConfig
 from pathlib import Path
+import sys
+
+from sqlalchemy import engine_from_config, pool
 
 from alembic import context
-from sqlalchemy import engine_from_config, pool
 
 # 让 `app` 包可被导入（backend/ 加入 sys.path）
 BACKEND_DIR = Path(__file__).resolve().parents[1]
@@ -40,7 +41,7 @@ def _resolve_url() -> str:
         from app.core.config import get_settings
 
         return get_settings().database_url
-    except Exception as exc:  # noqa: BLE001 - 配置不可用时回退 ini
+    except Exception as exc:
         logger.warning("读取应用配置失败，回退 alembic.ini 中的 sqlalchemy.url: %s", exc)
         return config.get_main_option("sqlalchemy.url") or ""
 

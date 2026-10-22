@@ -10,10 +10,10 @@
 
 from __future__ import annotations
 
-import logging
-import secrets
 from functools import lru_cache
+import logging
 from pathlib import Path
+import secrets
 from typing import Any, Literal
 from urllib.parse import urlparse
 
@@ -220,9 +220,7 @@ class Settings(BaseSettings):
         if self.ai_offline:
             return False
         key = (self.ai_api_key or "").strip()
-        if not key or key.startswith("sk-your-"):
-            return False
-        return True
+        return bool(key) and not key.startswith("sk-your-")
 
     @property
     def database_host_hint(self) -> str:
@@ -307,11 +305,12 @@ def is_weak_secret(value: str | None) -> bool:
     if len(text) < MIN_SECRET_LENGTH:
         return True
     # 形如 `change-me-2026` / `your-jwt-key` 的占位符同样不可用
-    if "change-me" in lowered or "changeme" in lowered:
-        return True
-    if lowered.startswith("your-") or lowered.endswith("-placeholder"):
-        return True
-    return False
+    return (
+        "change-me" in lowered
+        or "changeme" in lowered
+        or lowered.startswith("your-")
+        or lowered.endswith("-placeholder")
+    )
 
 
 def generate_strong_secret(nbytes: int = 48) -> str:
@@ -346,7 +345,7 @@ def enforce_secret_policy(settings: Settings, logger: logging.Logger | None = No
             + " 仍为默认值/占位符或长度不足 "
             + str(MIN_SECRET_LENGTH)
             + " 字符。请在 backend/.env（或部署环境变量）中设置强随机值，例如："
-            "python -c \"import secrets; print(secrets.token_urlsafe(48))\"，"
+            'python -c "import secrets; print(secrets.token_urlsafe(48))"，'
             "并分别写入 JWT_SECRET_KEY / SECRET_KEY。"
         )
 

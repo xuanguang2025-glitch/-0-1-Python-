@@ -78,7 +78,7 @@ class LessonDetail(ORMModel):
     topics: list[TopicOut] = Field(default_factory=list)
     prev: LessonBrief | None = None
     next: LessonBrief | None = None
-    progress: "LearningProgressOut | None" = None
+    progress: LearningProgressOut | None = None
 
     # ---- 前端左侧完整章节目录所需的定位信息 ----
     course_id: str | None = None
@@ -90,7 +90,7 @@ class LessonDetail(ORMModel):
     total_lessons: int = 0
     prev_lesson: LessonNav | None = None
     next_lesson: LessonNav | None = None
-    course_outline: list["ChapterOut"] = Field(default_factory=list)
+    course_outline: list[ChapterOut] = Field(default_factory=list)
 
 
 class ChapterOut(ORMModel):
@@ -145,7 +145,7 @@ class CourseDetail(ORMModel):
 
     course: CourseBrief
     chapters: list[ChapterOut] = Field(default_factory=list)
-    progress: "CourseProgressOut | None" = None
+    progress: CourseProgressOut | None = None
 
 
 class CourseProgressOut(ORMModel):

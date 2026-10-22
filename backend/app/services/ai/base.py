@@ -15,9 +15,10 @@
 from __future__ import annotations
 
 import abc
-import time
+from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
-from typing import Any, AsyncIterator
+import time
+from typing import Any
 
 # ---------------------------------------------------------------------------
 # 错误体系

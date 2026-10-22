@@ -5,7 +5,9 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Callable, Iterator
+from collections.abc import Callable, Iterator
+from contextlib import suppress
+from typing import Annotated
 
 from fastapi import Depends, Query, Request
 from fastapi.security import OAuth2PasswordBearer
@@ -64,17 +66,15 @@ def is_token_blocked(jti: str) -> bool:
     cache = get_cache_instance()
     try:
         return bool(cache.exists(f"{TOKEN_BLACKLIST_PREFIX}{jti}"))
-    except Exception:  # noqa: BLE001 - 缓存异常不应导致鉴权直接失败
+    except Exception:
         return False
 
 
 def block_token(jti: str, ttl_seconds: int) -> None:
     """把 jti 加入黑名单（TTL = 令牌剩余有效期）。"""
     cache = get_cache_instance()
-    try:
+    with suppress(Exception):
         cache.set(f"{TOKEN_BLACKLIST_PREFIX}{jti}", 1, ttl=max(1, ttl_seconds))
-    except Exception:  # noqa: BLE001 - 黑名单写入失败仅记录
-        pass
 
 
 def _load_user(db: Session, user_id: str) -> User:

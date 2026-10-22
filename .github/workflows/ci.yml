@@ -61,6 +61,14 @@ jobs:
       - name: 运行测试
         run: python -m pytest tests/ -q --junitxml=pytest-backend.xml
 
+      # Lint 门禁（2026-10-22 落地）：存量 400+ 违规已清零，从此拦住新增。
+      # ruff 规则集与误报豁免见 backend/ruff.toml 注释。
+      # black 只卡格式不回写（line-length 120，与 ruff/代码风格一致）。
+      - name: Lint 检查（ruff + black）
+        run: |
+          ruff check .
+          black --line-length 120 --check app tests scripts alembic
+
       # if-no-files-found 用 error 而非 warn：首轮 CI 曾因 pytest 以 usage error(exit 4) 收场，
       # junit xml 根本没生成，而这里是 warn —— 报告静默缺失，排查时容易误以为"没失败用例"。
       - name: 上传 JUnit 报告

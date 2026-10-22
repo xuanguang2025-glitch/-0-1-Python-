@@ -13,8 +13,8 @@ __plab_boot__.py 三个文件名下对比。若保留名下能执行，即证明
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
+import sys
 
 BACKEND = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(BACKEND))
@@ -71,19 +71,19 @@ for name in ["_plab_guard.py", "__plab_boot__.py", "main.py", "../../etc/passwd"
     try:
         validate_relative_path(name)
         verdict = "接受"
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         verdict = f"拒绝({type(exc).__name__})"
     print(f"  validate_relative_path({name!r:22s}) -> {verdict}")
 
 try:
     req = RunRequest(files=[{"path": "_plab_guard.py", "content": "print(1)"}], entry="_plab_guard.py")
     print(f"  RunRequest 接受保留名文件：entry={req.entry!r} files={[f.path for f in req.files]}")
-except Exception as exc:  # noqa: BLE001
+except Exception as exc:
     print(f"  RunRequest 拒绝：{type(exc).__name__}: {exc}")
 
 print()
 print("=" * 78)
 print("结论汇总")
 print("=" * 78)
-for label, status, executed in verdicts:
+for label, _status, executed in verdicts:
     print(f"  {'越权执行' if executed else '已拦截':8s} | {label}")

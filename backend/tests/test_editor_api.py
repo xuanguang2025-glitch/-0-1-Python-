@@ -6,12 +6,12 @@
 
 from __future__ import annotations
 
-import pytest
 from fastapi.testclient import TestClient
+import pytest
 
-import app.models  # noqa: F401 - 触发全部模型注册
 from app.api.endpoints import bookmarks, code_history, editor, mistakes, problems, projects, submissions
 from app.core.security import create_access_token
+import app.models  # noqa: F401 - 触发全部模型注册
 from app.models.enums import ProblemCategory
 from app.models.project import Project, ProjectFile
 from app.models.user import User
@@ -62,9 +62,7 @@ def _seed(TestSession) -> dict:
             [
                 ProjectFile(project_id=project.id, path="main.py", content="# TODO", is_entry=True, order_index=0),
                 ProjectFile(project_id=project.id, path="utils.py", content="", order_index=1),
-                ProjectFile(
-                    project_id=project.id, path="README.md", content="说明", is_readonly=True, order_index=2
-                ),
+                ProjectFile(project_id=project.id, path="README.md", content="说明", is_readonly=True, order_index=2),
             ]
         )
         db.commit()

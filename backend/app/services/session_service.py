@@ -39,9 +39,7 @@ def start_session(db: Session, user: User, payload: LearningSessionStartRequest)
     return to_out(session)
 
 
-def heartbeat(
-    db: Session, user: User, session_id: str, payload: LearningSessionHeartbeatRequest
-) -> LearningSessionOut:
+def heartbeat(db: Session, user: User, session_id: str, payload: LearningSessionHeartbeatRequest) -> LearningSessionOut:
     """会话心跳：累加时长 / 行为数 / 经验。仅本人可操作。"""
     session = owned_session(db, user, session_id)
     session.duration_seconds = int(session.duration_seconds or 0) + payload.seconds

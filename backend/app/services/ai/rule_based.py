@@ -78,7 +78,7 @@ class RuleBasedProvider(AIProvider):
     name = "rule_based"
     supports_streaming = True
 
-    def __init__(self, cfg: Any = None) -> None:  # noqa: ANN401 - 复用基类配置类型
+    def __init__(self, cfg: Any = None) -> None:
         """初始化（配置可为空，规则引擎不依赖任何远程参数）。"""
         from app.services.ai.base import ProviderConfig
 
@@ -218,13 +218,13 @@ class RuleBasedProvider(AIProvider):
         lines = [f"### 离线助手 · {label}", ""]
         if level == "hint":
             lines.append("先别急着写代码，试着回答下面这一步：")
-            lines.append(f"- 你能用一句话说清「输入是什么、期望输出是什么」吗？")
+            lines.append("- 你能用一句话说清「输入是什么、期望输出是什么」吗？")
             lines.append(f"- 涉及的知识点可能是：{('、'.join(topics) or '基础语法')}。")
             lines.append("")
             lines.append("> 想进一步，就点「给我思路」。")
         elif level == "approach":
             lines.append("解题/排查思路（按顺序）：")
-            lines.append(f"1. 明确输入输出与边界（空值、0、负数、多行输入）。")
+            lines.append("1. 明确输入输出与边界（空值、0、负数、多行输入）。")
             lines.append(f"2. 本问题涉及：{('、'.join(topics) or '基础语法')}。")
             lines.append("3. 先写出最小可运行的骨架，再逐步补全。")
             lines.append("4. 用小数据手工验证每一步的中间结果。")

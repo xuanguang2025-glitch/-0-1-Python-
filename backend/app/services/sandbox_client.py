@@ -18,8 +18,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
 import logging
-from typing import Any, Iterable, Mapping
+from typing import Any
 
 from app.core.config import get_settings
 from app.core.errors import AppError, ErrorCode
@@ -188,7 +189,7 @@ class SandboxClient:
             with httpx.Client(timeout=timeout_seconds) as client:
                 response = client.get(f"{self._url}/health")
             return response.status_code < 400
-        except Exception as exc:  # noqa: BLE001 - 探测失败即回落本地
+        except Exception as exc:
             logger.warning("远程沙箱 %s 不可用（%s），回落本机执行器", self._url, exc)
             return False
 
@@ -227,7 +228,7 @@ class SandboxClient:
                 response.raise_for_status()
                 data = response.json()
             return from_remote_payload(data, mode=mode)
-        except Exception as exc:  # noqa: BLE001 - 由上层决定降级
+        except Exception as exc:
             logger.warning("远程沙箱调用异常（%s），将回落本机: %s", self._url, exc)
             return None
 

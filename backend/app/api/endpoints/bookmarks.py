@@ -49,9 +49,7 @@ def create_bookmark(payload: BookmarkCreateRequest, current_user: CurrentUser, d
 
 
 @router.patch("/{bookmark_id}", response_model=ResponseModel[BookmarkOut], summary="更新收藏")
-def update_bookmark(
-    bookmark_id: str, payload: BookmarkUpdateRequest, current_user: CurrentUser, db: DbSession
-) -> dict:
+def update_bookmark(bookmark_id: str, payload: BookmarkUpdateRequest, current_user: CurrentUser, db: DbSession) -> dict:
     """更新收藏（标题 / 笔记 / 集合 / 标签）。"""
     record = bookmark_service.update_bookmark(db, current_user, bookmark_id, payload)
     return success_response(bookmark_service.to_out(record))

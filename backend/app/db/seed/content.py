@@ -167,14 +167,15 @@ def seed_courses(db: Session, stats: SeedStats, topics: dict[str, Topic]) -> Non
 
             chapter.lesson_count = lesson_count
 
-        course.lesson_count = sum(
-            int(item.lesson_count or 0) for item in (course.chapters or []) if item is not None
-        )
+        course.lesson_count = sum(int(item.lesson_count or 0) for item in (course.chapters or []) if item is not None)
         if course.lesson_count == 0:
             # 关系未加载时按实际查询兜底
             course.lesson_count = int(
                 db.scalar(
-                    select(Chapter.lesson_count).where(Chapter.course_id == course.id).order_by(Chapter.order_index).limit(1)
+                    select(Chapter.lesson_count)
+                    .where(Chapter.course_id == course.id)
+                    .order_by(Chapter.order_index)
+                    .limit(1)
                 )
                 or 0
             )
@@ -197,8 +198,7 @@ def _link_lesson_topics(
         wanted[str(primary)] = True
 
     existing = {
-        link.topic_id: link
-        for link in db.scalars(select(LessonTopic).where(LessonTopic.lesson_id == lesson.id)).all()
+        link.topic_id: link for link in db.scalars(select(LessonTopic).where(LessonTopic.lesson_id == lesson.id)).all()
     }
     for slug, is_primary in wanted.items():
         topic = topics.get(slug)
@@ -311,9 +311,7 @@ def _sync_problem_tags(
     tags: dict[str, Tag],
 ) -> None:
     """同步题目标签关联。"""
-    existing = {
-        link.tag_id for link in db.scalars(select(ProblemTag).where(ProblemTag.problem_id == problem.id)).all()
-    }
+    existing = {link.tag_id for link in db.scalars(select(ProblemTag).where(ProblemTag.problem_id == problem.id)).all()}
     for slug in slugs:
         tag = tags.get(str(slug))
         if tag is None:

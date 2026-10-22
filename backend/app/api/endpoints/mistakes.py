@@ -77,18 +77,14 @@ def get_mistake(mistake_id: str, current_user: CurrentUser, db: DbSession) -> di
 
 
 @router.patch("/{mistake_id}", response_model=ResponseModel[MistakeOut], summary="更新错题")
-def update_mistake(
-    mistake_id: str, payload: MistakeUpdateRequest, current_user: CurrentUser, db: DbSession
-) -> dict:
+def update_mistake(mistake_id: str, payload: MistakeUpdateRequest, current_user: CurrentUser, db: DbSession) -> dict:
     """更新错题笔记 / 知识点。"""
     record = mistake_service.update_mistake(db, current_user, mistake_id, payload)
     return success_response(mistake_service.to_out(record))
 
 
 @router.post("/{mistake_id}/resolve", response_model=ResponseModel[MistakeOut], summary="标记已掌握")
-def resolve_mistake(
-    mistake_id: str, payload: MistakeResolveRequest, current_user: CurrentUser, db: DbSession
-) -> dict:
+def resolve_mistake(mistake_id: str, payload: MistakeResolveRequest, current_user: CurrentUser, db: DbSession) -> dict:
     """标记 / 取消「已掌握」。"""
     record = mistake_service.resolve_mistake(db, current_user, mistake_id, payload.resolved)
     return success_response(mistake_service.to_out(record))

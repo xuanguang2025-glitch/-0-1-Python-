@@ -64,7 +64,7 @@ FORBIDDEN_PATTERNS: tuple[str, ...] = (
     "ctypes",
     "socket.socket",
     "__import__('os')",
-    'eval(input',
+    "eval(input",
     "open('/etc",
     "open('/proc",
     "filecmp",

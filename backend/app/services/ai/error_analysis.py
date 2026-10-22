@@ -11,14 +11,16 @@ RecursionError / ImportError / FileNotFoundError。
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass, field
+import re
 from typing import Any
 
 # 匹配 traceback 中的帧信息：File "xxx.py", line 12, in func
 _FRAME_RE: re.Pattern[str] = re.compile(r'File "(?P<file>[^"]+)", line (?P<line>\d+)(?:, in (?P<func>\S+))?')
 # 匹配异常类型：最后一行的 `NameError: ...`
-_EXC_RE: re.Pattern[str] = re.compile(r"(?P<type>[A-Za-z_][A-Za-z0-9_]*(?:Error|Exception|Interrupt|Exit))(?::\s*(?P<msg>.*))?")
+_EXC_RE: re.Pattern[str] = re.compile(
+    r"(?P<type>[A-Za-z_][A-Za-z0-9_]*(?:Error|Exception|Interrupt|Exit))(?::\s*(?P<msg>.*))?"
+)
 
 
 @dataclass(slots=True)
@@ -287,8 +289,7 @@ def analyze_error(
     knowledge = KNOWLEDGE.get(normalized)
     if knowledge is None:
         analysis.cause = (
-            f"识别到异常 `{exc_type}`（{message or '无附加信息'}）。"
-            "未能匹配内置知识库，请结合报错位置逐行检查。"
+            f"识别到异常 `{exc_type}`（{message or '无附加信息'}）。" "未能匹配内置知识库，请结合报错位置逐行检查。"
         )
         analysis.fix_steps = ["阅读报错最后一行的异常信息。", "定位到该行，检查变量类型与取值是否如预期。"]
         analysis.related_topics = ["调试方法"]

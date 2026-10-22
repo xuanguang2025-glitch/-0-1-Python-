@@ -63,10 +63,7 @@ def list_error_logs(db: Session, limit: int = 50) -> list[dict[str, Any]]:
         .order_by(func.count().desc())
         .limit(limit)
     ).all()
-    return [
-        {"code": str(row[0]), "count": int(row[1] or 0), "last_at": row[2], "sample_message": None}
-        for row in rows
-    ]
+    return [{"code": str(row[0]), "count": int(row[1] or 0), "last_at": row[2], "sample_message": None} for row in rows]
 
 
 def session_overview(db: Session) -> dict[str, Any]:
@@ -86,8 +83,7 @@ def session_overview(db: Session) -> dict[str, Any]:
         "total_minutes": total_seconds // 60,
         "active_users": active_users,
         "by_type": [
-            {"session_type": str(r[0]), "sessions": int(r[1] or 0), "minutes": int(r[2] or 0) // 60}
-            for r in rows
+            {"session_type": str(r[0]), "sessions": int(r[1] or 0), "minutes": int(r[2] or 0) // 60} for r in rows
         ],
     }
 
@@ -121,15 +117,18 @@ def list_settings(db: Session) -> list[dict[str, Any]]:
     return result
 
 
-def update_setting(
-    db: Session, actor: User, key: str, payload: dict[str, Any], meta: dict[str, Any]
-) -> dict[str, Any]:
+def update_setting(db: Session, actor: User, key: str, payload: dict[str, Any], meta: dict[str, Any]) -> dict[str, Any]:
     """读写系统设置（敏感项写入后读取仍脱敏）。"""
     row = write_setting(db, key, payload.get("value_json"), actor=actor, description=payload.get("description"))
     sensitive = is_sensitive(key)
     audit(
-        db, actor, "admin.setting.update", "system_setting", key,
-        after={"key": key, "value": "***" if sensitive else row.value_json}, meta=meta,
+        db,
+        actor,
+        "admin.setting.update",
+        "system_setting",
+        key,
+        after={"key": key, "value": "***" if sensitive else row.value_json},
+        meta=meta,
     )
     db.commit()
     return {

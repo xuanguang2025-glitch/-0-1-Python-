@@ -152,9 +152,7 @@ def join_challenge(db: Session, user: User, challenge_id: str) -> UserChallengeO
     if existing is not None:
         raise AppError(code=ErrorCode.ALREADY_JOINED, message="你已报名该挑战", status_code=409)
 
-    record = UserChallenge(
-        user_id=user.id, challenge_id=challenge.id, status=ChallengeStatus.JOINED.value
-    )
+    record = UserChallenge(user_id=user.id, challenge_id=challenge.id, status=ChallengeStatus.JOINED.value)
     db.add(record)
     challenge.participant_count = int(challenge.participant_count or 0) + 1
     notification_service.create(
@@ -273,9 +271,7 @@ def leaderboard(db: Session, challenge_id: str, limit: int = 100) -> Leaderboard
 
 def my_challenges(db: Session, user: User, params: PageParams) -> tuple[list[UserChallengeOut], int]:
     """`GET /challenges/my`：我的挑战记录。"""
-    total = int(
-        db.scalar(select(func.count()).select_from(UserChallenge).where(UserChallenge.user_id == user.id)) or 0
-    )
+    total = int(db.scalar(select(func.count()).select_from(UserChallenge).where(UserChallenge.user_id == user.id)) or 0)
     rows = list(
         db.scalars(
             select(UserChallenge)

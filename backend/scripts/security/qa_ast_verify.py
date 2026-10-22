@@ -14,16 +14,16 @@
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
+import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from app.core.errors import AppError  # noqa: E402
-from app.sandbox.ast_guard import check_source  # noqa: E402
-from app.sandbox.protocol import LOCAL_BOOTSTRAP_NAME, SandboxFile, SandboxRequest  # noqa: E402
-from app.sandbox.runner import LocalRunner  # noqa: E402
-from app.services.sandbox_client import SandboxClient  # noqa: E402
+from app.core.errors import AppError
+from app.sandbox.ast_guard import check_source
+from app.sandbox.protocol import LOCAL_BOOTSTRAP_NAME, SandboxFile, SandboxRequest
+from app.sandbox.runner import LocalRunner
+from app.services.sandbox_client import SandboxClient
 
 # ---------------------------------------------------------------- A 正向绕过
 BYPASS = {
@@ -54,7 +54,7 @@ BYPASS = {
     "from os import chdir": "from os import chdir\nchdir('..')\nprint('escaped')",
     "__builtins__getattr": "print(getattr(__builtins__, '__import__'))",
     "eval注入": "eval(\"print('PWNED_C1')\")",
-    "eval注入import": 'eval("__import__(\'os\').system(\'echo PWNED_C2\')")',
+    "eval注入import": "eval(\"__import__('os').system('echo PWNED_C2')\")",
     "exec注入": "exec(\"print('PWNED_C3')\")",
     "open绝对盘符": "print(open('C:/Windows/win.ini').read()[:30])",
     "open原始字符串": "print(open(r'C:\\Windows\\win.ini').read()[:30])",
@@ -215,7 +215,7 @@ def main() -> None:
     print("=" * 78)
     client = SandboxClient(mode="local")
     for name, files in RESERVED_BYPASS.items():
-        entry = list(files)[0]
+        entry = next(iter(files))
         # 边界层：用户提交保留名必须被拒（HTTP 400 语义的 AppError）
         try:
             client.run(dict(files), entry=entry)
@@ -251,7 +251,9 @@ def main() -> None:
         if not ok:
             fp.append((name, v.rule if v else "-"))
         flag = "PASS" if ok else "**误杀**"
-        print(f"[{flag:9s}] {name:18s} status={r['status']:16s} rule={v.rule if v else '-':28s} out={(r['stdout'] or '')[:42]!r}")
+        print(
+            f"[{flag:9s}] {name:18s} status={r['status']:16s} rule={v.rule if v else '-':28s} out={(r['stdout'] or '')[:42]!r}"
+        )
         if not ok:
             print(f"            error={(r['error'] or '')[:160]!r}")
 

@@ -164,7 +164,7 @@ class CodeReviewService:
                 response = await self.provider.chat(messages, task="review", json_mode=True)
             except AppError:
                 raise
-            except Exception as exc:  # noqa: BLE001 - 远程异常一律兜底，避免 5xx
+            except Exception as exc:
                 logger.warning("代码评审调用失败，使用本地兜底: %s", exc)
                 break
             last_response = response
@@ -199,7 +199,7 @@ class CodeReviewService:
                 success=True,
                 degraded=response.degraded,
             )
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.warning("写评审用量日志失败: %s", exc)
 
 
@@ -246,7 +246,7 @@ async def analyze_error_report(
             if db is not None:
                 CodeReviewService._log_usage(db, user, response, scene="error")
             return result
-    except Exception as exc:  # noqa: BLE001 - 兜底，避免 5xx
+    except Exception as exc:
         logger.warning("报错分析调用失败，使用本地规则: %s", exc)
 
     result = analyze_error(code, error_message, traceback_text).as_dict()

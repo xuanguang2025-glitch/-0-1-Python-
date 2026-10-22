@@ -9,13 +9,13 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 import hashlib
 import logging
 import re
 import secrets
-import uuid
-from datetime import datetime, timedelta, timezone
 from typing import Any
+import uuid
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -43,7 +43,7 @@ def _build_context() -> CryptContext | None:
         if not context.verify("pythonlab-probe", probe):
             return None
         return context
-    except Exception as exc:  # noqa: BLE001 - 任何后端异常都降级到原生实现
+    except Exception as exc:
         logger.warning("passlib 哈希后端不可用，回退到 bcrypt 原生实现: %s", exc)
         return None
 
@@ -161,7 +161,7 @@ def token_hash(raw_token: str) -> str:
 
 def now_utc() -> datetime:
     """当前 UTC 时间（带时区）。"""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def _sign(payload: dict[str, Any]) -> str:

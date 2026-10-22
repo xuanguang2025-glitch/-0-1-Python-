@@ -6,15 +6,16 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
 import logging
 import re
-from typing import Any, Iterable, Mapping
+from typing import Any
 
 from sqlalchemy.orm import Session
 
 from app.core.errors import AppError, ErrorCode
 from app.models.user import User
-from app.services.code_history_service import (  # noqa: F401 - 再导出供端点使用
+from app.services.code_history_service import (
     compare_versions,
     delete_history,
     get_history,

@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import logging
 from datetime import timedelta
+import logging
 from typing import Any
 
 from fastapi import UploadFile
@@ -11,7 +11,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.core.constants import level_of_xp, next_level_xp
+from app.core.constants import next_level_xp
 from app.core.errors import AppError, ErrorCode
 from app.core.security import verify_password
 from app.models.course import CourseEnrollment
@@ -20,11 +20,11 @@ from app.models.learning import LearningProgress, LearningSession
 from app.models.submission import Submission
 from app.models.user import Profile, User
 from app.schemas.user import (
+    PreferencesUpdateRequest,
     ProfileOut,
     ProfileUpdateRequest,
-    PreferencesUpdateRequest,
-    UserOverviewOut,
     PublicUserOut,
+    UserOverviewOut,
 )
 from app.utils.files import build_zip
 from app.utils.text import mask_email
@@ -132,8 +132,7 @@ def get_overview(db: Session, user: User) -> UserOverviewOut:
         )
     ).all()
     today_seconds = sum(
-        item.duration_seconds
-        or (seconds_between(item.started_at, item.ended_at) if item.ended_at else 0)
+        item.duration_seconds or (seconds_between(item.started_at, item.ended_at) if item.ended_at else 0)
         for item in today_sessions
     )
 
@@ -152,7 +151,7 @@ def get_overview(db: Session, user: User) -> UserOverviewOut:
             )
             or 0
         )
-    except Exception:  # noqa: BLE001 - 统计失败不影响主流程
+    except Exception:
         daily_done = 0
 
     return UserOverviewOut(

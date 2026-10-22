@@ -54,9 +54,9 @@ r"""用户代码 AST 白名单校验（替代字符串黑名单）。
 from __future__ import annotations
 
 import ast
-import re
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Iterable, Mapping, Sequence
+import re
 
 from app.sandbox.protocol import DEFAULT_ALLOWED_MODULES
 
@@ -180,9 +180,7 @@ MODULE_ATTR_BLOCKLIST: Mapping[str, frozenset[str]] = {
         }
     ),
     "shutil": frozenset({"rmtree", "move", "disk_usage"}),
-    "pathlib": frozenset(
-        {"unlink", "rmtree", "chmod", "rename", "replace", "symlink_to", "hardlink_to", "touch"}
-    ),
+    "pathlib": frozenset({"unlink", "rmtree", "chmod", "rename", "replace", "symlink_to", "hardlink_to", "touch"}),
     "io": frozenset({"unlink", "remove", "rmdir"}),
 }
 
@@ -208,8 +206,8 @@ BLOCKED_CALL_NAMES: frozenset[str] = frozenset(
 )
 
 #: `from <白名单模块> import <危险名>` 的危险名（模块本身合法，但名字致命）
-DANGEROUS_IMPORTED_NAMES: frozenset[str] = BLOCKED_ATTRS | BLOCKED_CALL_NAMES | frozenset(
-    {"system", "popen", "fork", "spawn", "exec", "eval", "compile"}
+DANGEROUS_IMPORTED_NAMES: frozenset[str] = (
+    BLOCKED_ATTRS | BLOCKED_CALL_NAMES | frozenset({"system", "popen", "fork", "spawn", "exec", "eval", "compile"})
 )
 
 #: 命令注入特征（字符串常量内出现即拒）
@@ -323,11 +321,11 @@ class _ImportCollector(ast.NodeVisitor):
 
     aliases: dict[str, str]
 
-    def visit_Import(self, node: ast.Import) -> None:  # noqa: N802 - ast 命名
+    def visit_Import(self, node: ast.Import) -> None:
         for item in node.names:
             self.aliases[item.asname or item.name.split(".")[0]] = item.name
 
-    def visit_ImportFrom(self, node: ast.ImportFrom) -> None:  # noqa: N802 - ast 命名
+    def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
         module = node.module or ""
         for item in node.names:
             self.aliases[item.asname or item.name] = f"{module}.{item.name}" if module else item.name
@@ -347,7 +345,7 @@ class _SecurityVisitor(ast.NodeVisitor):
         return GuardViolation(rule, message, getattr(node, "lineno", 0), self.filename)
 
     # ------------------------------------------------------------------ import
-    def visit_Import(self, node: ast.Import) -> None:  # noqa: N802 - ast 命名
+    def visit_Import(self, node: ast.Import) -> None:
         """`import x` / `import x as y`：模块根必须在白名单内。"""
         for item in node.names:
             root = item.name.split(".")[0]
@@ -359,7 +357,7 @@ class _SecurityVisitor(ast.NodeVisitor):
                 )
         self.generic_visit(node)
 
-    def visit_ImportFrom(self, node: ast.ImportFrom) -> None:  # noqa: N802 - ast 命名
+    def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
         """`from x import y`：模块根须在白名单内，且不能导入危险名。"""
         module = node.module or ""
         root = module.split(".")[0]
@@ -389,7 +387,7 @@ class _SecurityVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     # ------------------------------------------------------------------ 调用
-    def visit_Call(self, node: ast.Call) -> None:  # noqa: N802 - ast 命名
+    def visit_Call(self, node: ast.Call) -> None:
         """函数调用：危险函数名、`open()`/`Path()` 路径规则、模块感知黑名单。"""
         func = node.func
         qualified = self._qualified_call_name(func)
@@ -458,9 +456,7 @@ class _SecurityVisitor(ast.NodeVisitor):
         for arg in node.args:
             if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
                 if _is_sensitive_absolute_path(arg.value):
-                    raise self._violation(
-                        "path_literal", f"禁止在 Path() 中引用绝对路径 {arg.value!r}", node
-                    )
+                    raise self._violation("path_literal", f"禁止在 Path() 中引用绝对路径 {arg.value!r}", node)
                 if _has_traversal(arg.value):
                     raise self._violation(
                         "path_constructor_escape",
@@ -487,17 +483,11 @@ class _SecurityVisitor(ast.NodeVisitor):
         # 收窄后的 `path_literal`：仅当敏感绝对路径字面量出现在 open() 实参位置才拒绝
         # （纯展示用法如 `print("path:", "/usr")` 放行，见 visit_Constant 注释）。
         for arg in node.args:
-            if (
-                isinstance(arg, ast.Constant)
-                and isinstance(arg.value, str)
-                and _is_sensitive_absolute_path(arg.value)
-            ):
-                raise self._violation(
-                    "path_literal", f"禁止在 open() 中引用绝对路径 {arg.value!r}", node
-                )
+            if isinstance(arg, ast.Constant) and isinstance(arg.value, str) and _is_sensitive_absolute_path(arg.value):
+                raise self._violation("path_literal", f"禁止在 open() 中引用绝对路径 {arg.value!r}", node)
 
     # ------------------------------------------------------------------ 属性
-    def visit_Attribute(self, node: ast.Attribute) -> None:  # noqa: N802 - ast 命名
+    def visit_Attribute(self, node: ast.Attribute) -> None:
         """属性访问：全局黑名单 + 模块感知黑名单 + dunder 白名单。"""
         attr = node.attr
         if attr.startswith("__") and attr.endswith("__") and attr not in _ALLOWED_DUNDERS:
@@ -519,7 +509,7 @@ class _SecurityVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     # -------------------------------------------------------------- 字符串常量
-    def visit_Constant(self, node: ast.Constant) -> None:  # noqa: N802 - ast 命名
+    def visit_Constant(self, node: ast.Constant) -> None:
         """字符串常量：仅全局检查命令注入特征。
 
         `path_literal`（敏感绝对路径）**不在这里全局检查**：那会把
@@ -532,9 +522,7 @@ class _SecurityVisitor(ast.NodeVisitor):
             lowered = node.value.lower()
             for marker in SHELL_INJECTION_MARKERS:
                 if marker in lowered:
-                    raise self._violation(
-                        "shell_injection", f"字符串包含命令注入特征 {marker!r}", node
-                    )
+                    raise self._violation("shell_injection", f"字符串包含命令注入特征 {marker!r}", node)
         self.generic_visit(node)
 
 
@@ -553,7 +541,7 @@ def resolve_allowed_imports(allowed_imports: Sequence[str] | None = None) -> fro
         from app.core.config import get_settings
 
         configured = get_settings().allowed_imports
-    except Exception:  # noqa: BLE001 - 配置不可用时用兜底白名单
+    except Exception:
         configured = []
     if configured:
         return frozenset(str(item).split(".")[0].strip() for item in configured if str(item).strip())
@@ -632,9 +620,7 @@ def check_files(
     """校验一组文件；`skip_paths` 中的文件（系统生成的引导文件）不参与校验。"""
     skip = {str(item) for item in skip_paths}
     skip_names = {item.replace("\\", "/").split("/")[-1] for item in skip}
-    allowed = resolve_allowed_imports(allowed_imports) | local_module_names(
-        files, skip_paths=skip_names
-    )
+    allowed = resolve_allowed_imports(allowed_imports) | local_module_names(files, skip_paths=skip_names)
     for path, content in files.items():
         name = str(path).replace("\\", "/").split("/")[-1]
         if path in skip or name in skip:

@@ -77,6 +77,4 @@ def update_setting(
 @router.post("/maintenance/rejudge", response_model=ResponseModel[dict], summary="批量重判")
 def rejudge(payload: MaintenanceRejudgeRequest, request: Request, db: DbSession, admin: AdminUser) -> dict:
     """批量重判（入队）。"""
-    return success_response(
-        admin_service.enqueue_rejudge(db, admin, payload.problem_id, payload.limit, meta(request))
-    )
+    return success_response(admin_service.enqueue_rejudge(db, admin, payload.problem_id, payload.limit, meta(request)))

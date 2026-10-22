@@ -10,38 +10,64 @@
 
 from __future__ import annotations
 
-from .common import (
-    DIFFICULTY_BY_LEVEL,
-    OBJECTIVE_TYPES,
-    PAPER_KEY,
-    is_expired as _is_expired,
-    remaining_seconds as _remaining_seconds,
-)
-from .grading import (
-    check_objective as _check_objective,
-    external_judge as _external_judge,
-    grade_problem,
-    local_judge as _local_judge,
-    normalize as _normalize,
-    to_bool as _to_bool,
-)
-from .papers import (
-    assemble_specs as _assemble_specs,
-    load_questions as _load_questions,
-    paper_specs as _paper_specs,
-    question_out as _question_out,
-)
 from .attempts import (
     get_attempt as _get_attempt,
+)
+from .attempts import (
     get_exam as _get_exam,
+)
+from .attempts import (
     get_exam_detail,
     list_exams,
-    paper_from_attempt as _paper_from_attempt,
     save_answers,
     start_exam,
     submit_exam,
 )
+from .attempts import (
+    paper_from_attempt as _paper_from_attempt,
+)
+from .common import (
+    DIFFICULTY_BY_LEVEL,
+    OBJECTIVE_TYPES,
+    PAPER_KEY,
+)
+from .common import (
+    is_expired as _is_expired,
+)
+from .common import (
+    remaining_seconds as _remaining_seconds,
+)
+from .grading import (
+    check_objective as _check_objective,
+)
+from .grading import (
+    external_judge as _external_judge,
+)
+from .grading import (
+    grade_problem,
+)
+from .grading import (
+    local_judge as _local_judge,
+)
+from .grading import (
+    normalize as _normalize,
+)
+from .grading import (
+    to_bool as _to_bool,
+)
 from .history import get_attempt_report, list_attempts, problem_briefs
+from .papers import (
+    assemble_specs as _assemble_specs,
+)
+from .papers import (
+    load_questions as _load_questions,
+)
+from .papers import (
+    paper_specs as _paper_specs,
+)
+from .papers import (
+    question_out as _question_out,
+)
 
 __all__ = [
     "OBJECTIVE_TYPES",

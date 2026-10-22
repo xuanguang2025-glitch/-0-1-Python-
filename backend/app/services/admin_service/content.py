@@ -56,18 +56,13 @@ def list_announcements(db: Session, params: PageParams) -> tuple[list[Announceme
     total = int(db.scalar(select(func.count()).select_from(Announcement)) or 0)
     rows = list(
         db.scalars(
-            select(Announcement)
-            .order_by(Announcement.published_at.desc())
-            .offset(params.offset)
-            .limit(params.limit)
+            select(Announcement).order_by(Announcement.published_at.desc()).offset(params.offset).limit(params.limit)
         ).all()
     )
     return rows, total
 
 
-def create_announcement(
-    db: Session, actor: User, payload: dict[str, Any], meta: dict[str, Any]
-) -> Announcement:
+def create_announcement(db: Session, actor: User, payload: dict[str, Any], meta: dict[str, Any]) -> Announcement:
     """新建公告。"""
     item = Announcement(**payload, created_by=actor.id, published_at=now_utc())
     db.add(item)
@@ -86,8 +81,14 @@ def update_announcement(
     before = snapshot(item, ["is_active", "is_pinned"])
     apply_fields(item, payload)
     audit(
-        db, actor, "admin.announcement.update", "announcement", item.id,
-        before=before, after=snapshot(item, ["is_active", "is_pinned"]), meta=meta,
+        db,
+        actor,
+        "admin.announcement.update",
+        "announcement",
+        item.id,
+        before=before,
+        after=snapshot(item, ["is_active", "is_pinned"]),
+        meta=meta,
     )
     db.commit()
     db.refresh(item)

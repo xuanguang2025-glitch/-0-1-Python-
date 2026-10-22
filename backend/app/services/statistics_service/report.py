@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -27,16 +27,19 @@ def report(db: Session, user: User, period: str = "week") -> ReportOut:
     """`GET /statistics/report`：周报 / 月报。"""
     period = "month" if period == "month" else "week"
     start_date, end_date, _ = window(period)
-    since = datetime(start_date.year, start_date.month, start_date.day, tzinfo=timezone.utc)
+    since = datetime(start_date.year, start_date.month, start_date.day, tzinfo=UTC)
 
-    minutes = int(
-        db.scalar(
-            select(func.coalesce(func.sum(LearningSession.duration_seconds), 0)).where(
-                LearningSession.user_id == user.id, LearningSession.started_at >= since
+    minutes = (
+        int(
+            db.scalar(
+                select(func.coalesce(func.sum(LearningSession.duration_seconds), 0)).where(
+                    LearningSession.user_id == user.id, LearningSession.started_at >= since
+                )
             )
+            or 0
         )
-        or 0
-    ) // 60
+        // 60
+    )
     lessons = int(
         db.scalar(
             select(func.count())
@@ -102,9 +105,7 @@ def report(db: Session, user: User, period: str = "week") -> ReportOut:
     )
 
 
-def build_recommendations(
-    db: Session, user: User, weak_topics: list[WeakTopicItem]
-) -> list[RecommendationItem]:
+def build_recommendations(db: Session, user: User, weak_topics: list[WeakTopicItem]) -> list[RecommendationItem]:
     """基于薄弱知识点推荐未通过题目（最多 3 条）。"""
     solved_ids = set(
         db.scalars(

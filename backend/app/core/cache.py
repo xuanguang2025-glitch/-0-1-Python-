@@ -9,12 +9,13 @@
 
 from __future__ import annotations
 
+from collections import OrderedDict
+from collections.abc import Callable
 import json
 import logging
 import threading
 import time
-from collections import OrderedDict
-from typing import Any, Callable, Protocol
+from typing import Any, Protocol
 
 logger = logging.getLogger("pythonlab.cache")
 
@@ -219,7 +220,7 @@ class RedisCache:
     def ping(self) -> bool:
         try:
             return bool(self._client.ping())
-        except Exception:  # noqa: BLE001 - 健康检查不应抛出
+        except Exception:
             return False
 
 
@@ -256,7 +257,7 @@ def build_cache() -> MemoryCache | RedisCache:
         client.ping()
         logger.info("cache=redis（auto 探测成功: %s）", settings.redis_url)
         return RedisCache(client, default_ttl=settings.cache_default_ttl)
-    except Exception as exc:  # noqa: BLE001 - 任何异常都应降级而非中断启动
+    except Exception as exc:
         logger.warning("Redis 不可用，降级为进程内内存缓存: %s", exc)
         return MemoryCache(max_size=5000, default_ttl=settings.cache_default_ttl)
 

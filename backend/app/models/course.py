@@ -53,12 +53,12 @@ class Course(Base, UUIDPkMixin, TimestampMixin):
     order_index: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     is_published: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
-    chapters: Mapped[list["Chapter"]] = relationship(
+    chapters: Mapped[list[Chapter]] = relationship(
         back_populates="course",
         cascade="all, delete-orphan",
         order_by="Chapter.order_index",
     )
-    enrollments: Mapped[list["CourseEnrollment"]] = relationship(
+    enrollments: Mapped[list[CourseEnrollment]] = relationship(
         back_populates="course",
         cascade="all, delete-orphan",
     )
@@ -74,7 +74,7 @@ class Course(Base, UUIDPkMixin, TimestampMixin):
         self.lesson_count = total
         return total
 
-    def ordered_chapters(self) -> list["Chapter"]:
+    def ordered_chapters(self) -> list[Chapter]:
         """按 `order_index` 返回已发布章节。"""
         return sorted(
             [chapter for chapter in (self.chapters or []) if chapter.is_published],
@@ -92,9 +92,7 @@ class Chapter(Base, UUIDPkMixin, TimestampMixin):
         Index("ix_chapters_order", "order_index"),
     )
 
-    course_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("courses.id", ondelete="CASCADE"), nullable=False
-    )
+    course_id: Mapped[str] = mapped_column(String(36), ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
     slug: Mapped[str] = mapped_column(String(120), nullable=False)
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     summary_md: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -102,8 +100,8 @@ class Chapter(Base, UUIDPkMixin, TimestampMixin):
     lesson_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     is_published: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
-    course: Mapped["Course"] = relationship(back_populates="chapters")
-    lessons: Mapped[list["Lesson"]] = relationship(
+    course: Mapped[Course] = relationship(back_populates="chapters")
+    lessons: Mapped[list[Lesson]] = relationship(
         back_populates="chapter",
         cascade="all, delete-orphan",
         order_by="Lesson.order_index",
@@ -128,9 +126,7 @@ class Lesson(Base, UUIDPkMixin, TimestampMixin):
         Index("ix_lessons_order", "order_index"),
     )
 
-    chapter_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("chapters.id", ondelete="CASCADE"), nullable=False
-    )
+    chapter_id: Mapped[str] = mapped_column(String(36), ForeignKey("chapters.id", ondelete="CASCADE"), nullable=False)
     slug: Mapped[str] = mapped_column(String(120), nullable=False, doc="与 lessons/stage-XX.md 的锚点一致")
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     summary: Mapped[str | None] = mapped_column(String(500), nullable=True)
@@ -147,12 +143,12 @@ class Lesson(Base, UUIDPkMixin, TimestampMixin):
     quiz_json: Mapped[Any | None] = mapped_column(JSON, nullable=True, doc="随堂练习 [{q,options,answer,explain}]")
     is_published: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
-    chapter: Mapped["Chapter"] = relationship(back_populates="lessons")
-    lesson_topics: Mapped[list["LessonTopic"]] = relationship(
+    chapter: Mapped[Chapter] = relationship(back_populates="lessons")
+    lesson_topics: Mapped[list[LessonTopic]] = relationship(
         back_populates="lesson",
         cascade="all, delete-orphan",
     )
-    progresses: Mapped[list["LearningProgress"]] = relationship(
+    progresses: Mapped[list[LearningProgress]] = relationship(
         back_populates="lesson",
         cascade="all, delete-orphan",
     )
@@ -160,11 +156,7 @@ class Lesson(Base, UUIDPkMixin, TimestampMixin):
     @property
     def primary_topic_slugs(self) -> list[str]:
         """主知识点 slug 列表（掌握度加权用）。"""
-        return [
-            link.topic.slug
-            for link in (self.lesson_topics or [])
-            if link.is_primary and link.topic is not None
-        ]
+        return [link.topic.slug for link in (self.lesson_topics or []) if link.is_primary and link.topic is not None]
 
 
 class Topic(Base, UUIDPkMixin):
@@ -186,17 +178,17 @@ class Topic(Base, UUIDPkMixin):
     order_index: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
-    parent: Mapped["Topic | None"] = relationship(
+    parent: Mapped[Topic | None] = relationship(
         back_populates="children",
         remote_side="Topic.id",
         foreign_keys="Topic.parent_id",
     )
-    children: Mapped[list["Topic"]] = relationship(
+    children: Mapped[list[Topic]] = relationship(
         back_populates="parent",
         foreign_keys="Topic.parent_id",
         passive_deletes=True,
     )
-    lesson_topics: Mapped[list["LessonTopic"]] = relationship(
+    lesson_topics: Mapped[list[LessonTopic]] = relationship(
         back_populates="topic",
         cascade="all, delete-orphan",
     )
@@ -211,16 +203,12 @@ class LessonTopic(Base):
         Index("ix_lt_lesson_id", "lesson_id"),
     )
 
-    lesson_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("lessons.id", ondelete="CASCADE"), primary_key=True
-    )
-    topic_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("topics.id", ondelete="CASCADE"), primary_key=True
-    )
+    lesson_id: Mapped[str] = mapped_column(String(36), ForeignKey("lessons.id", ondelete="CASCADE"), primary_key=True)
+    topic_id: Mapped[str] = mapped_column(String(36), ForeignKey("topics.id", ondelete="CASCADE"), primary_key=True)
     is_primary: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, doc="主知识点，计入掌握度主权重")
 
-    lesson: Mapped["Lesson"] = relationship(back_populates="lesson_topics")
-    topic: Mapped["Topic"] = relationship(back_populates="lesson_topics")
+    lesson: Mapped[Lesson] = relationship(back_populates="lesson_topics")
+    topic: Mapped[Topic] = relationship(back_populates="lesson_topics")
 
 
 class CourseEnrollment(Base, UUIDPkMixin):
@@ -233,12 +221,8 @@ class CourseEnrollment(Base, UUIDPkMixin):
         Index("ix_ce_course_id", "course_id"),
     )
 
-    user_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
-    course_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("courses.id", ondelete="CASCADE"), nullable=False
-    )
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    course_id: Mapped[str] = mapped_column(String(36), ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
     progress_percent: Mapped[int] = mapped_column(Integer, default=0, nullable=False, doc="0-100")
     completed_lessons: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     last_lesson_id: Mapped[str | None] = mapped_column(String(36), nullable=True, doc="继续学习用")
@@ -248,8 +232,8 @@ class CourseEnrollment(Base, UUIDPkMixin):
         DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False
     )
 
-    user: Mapped["User"] = relationship()
-    course: Mapped["Course"] = relationship(back_populates="enrollments")
+    user: Mapped[User] = relationship()
+    course: Mapped[Course] = relationship(back_populates="enrollments")
 
     @property
     def status(self) -> str:

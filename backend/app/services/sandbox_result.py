@@ -9,8 +9,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any, Mapping
+from typing import Any
 
 from app.sandbox.protocol import (
     STATUS_INTERNAL,
@@ -103,7 +104,7 @@ def _compare_float(actual: str, expected: str, tolerance: float) -> bool:
     right = normalize_output(expected).split()
     if len(left) != len(right):
         return False
-    for a_token, e_token in zip(left, right):
+    for a_token, e_token in zip(left, right, strict=False):
         try:
             a_val, e_val = float(a_token), float(e_token)
         except ValueError:

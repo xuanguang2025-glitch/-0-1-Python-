@@ -7,12 +7,12 @@ from fastapi import APIRouter
 from app.core.deps import CurrentUser, DbSession, OptionalUser
 from app.core.response import ResponseModel, success_response
 from app.schemas.course import (
+    LearningProgressOut,
     LessonBrief,
     LessonCompleteOut,
     LessonCompleteRequest,
     LessonDetail,
     LessonProgressRequest,
-    LearningProgressOut,
     QuizResultOut,
     QuizSubmitRequest,
     TopicOut,
@@ -42,9 +42,7 @@ def update_progress(
 ) -> dict:
     """上报学习进度（写 learning_progress + 同步报名进度）。"""
     lesson = lesson_service.get_lesson(db, lesson_id)
-    return success_response(
-        lesson_service.update_progress(db, current_user, lesson, payload), message="进度已保存"
-    )
+    return success_response(lesson_service.update_progress(db, current_user, lesson, payload), message="进度已保存")
 
 
 @router.post(

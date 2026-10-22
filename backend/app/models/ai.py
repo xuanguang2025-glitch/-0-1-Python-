@@ -22,7 +22,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin, UUIDPkMixin, utc_now
-from app.models.enums import AIMessageRole, AIMode, AIScene, AIProviderName
+from app.models.enums import AIMessageRole, AIMode, AIProviderName, AIScene
 
 
 class AIConversation(Base, UUIDPkMixin, TimestampMixin):
@@ -37,9 +37,7 @@ class AIConversation(Base, UUIDPkMixin, TimestampMixin):
         Index("ix_aic_archived", "is_archived"),
     )
 
-    user_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     title: Mapped[str] = mapped_column(String(200), default="新对话", nullable=False)
     mode: Mapped[str] = mapped_column(String(20), default=AIMode.STANDARD.value, nullable=False)
     scene: Mapped[str] = mapped_column(String(20), default=AIScene.FREE.value, nullable=False)
@@ -51,8 +49,8 @@ class AIConversation(Base, UUIDPkMixin, TimestampMixin):
     total_tokens: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     is_archived: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
-    user: Mapped["User"] = relationship()  # type: ignore[name-defined]
-    messages: Mapped[list["AIMessage"]] = relationship(
+    user: Mapped[User] = relationship()  # type: ignore[name-defined]
+    messages: Mapped[list[AIMessage]] = relationship(
         back_populates="conversation",
         cascade="all, delete-orphan",
         order_by="AIMessage.created_at",
@@ -94,7 +92,7 @@ class AIMessage(Base, UUIDPkMixin):
     meta_json: Mapped[Any | None] = mapped_column(JSON, nullable=True, doc="模型原始片段、代码引用等")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
-    conversation: Mapped["AIConversation"] = relationship(back_populates="messages")
+    conversation: Mapped[AIConversation] = relationship(back_populates="messages")
 
     @property
     def is_user(self) -> bool:
@@ -112,9 +110,7 @@ class AIModelConfig(Base, UUIDPkMixin, TimestampMixin):
         Index("ix_amc_is_active", "is_active"),
     )
 
-    provider: Mapped[str] = mapped_column(
-        String(30), default=AIProviderName.DEEPSEEK.value, nullable=False
-    )
+    provider: Mapped[str] = mapped_column(String(30), default=AIProviderName.DEEPSEEK.value, nullable=False)
     name: Mapped[str] = mapped_column(String(80), nullable=False, doc="显示名")
     model: Mapped[str] = mapped_column(String(80), nullable=False, doc="如 deepseek-chat")
     base_url: Mapped[str | None] = mapped_column(String(255), nullable=True)
@@ -145,9 +141,7 @@ class AIUsageLog(Base, UUIDPkMixin):
         Index("ix_aul_conversation_id", "conversation_id"),
     )
 
-    user_id: Mapped[str | None] = mapped_column(
-        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
-    )
+    user_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     conversation_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
     provider: Mapped[str] = mapped_column(String(30), default="", nullable=False)
     model: Mapped[str] = mapped_column(String(60), default="", nullable=False)

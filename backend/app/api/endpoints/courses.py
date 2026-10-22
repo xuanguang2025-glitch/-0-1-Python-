@@ -36,9 +36,7 @@ def list_courses(
     keyword: Annotated[str | None, Query(max_length=120, description="标题 / 副标题 / slug 模糊搜索")] = None,
 ) -> dict:
     """课程列表：支持难度 / 阶段筛选、关键词搜索、分页与排序白名单；已登录时附我的进度。"""
-    page = course_service.list_courses(
-        db, params, level=level, stage_no=stage_no, keyword=keyword, user=viewer
-    )
+    page = course_service.list_courses(db, params, level=level, stage_no=stage_no, keyword=keyword, user=viewer)
     return success_response(page)
 
 

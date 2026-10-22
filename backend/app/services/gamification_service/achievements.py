@@ -67,13 +67,9 @@ def get_badge_wall(db: Session, user: User) -> BadgeWallOut:
     )
 
 
-def list_my_achievements(
-    db: Session, user: User, params: PageParams
-) -> tuple[list[UserAchievementOut], int]:
+def list_my_achievements(db: Session, user: User, params: PageParams) -> tuple[list[UserAchievementOut], int]:
     """分页返回我的成就记录。"""
-    total = count(
-        db, select(func.count()).select_from(UserAchievement).where(UserAchievement.user_id == user.id)
-    )
+    total = count(db, select(func.count()).select_from(UserAchievement).where(UserAchievement.user_id == user.id))
     rows = list(
         db.scalars(
             select(UserAchievement)

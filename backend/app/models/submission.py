@@ -38,9 +38,7 @@ class Submission(Base, UUIDPkMixin):
         Index("ix_sub_user_problem", "user_id", "problem_id"),
     )
 
-    user_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     problem_id: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("problems.id", ondelete="SET NULL"), nullable=True, doc="客观题也可能为空"
     )
@@ -66,7 +64,7 @@ class Submission(Base, UUIDPkMixin):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    results: Mapped[list["SubmissionResult"]] = relationship(
+    results: Mapped[list[SubmissionResult]] = relationship(
         back_populates="submission",
         cascade="all, delete-orphan",
         order_by="SubmissionResult.id",
@@ -110,7 +108,7 @@ class SubmissionResult(Base, UUIDPkMixin):
     memory_kb: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     message: Mapped[str | None] = mapped_column(String(300), nullable=True)
 
-    submission: Mapped["Submission"] = relationship(back_populates="results")
+    submission: Mapped[Submission] = relationship(back_populates="results")
 
 
 # 复合索引：用户最近提交（DESC），用于「我的提交」列表分页

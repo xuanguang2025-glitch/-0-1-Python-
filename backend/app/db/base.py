@@ -8,7 +8,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import DateTime, MetaData, String
@@ -28,7 +28,7 @@ NAMING_CONVENTION: dict[str, str] = {
 
 def utc_now() -> datetime:
     """返回当前 UTC 时间（带时区）。"""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class Base(DeclarativeBase):
@@ -44,11 +44,7 @@ class Base(DeclarativeBase):
     def to_dict(self, *, exclude: set[str] | None = None) -> dict[str, Any]:
         """把实例转换为普通字典（不含关系属性），便于日志与审计快照。"""
         skip = exclude or set()
-        return {
-            column.key: getattr(self, column.key)
-            for column in self.__table__.columns
-            if column.key not in skip
-        }
+        return {column.key: getattr(self, column.key) for column in self.__table__.columns if column.key not in skip}
 
 
 class UUIDPkMixin:

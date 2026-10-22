@@ -4,6 +4,15 @@
 的路径引入（`from app.services.ai_provider import build_provider`）。
 """
 
+# 常用类型再导出，便于 `from app.services.ai_provider import AIProvider`
+from app.services.ai.base import (
+    AIProvider,
+    AIProviderError,
+    AIResponse,
+    ChatMessage,
+    ProviderConfig,
+    TokenUsage,
+)
 from app.services.ai.registry import (
     ProviderFactory,
     ResilientProvider,
@@ -14,16 +23,6 @@ from app.services.ai.registry import (
     provider_status,
     reset_provider,
     resolve_api_key,
-)
-
-# 常用类型再导出，便于 `from app.services.ai_provider import AIProvider`
-from app.services.ai.base import (  # noqa: F401  (re-export)
-    AIProvider,
-    AIProviderError,
-    AIResponse,
-    ChatMessage,
-    ProviderConfig,
-    TokenUsage,
 )
 
 __all__ = [

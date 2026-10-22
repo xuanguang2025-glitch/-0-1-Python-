@@ -4,9 +4,10 @@
 `render_system()` / `render_messages()` 便捷函数（等价于原来的 `prompt_service.render`）。
 """
 
-from typing import Any, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
-from app.services.ai.prompts import (  # noqa: F401  (re-export)
+from app.services.ai.prompts import (
     ERROR_ANALYSIS_SYSTEM,
     EXAM_GENERATOR_SYSTEM,
     LEVELS,

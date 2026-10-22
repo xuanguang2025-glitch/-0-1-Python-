@@ -17,11 +17,11 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 import shutil
 import sqlite3
 import sys
 import tempfile
-from pathlib import Path
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 if str(BACKEND_DIR) not in sys.path:
@@ -53,7 +53,7 @@ def main() -> int:
 
     from fastapi.testclient import TestClient
 
-    from app.main import app  # noqa: E402 - 必须在设置 DATABASE_URL 之后导入
+    from app.main import app
 
     client = TestClient(app)
 
@@ -86,7 +86,7 @@ def main() -> int:
         if resp.status_code not in (200, 201):
             record("0", "注册探针用户", False, f"{tag}: {resp.status_code} {resp.text[:120]}")
             return _finish()
-        users[tag] = resp.json()["data"]["access_token"] if "access_token" in resp.json()["data"] else ""
+        users[tag] = resp.json()["data"].get("access_token", "")
 
     def h(token: str) -> dict[str, str]:
         return {"Authorization": f"Bearer {token}"}
@@ -96,7 +96,7 @@ def main() -> int:
     record("2", "普通用户访问 /api/admin/dashboard", resp.status_code == 403, f"HTTP {resp.status_code}")
 
     # ---------- 3. IDOR：A 不能读 B 的提交详情 ----------
-    prob_row = con2 = None
+    con2 = None
     import sqlite3 as _s
 
     con2 = _s.connect(probe_db)
@@ -139,7 +139,7 @@ def main() -> int:
         pid, expected = hidden
         detail = client.get(f"/api/problems/{pid}")
         leaked = expected in detail.text
-        own = client.get("/api/problems", params={"keyword": ""})
+        client.get("/api/problems", params={"keyword": ""})
         record("5", "隐藏测试点期望值", not leaked, f"problem={pid[:8]}… expected={expected[:12]!r} 泄露={leaked}")
 
     # ---------- 6. SQL 注入探测 ----------
@@ -186,7 +186,7 @@ def main() -> int:
             )
         else:
             record("7", "沙箱环境变量隔离", True, f"AI_API_KEY/JWT_SECRET 均不可见（VAL={val!r}）")
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         record("7", "沙箱环境变量隔离", None, f"执行异常（判为 SKIP）：{exc!r}")
 
     # ---------- 8. AI 配置脱敏 + health 口径 ----------
@@ -195,7 +195,7 @@ def main() -> int:
         record("8", "AI 配置脱敏", None, f"管理员登录失败 HTTP {admin_login.status_code}")
     else:
         admin_token = admin_login.json()["data"]["access_token"]
-        put = client.put(
+        client.put(
             "/api/admin/ai-config",
             json={"api_key": "sk-probe-secret-key-1234567890", "provider": "deepseek"},
             headers=h(admin_token),

@@ -12,8 +12,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from datetime import UTC
 import ipaddress
-from typing import Callable
 
 from fastapi import Depends, Request
 
@@ -36,7 +37,7 @@ def _parse_ip(value: str | None):
         return None
     # XFF 里可能是 "host:port" 或 "[v6]:port"
     if text.startswith("["):
-        text = text[1: text.find("]")] if "]" in text else text
+        text = text[1 : text.find("]")] if "]" in text else text
     elif text.count(":") == 1 and "." in text:
         text = text.split(":", 1)[0]
     try:
@@ -111,9 +112,9 @@ def build_request_meta(request: Request, *, with_token_context: bool = False) ->
         meta.jti = payload.get("jti")
         expires = payload.get("exp")
         if isinstance(expires, (int, float)):
-            from datetime import datetime, timezone
+            from datetime import datetime
 
-            meta.access_expires_at = datetime.fromtimestamp(float(expires), tz=timezone.utc)
+            meta.access_expires_at = datetime.fromtimestamp(float(expires), tz=UTC)
     return meta
 
 
@@ -123,7 +124,7 @@ def enforce_rate_limit(key: str, limit: int, window_seconds: int) -> None:
     cache_key = f"{RATE_LIMIT_PREFIX}{key}"
     try:
         count = cache.incr(cache_key, 1, ttl=window_seconds)
-    except Exception:  # noqa: BLE001 - 缓存异常时放行，避免误伤用户
+    except Exception:
         return
     if count > limit:
         raise AppError(

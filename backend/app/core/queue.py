@@ -6,10 +6,11 @@
 
 from __future__ import annotations
 
-import logging
-import uuid
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Callable, Protocol
+import logging
+from typing import Any, Protocol
+import uuid
 
 logger = logging.getLogger("pythonlab.queue")
 
@@ -41,7 +42,7 @@ class InlineQueue:
         def _runner() -> None:
             try:
                 func(*args, **kwargs)
-            except Exception:  # noqa: BLE001 - 后台任务异常不得影响主流程
+            except Exception:
                 logger.exception("inline 任务执行失败 job_id=%s func=%s", job_id, getattr(func, "__name__", func))
 
         self._executor.submit(_runner)
@@ -92,7 +93,7 @@ def build_queue() -> InlineQueue | RQQueue:
         queue = _RQ(settings.rq_queue_name, connection=client)
         logger.info("queue=rq（队列名: %s）", settings.rq_queue_name)
         return RQQueue(queue)
-    except Exception as exc:  # noqa: BLE001 - 任何异常都应降级
+    except Exception as exc:
         if mode == "rq":
             raise
         logger.warning("Redis/RQ 不可用，降级为进程内 inline 队列: %s", exc)

@@ -6,8 +6,8 @@
 
 from __future__ import annotations
 
-import logging
 from collections.abc import Sequence
+import logging
 
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
@@ -47,9 +47,7 @@ def global_search(
     for type_name in wanted:
         items = _search_type(db, type_name, keyword, like, limit)
         if items:
-            groups.append(
-                SearchGroup(type=type_name, label=GROUP_LABELS.get(type_name, type_name), items=items)
-            )
+            groups.append(SearchGroup(type=type_name, label=GROUP_LABELS.get(type_name, type_name), items=items))
     total = sum(len(group.items) for group in groups)
     return SearchOut(groups=groups, total=total, keyword=keyword)
 
@@ -89,9 +87,7 @@ def suggest(db: Session, q: str, limit: int = 8) -> SuggestOut:
             .limit(limit)
         ).all()
         for lesson, course_slug in lessons:
-            suggestions.append(
-                SuggestItem(text=lesson.title, type="lesson", url=f"/courses/{course_slug}/{lesson.id}")
-            )
+            suggestions.append(SuggestItem(text=lesson.title, type="lesson", url=f"/courses/{course_slug}/{lesson.id}"))
 
     return SuggestOut(suggestions=suggestions[:limit])
 
